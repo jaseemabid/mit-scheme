@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchpur.c,v 9.67.2.1 2000/11/28 03:51:16 cph Exp $
+$Id: bchpur.c,v 9.67.2.2 2000/11/28 05:08:06 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -407,7 +407,8 @@ DEFUN (purify, (object, pure_p),
     * old_free_const, * block_start,
     * scan_start, * new_free_const, * pending_scan,
     * root, * root2, the_precious_objects,
-    * saved_const_top, * saved_vsp, * saved_sbb, * saved_sbt;
+    * saved_const_top;
+  struct saved_scan_state scan_state;
   extern Boolean EXFUN (update_allocator_parameters, (SCHEME_OBJECT *));
 
   run_pre_gc_hooks ();
@@ -526,14 +527,10 @@ DEFUN (purify, (object, pure_p),
   Free += (GC_relocate_root (&free_buffer_ptr));
 
   saved_const_top = Constant_Top;
-  saved_vsp = virtual_scan_pointer;
-  saved_sbb = scan_buffer_bottom;
-  saved_sbt = scan_buffer_top;
-
-  virtual_scan_pointer = ((SCHEME_OBJECT *) NULL);
-  scan_buffer_bottom = ((SCHEME_OBJECT *) NULL);
-  scan_buffer_top = Highest_Allocated_Address;
   Constant_Top = old_free_const;
+
+  save_scan_state ((&scan_state), pending_scan);
+  set_fixed_scan_area (0, Highest_Allocated_Address);
 
   result = (GCLoop ((CONSTANT_AREA_START ()), &free_buffer_ptr, &Free));
   if (result != old_free_const)
@@ -544,9 +541,7 @@ DEFUN (purify, (object, pure_p),
     /*NOTREACHED*/
   }
 
-  virtual_scan_pointer = saved_vsp;
-  scan_buffer_bottom = saved_sbb;
-  scan_buffer_top = saved_sbt;
+  pending_scan = (restore_scan_state (&scan_state));
 
   result = (GCLoop (pending_scan, &free_buffer_ptr, &Free));
   if (free_buffer_ptr != result)
@@ -600,7 +595,6 @@ DEFUN (purify, (object, pure_p),
   Constant_Top = saved_const_top;
   SEAL_CONSTANT_SPACE ();
   run_post_gc_hooks ();
-  return;
 }
 
 /* (PRIMITIVE-PURIFY OBJECT PURE? SAFETY-MARGIN)

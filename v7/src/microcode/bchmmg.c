@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.95.2.2 2000/11/28 03:41:24 cph Exp $
+$Id: bchmmg.c,v 9.95.2.3 2000/11/28 05:08:02 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -1774,6 +1774,22 @@ DEFUN (catastrophic_failure, (name), char * name)
 
 #endif /* GC_BUFFER_ALLOCATION */
 
+#define DUMP_SCAN_BUFFER(success)					\
+  DUMP_BUFFER (scan_buffer, scan_position, gc_buffer_bytes,		\
+	       success, "the scan buffer")
+
+#define DUMP_FREE_BUFFER(success)					\
+  DUMP_BUFFER (free_buffer, free_position, gc_buffer_bytes,		\
+	       success, "the free buffer")
+
+#define LOAD_SCAN_BUFFER()						\
+  LOAD_BUFFER (scan_buffer, scan_position, gc_buffer_bytes,		\
+	       "the scan buffer")
+
+#define LOAD_FREE_BUFFER()						\
+  LOAD_BUFFER (free_buffer, free_position, gc_buffer_bytes,		\
+	       "the free buffer")
+
 static int
 DEFUN (next_exponent_of_two, (value), int value)
 {
@@ -2374,8 +2390,7 @@ DEFUN (enqueue_free_buffer, (success), Boolean * success)
 
   diff = ((free_position - pre_read_position) >> gc_buffer_byte_shift);
   if (diff >= read_overlap)
-    DUMP_BUFFER (free_buffer, free_position, gc_buffer_bytes,
-		 success, "the free buffer");
+    DUMP_FREE_BUFFER (success);
   else
   {
     ENQUEUE_READY_BUFFER (free_buffer, free_position, gc_buffer_bytes);
@@ -2423,7 +2438,6 @@ DEFUN_VOID (abort_pre_reads)
 static void
 DEFUN (reload_scan_buffer, (skip), int skip)
 {
-
   scan_position += (skip << gc_buffer_byte_shift);
   virtual_scan_pointer += (skip << gc_buffer_shift);
 
@@ -2439,23 +2453,20 @@ DEFUN (reload_scan_buffer, (skip), int skip)
     scan_buffer_top = free_buffer_top;
     return;
   }
-  LOAD_BUFFER (scan_buffer, scan_position,
-	       gc_buffer_bytes, "the scan buffer");
+  LOAD_SCAN_BUFFER ();
   scan_buffer_bottom = (GC_BUFFER_BOTTOM (scan_buffer));
   scan_buffer_top = (GC_BUFFER_TOP (scan_buffer));
   *scan_buffer_top = (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, scan_buffer_top));
   
   if (read_overlap > 0)
     schedule_pre_reads ();
-  return;
 }
 
 SCHEME_OBJECT *
 DEFUN (dump_and_reload_scan_buffer, (number_to_skip, success),
        long number_to_skip AND Boolean * success)
 {
-  DUMP_BUFFER (scan_buffer, scan_position, gc_buffer_bytes,
-	       success, "the scan buffer");
+  DUMP_SCAN_BUFFER (success);
   reload_scan_buffer (1 + number_to_skip);
   return (scan_buffer_bottom);
 }
@@ -2482,8 +2493,7 @@ DEFUN (dump_and_reset_free_buffer, (overflow, success),
       enqueue_free_buffer (success);
   }
   else if (!same_buffer_p)
-    DUMP_BUFFER (free_buffer, free_position, gc_buffer_bytes,
-		 success, "the free buffer");
+    DUMP_FREE_BUFFER (success);
 
   /* Otherwise there is no need to dump now, it will be dumped
      when scan is dumped.  Note that the next buffer may be dumped
@@ -2594,8 +2604,7 @@ DEFUN (end_scan_buffer_extension, (to_relocate), char * to_relocate)
     source = scan_buffer_top;
     limit = (source + gc_extra_buffer_size);
 
-    DUMP_BUFFER (scan_buffer, scan_position, gc_buffer_bytes,
-		 ((Boolean *) NULL), "the scan buffer");
+    DUMP_SCAN_BUFFER (0);
     scan_position += gc_buffer_bytes;
     virtual_scan_pointer += gc_buffer_size;
 
@@ -2631,8 +2640,7 @@ DEFUN (end_scan_buffer_extension, (to_relocate), char * to_relocate)
     while (source < limit)
       *dest++ = *source++;
     
-    DUMP_BUFFER (scan_buffer, scan_position, gc_buffer_bytes,
-		 ((Boolean *) NULL), "the scan buffer");
+    DUMP_SCAN_BUFFER (0);
     scan_position += gc_buffer_bytes;
     virtual_scan_pointer += gc_buffer_size;
 
@@ -2688,6 +2696,71 @@ DEFUN (dump_free_directly, (from, nbuffers, success),
   return (free_buffer_bottom);
 }
 
+/* This code is needed by purify.  After the purified object is
+   copied, the next step is to scan constant space.  In order to do
+   this, it's necessary to save the current scan position, reset the
+   scan limit pointers to scan constant space, then restore the saved
+   scan position and finish scanning the heap.  These procedures
+   provide the necessary functionality to do this.  */
+
+static void
+DEFUN_VOID (reset_scan_buffer)
+{
+  virtual_scan_pointer = 0;
+  scan_position = (-1L);
+  scan_buffer = 0;
+  scan_buffer_bottom = 0;
+  scan_buffer_top = Highest_Allocated_Address;
+  next_scan_buffer = 0;
+  scan_buffer_extended_p = false;
+  extension_overlap_p = false;
+  extension_overlap_length = 0;
+}
+
+void
+DEFUN (save_scan_state, (state, scan),
+       struct saved_scan_state * state AND
+       SCHEME_OBJECT * scan)
+{
+  (state -> virtual_scan_pointer) = virtual_scan_pointer;
+  (state -> scan_position) = scan_position;
+  (state -> scan_offset) = (scan - scan_buffer_bottom);
+  if (scan_position != free_position)
+    DUMP_SCAN_BUFFER (0);
+  reset_scan_buffer ();
+}
+
+SCHEME_OBJECT *
+DEFUN (restore_scan_state, (state), struct saved_scan_state * state)
+{
+  virtual_scan_pointer = (state -> virtual_scan_pointer);
+  scan_position = (state -> scan_position);
+  if (scan_position == free_position)
+    {
+      scan_buffer = free_buffer;
+      scan_buffer_bottom = free_buffer_bottom;
+      scan_buffer_top = free_buffer_top;
+    }
+  else
+    {
+      scan_buffer = (OTHER_BUFFER (free_buffer));
+      scan_buffer_bottom = (GC_BUFFER_BOTTOM (scan_buffer));
+      scan_buffer_top = (GC_BUFFER_TOP (scan_buffer));
+      LOAD_SCAN_BUFFER ();
+    }
+  return (scan_buffer_bottom + (state -> scan_offset));
+}
+
+void
+DEFUN (set_fixed_scan_area, (bottom, top),
+       SCHEME_OBJECT * bottom AND
+       SCHEME_OBJECT * top)
+{
+  virtual_scan_pointer = bottom;
+  scan_buffer_bottom = bottom;
+  scan_buffer_top = top;
+}
+
 #ifndef START_TRANSPORT_HOOK
 #define START_TRANSPORT_HOOK()		do { } while (0)
 #endif
@@ -2726,17 +2799,9 @@ DEFUN_VOID (initialize_free_buffer)
   free_buffer = (INITIAL_FREE_BUFFER ());
   free_buffer_bottom = (GC_BUFFER_BOTTOM (free_buffer));
   free_buffer_top = (GC_BUFFER_TOP (free_buffer));
-  virtual_scan_pointer = NULL;
-  scan_position = -1L;
-  scan_buffer = NULL;
-  scan_buffer_bottom = NULL;
-  scan_buffer_top = Highest_Allocated_Address;
+  reset_scan_buffer ();
   /* Force first write to do an lseek. */
   gc_file_current_position = -1;
-  next_scan_buffer = NULL;
-  scan_buffer_extended_p = false;
-  extension_overlap_p = false;
-  extension_overlap_length = 0;
   return (free_buffer_bottom);
 }
 
@@ -2756,8 +2821,7 @@ DEFUN (initialize_scan_buffer, (block_start), SCHEME_OBJECT * block_start)
 void
 DEFUN (end_transport, (success), Boolean * success)
 {
-  DUMP_BUFFER (scan_buffer, scan_position, gc_buffer_bytes,
-	       success, "the final scan buffer");
+  DUMP_SCAN_BUFFER (success);
   scan_position += gc_buffer_bytes;
   virtual_scan_pointer += gc_buffer_size;
   free_position = scan_position;
