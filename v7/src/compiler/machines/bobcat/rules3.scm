@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/rules3.scm,v 4.10 1988/08/29 22:54:31 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/rules3.scm,v 4.10.1.1 1988/10/15 22:10:07 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -223,6 +223,20 @@ MIT in each case. |#
 	   (MOV L (A 4) ,areg)
 	   (LABEL ,label)
 	   ,@(generate/move-frame-up* frame-size temp)))))
+
+(define-rule statement
+  (INVOCATION-PREFIX:DYNAMIC-LINK (? frame-size)
+				  (REGISTER (? source))
+				  (REGISTER 12))
+  (QUALIFIER (pseudo-register? source))
+  (let ((areg (move-to-temporary-register! source 'ADDRESS))
+	(label (generate-label)))
+    (LAP (CMP L ,areg (A 4))
+	 (B HS B (@PCR ,label))
+	 (MOV L (A 4) ,areg)
+	 (LABEL ,label)
+	 ,@(generate/move-frame-up* frame-size
+				    (+ (lap:ea-operand-1 areg) 8)))))
 
 (define (generate/move-frame-up frame-size destination)
   (let ((temp (allocate-temporary-register! 'ADDRESS)))
