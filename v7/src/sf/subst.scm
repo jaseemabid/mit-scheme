@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.5 1987/06/26 20:05:47 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.6 1987/06/26 20:53:17 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -304,7 +304,8 @@ MIT in each case. |#
 	  (integrate/combination operations environment (cdr entry) operands)
 	  (let ((entry (assq name usual-integrations/expansion-alist)))
 	    (if entry
-		((cdr entry) operands identity-procedure dont-integrate)
+		((cdr entry) operands identity-procedure
+			     dont-integrate false environment)
 		(dont-integrate)))))))
 
 (define (system-global-environment? expression)
