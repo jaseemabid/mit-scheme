@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rtlty1.scm,v 4.21 1993/07/01 03:25:47 gjr Exp $
+$Id: rtlty1.scm,v 4.21.1.1 1994/03/30 21:21:26 gjr Exp $
 
-Copyright (c) 1987-1993 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -125,18 +125,26 @@ MIT in each case. |#
 (define-rtl-expression flonum-2-args rtl:
   operator operand-1 operand-2 overflow?)
 
+;; Predicates whose inputs are fixnums
 (define-rtl-predicate fixnum-pred-1-arg %
   predicate operand)
 (define-rtl-predicate fixnum-pred-2-args %
   predicate operand-1 operand-2)
 
+;; Predicates whose inputs are flonums
 (define-rtl-predicate flonum-pred-1-arg %
   predicate operand)
 (define-rtl-predicate flonum-pred-2-args %
   predicate operand-1 operand-2)
 
 (define-rtl-predicate eq-test % expression-1 expression-2)
+
+;; Type tests compare an extracted type field with a constant type
 (define-rtl-predicate type-test % expression type)
+
+;; General predicates
+(define-rtl-predicate pred-1-arg % predicate operand)
+(define-rtl-predicate pred-2-args % predicate operand-1 operand-2)
 
 (define-rtl-predicate overflow-test rtl:)
 
@@ -198,3 +206,33 @@ MIT in each case. |#
   frame-size locative)
 (define-rtl-statement invocation-prefix:dynamic-link rtl:
   frame-size locative register)
+
+;;;; New RTL
+
+(define-rtl-statement invocation:register rtl:
+  pushed continuation destination cont-defined? nregs)
+(define-rtl-statement invocation:procedure rtl:
+  pushed continuation procedure nregs)
+(define-rtl-statement invocation:new-apply rtl:
+  pushed continuation destination nregs)
+
+(define-rtl-statement return-address rtl: label frame-size nregs)
+(define-rtl-statement procedure rtl: label frame-size)
+(define-rtl-statement trivial-closure rtl: label min max)
+(define-rtl-statement closure rtl: label frame-size)
+(define-rtl-statement expression rtl: label)
+
+(define-rtl-statement interrupt-check:procedure rtl:
+  intrpt? heap? stack? label nregs)
+(define-rtl-statement interrupt-check:continuation rtl:
+  intrpt? heap? stack? label nregs)
+(define-rtl-statement interrupt-check:closure rtl:
+  intrpt? heap? stack? nregs)
+(define-rtl-statement interrupt-check:simple-loop rtl:
+  intrpt? heap? stack? loop-label header-label nregs)
+
+(define-rtl-statement preserve rtl: register how)
+(define-rtl-statement restore rtl: register value)
+
+(define-rtl-expression static-cell rtl: name)
+(define-rtl-expression align-float rtl: expression)
