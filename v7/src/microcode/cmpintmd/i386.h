@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.32.4.1 2001/12/14 20:20:26 cph Exp $
+$Id: i386.h,v 1.32.4.2 2001/12/16 05:43:05 cph Exp $
 
 Copyright (c) 1992-2001 Massachusetts Institute of Technology
 
@@ -631,6 +631,7 @@ DEFUN_VOID (i386_reset_hook)
   SETUP_REGISTER (asm_sc_apply_size_7);			/* -10 */
   SETUP_REGISTER (asm_sc_apply_size_8);			/* -9 */
   SETUP_REGISTER (asm_interrupt_continuation_2);	/* -8 */
+  SETUP_REGISTER (asm_conditionally_serialize);		/* -7 */
 
 #ifdef _MACH_UNIX
   {

@@ -1,6 +1,6 @@
 ### -*-Midas-*-
 ###
-### $Id: i386.m4,v 1.50.8.1 2001/12/14 20:19:53 cph Exp $
+### $Id: i386.m4,v 1.50.8.2 2001/12/16 05:44:16 cph Exp $
 ###
 ### Copyright (c) 1992-2001 Massachusetts Institute of Technology
 ###
@@ -468,7 +468,7 @@ i386_initialize_no_fp:
 	jne		not_intel_cpu
 	OP(cmp,l)	TW(IMM(HEX(49656e69)),REG(edx))
 	jne		not_intel_cpu
-	OP(cmp,l)	TW(IMM(HEX(6c65646e)),REG(ecx))
+	OP(cmp,l)	TW(IMM(HEX(6c65746e)),REG(ecx))
 	jne		not_intel_cpu
 
 # For CPU families 4 (486), 5 (Pentium), or 6 (Pentium Pro, Pentium
@@ -658,7 +658,7 @@ interface_to_C_proceed:')
 	OP(pop,l)	REG(edi)
 	leave
 	ret
-
+
 define_c_label(ia32_cache_synchronize)
 	OP(push,l)	REG(ebp)
 	OP(mov,l)	TW(REG(esp),REG(ebp))
@@ -667,6 +667,18 @@ define_c_label(ia32_cache_synchronize)
 	cpuid
 	OP(pop,l)	REG(ebx)
 	leave
+	ret
+
+### Conditionally run the CPUID instruction for serialization.
+
+define_hook_label(conditionally_serialize)
+	OP(cmp,l)	TW(IMM(0),ABS(EVR(ia32_cpuid_needed)))
+	je	asm_conditionally_serialize_done
+	pusha
+	OP(xor,l)	TW(REG(eax),REG(eax))
+	cpuid
+	popa
+asm_conditionally_serialize_done:
 	ret
 
 ###	Assembly language hooks used to reduce code size.
