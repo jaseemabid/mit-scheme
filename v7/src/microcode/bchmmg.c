@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.95.2.1 2000/11/27 05:57:52 cph Exp $
+$Id: bchmmg.c,v 9.95.2.2 2000/11/28 03:41:24 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -27,20 +27,21 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "option.h"
 #include "osenv.h"
 
-#ifdef HAVE_UNISTD_H
-#  include <unistd.h>
+#ifdef __unix__
+#  include "ux.h"
+#  define SUB_DIRECTORY_DELIMITER '/'
+/* This makes for surprising behavior: */
+/* #  define UNLINK_BEFORE_CLOSE */
 #endif
 
 #ifdef __WIN32__
 #  include "nt.h"
 #  define SUB_DIRECTORY_DELIMITER '\\'
-#  define ASSUME_NORMAL_GC_FILE
 #endif
 
 #ifdef __OS2__
 #  include "os2.h"
 #  define SUB_DIRECTORY_DELIMITER '\\'
-#  define ASSUME_NORMAL_GC_FILE
 #  if defined(__IBMC__) || defined(__WATCOMC__) || defined(__EMX__)
 #    include <io.h>
 #    include <sys\stat.h>
@@ -51,13 +52,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #    define W_OK 2
 #    define R_OK 4
 #  endif
-#endif
-
-#ifndef SUB_DIRECTORY_DELIMITER
-#  include "ux.h"
-#  define SUB_DIRECTORY_DELIMITER '/'
-#  define UNLINK_BEFORE_CLOSE
-   extern int EXFUN (unlink, (CONST char *));
 #endif
 
 #include "bchgcc.h"
@@ -1842,13 +1836,16 @@ DEFUN_VOID (restore_gc_file)
 static void
 DEFUN (close_gc_file, (unlink_p), int unlink_p)
 {
-#ifdef F_ULOCK
+#ifdef HAVE_LOCKF
   if (gc_file != -1)
-  {
-    (void) (lseek (gc_file, gc_file_start_position, SEEK_SET));
-    (void) (lockf (gc_file, F_ULOCK,
-		   (gc_file_end_position - gc_file_start_position)));
-  }
+    {
+      if ((lseek (gc_file, gc_file_start_position, SEEK_SET)) < 0)
+	perror ("lseek");
+      if ((lockf (gc_file, F_ULOCK,
+		  (gc_file_end_position - gc_file_start_position)))
+	  < 0)
+	perror ("lockf");
+    }
 #endif
   if ((gc_file != -1) && ((close (gc_file)) == -1))
     outf_error ("\n%s (close_gc_file): error: GC file = \"%s\"; errno = %s.\n",
@@ -1964,11 +1961,7 @@ DEFUN (open_gc_file, (size, unlink_p),
   }
   else
   {
-#ifdef ASSUME_NORMAL_GC_FILE
-    /* Assume that it will be a normal file.  */
-    exists_p = true;
-    can_dump_directly_p = true;
-#else
+#ifdef __unix__
     /* If it is S_IFCHR, it should determine the IO block
        size and make sure that it will work.
        I don't know how to do that.
@@ -1995,13 +1988,17 @@ DEFUN (open_gc_file, (size, unlink_p),
     }
     else
       can_dump_directly_p = true;
-#endif /* not ASSUME_NORMAL_GC_FILE */
+#else
+    /* Assume that it will be a normal file.  */
+    exists_p = true;
+    can_dump_directly_p = true;
+#endif
   }
 
   gc_file = (open (gc_file_name, flags, GC_FILE_MASK));
   if (gc_file == -1)
   {
-#if defined(__WIN32__) || defined(__OS2__)
+#ifndef __unix__
     /* errno does not give sufficient information except under unix. */
 
     int saved_errno = errno;
@@ -2030,7 +2027,7 @@ DEFUN (open_gc_file, (size, unlink_p),
     }      
     else
       errno = saved_errno;
-#endif /* __WIN32__ || __OS2__ */
+#endif /* not __unix__ */
     termination_open_gc_file ("open", ((char *) NULL));
   }
 
@@ -2038,41 +2035,35 @@ DEFUN (open_gc_file, (size, unlink_p),
 
 #ifdef UNLINK_BEFORE_CLOSE
   if (!keep_gc_file_p && unlink_p)
-    (void) (unlink (gc_file_name));
+    unlink (gc_file_name);
 #endif  
 
 #ifdef HAVE_PREALLOC
   if (!exists_p)
-  {
-    extern int EXFUN (prealloc, (int, off_t));
-
-    (void) (prealloc (gc_file, ((unsigned int) gc_file_end_position)));
-  }
-#endif /* HAVE_PREALLOC */
+    prealloc (gc_file, ((unsigned int) gc_file_end_position));
+#endif
 
-#ifdef F_TLOCK
+#ifdef HAVE_LOCKF
   if (exists_p)
-  {
-    extern int EXFUN (locfk, (int, int, long));
+    {
+      if ((lseek (gc_file, gc_file_start_position, SEEK_SET)) < 0)
+	termination_open_gc_file ("lseek", ((char *) NULL));
 
-    if ((lseek (gc_file, gc_file_start_position, SEEK_SET)) == -1)
-      termination_open_gc_file ("lseek", ((char *) NULL));
-
-    if ((lockf (gc_file, F_TLOCK, size)) == -1)
-      termination_open_gc_file
-	("lockf",
-	 "The GC file is probably being used by another process");
-  }
-#endif /* F_TLOCK */
+      if ((lockf (gc_file, F_TLOCK, size)) < 0)
+	termination_open_gc_file
+	  ("lockf",
+	   "The GC file is probably being used by another process");
+    }
+#endif
 
   gc_file_current_position = -1;	/* Unknown position */
 
-#ifndef ASSUME_NORMAL_GC_FILE
+#ifdef __unix__
   /* Determine whether it is a seekable file. */
   if (exists_p && ((file_info.st_mode & S_IFMT) == S_IFCHR))
   {
-#if defined(F_GETFL) && defined(F_SETFL) && defined(O_NONBLOCK)
-    int flags;
+#ifdef HAVE_FCNTL
+    int fcntl_flags;
 #endif
     Boolean ignore;
     static char message[] = "This is a test message to the GC file.\n";
@@ -2085,9 +2076,10 @@ DEFUN (open_gc_file, (size, unlink_p),
 	     (IO_PAGE_SIZE - (sizeof (message))));
     (* (buffer + (IO_PAGE_SIZE - 1))) = '\n';
 
-#if defined(F_GETFL) && defined(F_SETFL) && defined(O_NONBLOCK)
-    if ((flags = (fcntl (gc_file, F_GETFL, 0))) != -1)
-      (void) (fcntl (gc_file, F_SETFL, (flags | O_NONBLOCK)));
+#ifdef HAVE_FCNTL
+    fcntl_flags = (fcntl (gc_file, F_GETFL, 0));
+    if (fcntl_flags != (-1))
+      fcntl (gc_file, F_SETFL, (fcntl_flags | O_NONBLOCK));
 #endif
 
     write_data (buffer,
@@ -2106,13 +2098,12 @@ DEFUN (open_gc_file, (size, unlink_p),
 		  scheme_program_name, gc_file_name);
       termination_open_gc_file (((char *) NULL), ((char *) NULL));
     }
-#if defined(F_GETFL) && defined(F_SETFL) && defined(O_NONBLOCK)
-    if (flags != -1)
-      (void) (fcntl (gc_file, F_SETFL, (flags | O_NONBLOCK)));
+#ifdef HAVE_FCNTL
+    if (fcntl_flags != (-1))
+      fcntl (gc_file, F_SETFL, fcntl_flags);
 #endif
   }
-#endif /* not ASSUME_NORMAL_GC_FILE */
-  return;
+#endif /* __unix__ */
 }
 
 #define CONSTANT_SPACE_FUDGE	128
