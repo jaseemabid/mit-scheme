@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/xform.scm,v 3.4.1.2 1987/06/26 19:56:54 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/xform.scm,v 3.4.1.3 1987/06/30 07:02:42 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -51,22 +51,27 @@ MIT in each case. |#
 ;;; which never has any user defined names in it.
 
 (define (transform/top-level expression)
-  (let ((block (block/make (block/make false false) false)))
-    (return-2 block (transform/top-level-1 block expression))))
+  (let ((block (block/make (block/make false false) false))
+	(environment (environment/make)))
+    (block/set-environment! block environment)
+    (return-2 block (transform/top-level-1 block block expression true))))
 
-(define (transform/top-level-1 block expression)
-  (transform/recursive block (environment/make) block expression))
+(define (transform/recursive block top-level-block expression)
+  (transform/top-level-1 block top-level-block expression false))
 
-(define (transform/recursive block environment top-level-block expression)
+(define (transform/top-level-1 block top-level-block expression allow-open-block?)
   (fluid-let ((global-block
 	       (let block/global-parent ((block top-level-block))
 		 (if (block/parent block)
 		     (block/global-parent (block/parent block))
 		     block))))
-    (if (scode-open-block? expression)
-	(open-block-components expression
-	  (transform/open-block* block environment))
-	(transform/expression block environment expression))))
+    (cond ((not (scode-open-block? expression))
+	   (transform/expression block (block/environment block) expression))
+	  ((not allow-open-block?)
+	   (error "transform/top-level-1: open blocks disallowed" expression))
+	  (else
+	   (open-block-components expression
+	     (transform/open-block* block (block/environment block)))))))
 
 (define (transform/expressions block environment expressions)
   (map (lambda (expression)
@@ -132,6 +137,7 @@ MIT in each case. |#
       (define (transform subexpression)
 	(transform/expression block environment subexpression))
 
+      (block/set-environment! block environment)
       (transmit-values (loop variables (sequence-actions body))
 	(lambda (values actions)
 	  (open-block/make block variables values actions))))))
@@ -157,12 +163,14 @@ MIT in each case. |#
 			(map name->variable optional)
 			(and rest (name->variable rest))))
 	  (lambda (required optional rest)
-	    (let ((bound `(,@required ,@optional ,@(if rest `(,rest) '()))))
+	    (let* ((bound `(,@required ,@optional ,@(if rest `(,rest) '())))
+		   (environment (environment/bind environment bound)))
+	      (block/set-environment! block environment)
 	      (block/set-bound-variables! block bound)
 	      (procedure/make
 	       block name required optional rest
 	       (transform/procedure-body block
-					 (environment/bind environment bound)
+					 environment
 					 body)))))))))
 
 (define (transform/procedure-body block environment expression)
