@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.4 2002/01/17 16:53:38 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.5 2002/01/17 17:36:03 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -51,7 +51,7 @@
 	       (history (make-top-level-history forms environment)))
 	  (call-with-values
 	      (lambda ()
-		(extract-definitions-from-body
+		(extract-declarations-from-body
 		 (classify/body-forms forms environment environment history
 				      select-object)))
 	    (lambda (declaration-items body-items)
@@ -245,7 +245,7 @@
 			  body-items)))
 	(reverse! body-items))))
 
-(define (extract-definitions-from-body items)
+(define (extract-declarations-from-body items)
   (let loop ((items items) (declarations '()) (items* '()))
     (if (pair? items)
 	(if (declaration-item? (car items))

@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: mit-syntax.scm,v 1.1.2.5 2002/01/17 16:53:35 cph Exp $
+;;; $Id: mit-syntax.scm,v 1.1.2.6 2002/01/17 17:35:59 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -460,7 +460,7 @@
 (define (compile-body-item item)
   (call-with-values
       (lambda ()
-	(extract-definitions-from-body (body-item/components item)))
+	(extract-declarations-from-body (body-item/components item)))
     (lambda (declaration-items items)
       (call-with-values (lambda () (split-body-items items))
 	(lambda (names items)
