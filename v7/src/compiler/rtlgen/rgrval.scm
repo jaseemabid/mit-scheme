@@ -1,9 +1,9 @@
 d3 1
 a4 1
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/rgrval.scm,v 4.4 1988/03/14 20:54:28 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/rgrval.scm,v 4.4.1.1 1988/08/05 15:15:25 jinx Exp $
 #| -*-Scheme-*-
 Copyright (c) 1987 Massachusetts Institute of Technology
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/rgrval.scm,v 4.4 1988/03/14 20:54:28 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/rgrval.scm,v 4.4.1.1 1988/08/05 15:15:25 jinx Exp $
 
 Copyright (c) 1988, 1990 Massachusetts Institute of Technology
 
@@ -264,9 +264,7 @@ promotional, or sales literature without prior written consent from
       (procedure-closure-size procedure)))))
 
 (define (with-procedure-arity-encoding procedure receiver)
-  (let* ((min
-	  (+ (if (procedure/closure? procedure) 1 0)
-	     (length (procedure-required-arguments procedure))))
+  (let* ((min (1+ (length (procedure-required-arguments procedure))))
 	 (max (+ min (length (procedure-optional procedure)))))
     (receiver min
 	      (if (procedure-rest procedure)
