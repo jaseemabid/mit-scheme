@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/x11term.c,v 1.4.1.2 1989/06/21 10:20:27 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/x11term.c,v 1.4.1.3 1989/06/27 10:10:15 cph Exp $
 
 Copyright (c) 1989 Massachusetts Institute of Technology
 
@@ -310,7 +310,8 @@ DEFINE_PRIMITIVE ("XTERM-OPEN-WINDOW", Prim_xterm_open_window, 3, 3,
 
     geometry =
       (((ARG_REF (2)) == SHARP_F)
-       ? (XGetDefault (display, RESOURCE_NAME, "Geometry"))
+       ? (x_get_default
+	  (display, RESOURCE_NAME, "geometry", "Geometry", ((char *) 0)))
        : (STRING_ARG (2)));
     result = 
       (XGeometry (display, screen_number, geometry,
