@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/xform.scm,v 3.4 1987/06/05 21:36:10 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/xform.scm,v 3.4.1.1 1987/06/26 18:19:10 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -54,13 +54,14 @@ MIT in each case. |#
   (let ((block (block/make (block/make false false) false)))
     (return-2 block (transform/top-level-1 block expression))))
 
-(define (transform/top-level-1 block expression)
+(define (transform/top-level-1 block expression #!optional environment)
   (fluid-let ((global-block
 	       (let block/global-parent ((block block))
 		 (if (block/parent block)
 		     (block/global-parent (block/parent block))
 		     block))))
-    (let ((environment (environment/make)))
+    (let ((environment
+	   (if (unassigned? environment) (environment/make) environment)))
       (if (scode-open-block? expression)
 	  (open-block-components expression
 	    (transform/open-block* block environment))
