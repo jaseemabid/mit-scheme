@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: clscon.scm,v 1.7.6.1 2002/01/19 01:33:55 cph Exp $
+;;; $Id: clscon.scm,v 1.7.6.2 2002/01/19 01:35:08 cph Exp $
 ;;;
 ;;; Copyright (c) 1986-1999, 2002 Massachusetts Institute of Technology
 ;;;
@@ -75,7 +75,7 @@
   (define (generate variables n)
     (if (pair? variables)
 	(cons (cons (car variables) n)
-	      (generate (cdr variables) (1+ n) tail))
+	      (generate (cdr variables) (+ n 1)))
 	'()))
   (if superclass
       (append (class-instance-transforms superclass)
