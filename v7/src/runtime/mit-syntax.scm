@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: mit-syntax.scm,v 1.1.2.9 2002/01/18 03:18:16 cph Exp $
+;;; $Id: mit-syntax.scm,v 1.1.2.10 2002/01/18 04:09:01 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -262,7 +262,7 @@
 	;; User-defined macros at top level are preserved in the output.
 	(if (and (transformer-item? item)
 		 (syntactic-environment/top-level? environment))
-	    (make-binding-item history name (transformer-item/expression item))
+	    (make-binding-item history name item)
 	    (make-null-binding-item history)))
       (make-binding-item history (bind-variable! environment name) item)))
 
