@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: defstr.scm,v 14.37.2.2 2002/01/16 23:03:00 cph Exp $
+$Id: defstr.scm,v 14.37.2.3 2002/01/17 21:42:58 cph Exp $
 
 Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -295,7 +295,9 @@ differences:
   (close (symbol-append (parser-context/name context) '?) context))
 
 (define (default-unparser-text context)
-  `(,(absolute 'STANDARD-UNPARSER-METHOD) ',(parser-context/name context) #F))
+  `(,(absolute 'STANDARD-UNPARSER-METHOD context)
+    ',(parser-context/name context)
+    #F))
 
 (define (default-type-name context)
   (close (parser-context/name context) context))
@@ -676,8 +678,9 @@ differences:
 
 ;;;; Code Generation
 
-(define (absolute name)
-  `(ACCESS ,name #F))
+(define (absolute name context)
+  (make-syntactic-closure (parser-context/closing-environment context) '()
+    `(ACCESS ,name #F)))
 
 (define (accessor-definitions structure)
   (let ((context (structure/context structure)))
@@ -694,7 +697,8 @@ differences:
 		    (,(absolute (case (structure/type structure)
 				  ((RECORD) 'RECORD-ACCESSOR)
 				  ((VECTOR) 'DEFINE-STRUCTURE/VECTOR-ACCESSOR)
-				  ((LIST) 'DEFINE-STRUCTURE/LIST-ACCESSOR)))
+				  ((LIST) 'DEFINE-STRUCTURE/LIST-ACCESSOR))
+				context)
 		     ,(or (structure/tag-expression structure)
 			  (slot/index slot))
 		     ',name))
@@ -702,7 +706,8 @@ differences:
 		    (,(absolute (case (structure/type structure)
 				  ((RECORD) '%RECORD-REF)
 				  ((VECTOR) 'VECTOR-REF)
-				  ((LIST) 'LIST-REF)))
+				  ((LIST) 'LIST-REF))
+				context)
 		     STRUCTURE
 		     ,(slot/index slot))))))
 	 (structure/slots structure))))
@@ -722,23 +727,25 @@ differences:
 		    (,(absolute (case (structure/type structure)
 				  ((RECORD) 'RECORD-MODIFIER)
 				  ((VECTOR) 'DEFINE-STRUCTURE/VECTOR-MODIFIER)
-				  ((LIST) 'DEFINE-STRUCTURE/LIST-MODIFIER)))
+				  ((LIST) 'DEFINE-STRUCTURE/LIST-MODIFIER))
+				context)
 		     ,(or (structure/tag-expression structure)
 			  (slot/index slot))
 		     ',name))
 		 `(DEFINE-INTEGRABLE (,modifier-name STRUCTURE VALUE)
 		    ,(case (structure/type structure)
 		       ((RECORD)
-			`(,(absolute '%RECORD-SET!) STRUCTURE
-						    ,(slot/index slot)
-						    VALUE))
+			`(,(absolute '%RECORD-SET! context) STRUCTURE
+							    ,(slot/index slot)
+							    VALUE))
 		       ((VECTOR)
-			`(,(absolute 'VECTOR-SET!) STRUCTURE
-						   ,(slot/index slot)
-						   VALUE))
+			`(,(absolute 'VECTOR-SET! context) STRUCTURE
+							   ,(slot/index slot)
+							   VALUE))
 		       ((LIST)
-			`(,(absolute 'SET-CAR!)
-			  (,(absolute 'LIST-TAIL) STRUCTURE ,(slot/index slot))
+			`(,(absolute 'SET-CAR! context)
+			  (,(absolute 'LIST-TAIL context) STRUCTURE
+							  ,(slot/index slot))
 			  VALUE)))))))
 	 (delete-matching-items (structure/slots structure) slot/read-only?))))
 
@@ -761,30 +768,34 @@ differences:
 	`(,(absolute (case (structure/type structure)
 		       ((RECORD) '%RECORD)
 		       ((VECTOR) 'VECTOR)
-		       ((LIST) 'LIST)))
+		       ((LIST) 'LIST))
+		     (structure/context structure))
 	  ,@(constructor-prefix-slots structure tag-expression)
 	  ,@slot-names)))))
 
 (define (constructor-definition/keyword structure name)
   (make-constructor structure name 'KEYWORD-LIST
     (lambda (tag-expression)
-      (let ((list-cons
-	     `(,@(constructor-prefix-slots structure tag-expression)
-	       (,(absolute 'DEFINE-STRUCTURE/KEYWORD-PARSER)
-		KEYWORD-LIST
-		(,(absolute 'LIST)
-		 ,@(map (lambda (slot)
-			  `(,(absolute 'CONS)
-			    ',(slot/name slot)
-			    ,(get-slot-default slot structure)))
-			(structure/slots structure)))))))
-	(case (structure/type structure)
-	  ((RECORD)
-	   `(,(absolute 'APPLY) ,(absolute '%RECORD) ,@list-cons))
-	  ((VECTOR)
-	   `(,(absolute 'APPLY) ,(absolute 'VECTOR) ,@list-cons))
-	  ((LIST)
-	   `(,(absolute 'CONS*) ,@list-cons)))))))
+      (let ((context (structure/context structure)))
+	(let ((list-cons
+	       `(,@(constructor-prefix-slots structure tag-expression)
+		 (,(absolute 'DEFINE-STRUCTURE/KEYWORD-PARSER context)
+		  KEYWORD-LIST
+		  (,(absolute 'LIST context)
+		   ,@(map (lambda (slot)
+			    `(,(absolute 'CONS context)
+			      ',(slot/name slot)
+			      ,(get-slot-default slot structure)))
+			  (structure/slots structure)))))))
+	  (case (structure/type structure)
+	    ((RECORD)
+	     `(,(absolute 'APPLY context) ,(absolute '%RECORD context)
+					  ,@list-cons))
+	    ((VECTOR)
+	     `(,(absolute 'APPLY context) ,(absolute 'VECTOR context)
+					  ,@list-cons))
+	    ((LIST)
+	     `(,(absolute 'CONS* context) ,@list-cons))))))))
 
 (define (define-structure/keyword-parser argument-list default-alist)
   (if (null? argument-list)
@@ -810,7 +821,8 @@ differences:
       `(,(absolute (case (structure/type structure)
 		     ((RECORD) '%RECORD)
 		     ((VECTOR) 'VECTOR)
-		     ((LIST) 'LIST)))
+		     ((LIST) 'LIST))
+		   (structure/context structure))
 	,@(constructor-prefix-slots structure tag-expression)
 	,@(call-with-values (lambda () (parse-mit-lambda-list lambda-list))
 	    (lambda (required optional rest)
@@ -857,34 +869,39 @@ differences:
 	    ,(absolute (case (structure/type structure)
 			 ((RECORD) 'RECORD-COPY)
 			 ((VECTOR) 'VECTOR-COPY)
-			 ((LIST) 'LIST-COPY)))))
+			 ((LIST) 'LIST-COPY))
+		       (structure/context structure))))
 	'())))
 
 (define (predicate-definitions structure)
   (let ((predicate-name (structure/predicate structure)))
     (if predicate-name
-	(let ((tag-expression (structure/tag-expression structure)))
+	(let ((tag-expression (structure/tag-expression structure))
+	      (context (structure/context structure)))
 	  (case (structure/type structure)
 	    ((RECORD)
 	     `((DEFINE ,predicate-name
 		 (LET ((TAG (RECORD-TYPE-DISPATCH-TAG ,tag-expression)))
 		   (NAMED-LAMBDA (,predicate-name OBJECT)
-		     (AND (,(absolute '%RECORD?) OBJECT)
-			  (,(absolute 'EQ?)
-			   (,(absolute '%RECORD-REF) OBJECT 0) TAG)))))))
+		     (AND (,(absolute '%RECORD? context) OBJECT)
+			  (,(absolute 'EQ? context)
+			   (,(absolute '%RECORD-REF context) OBJECT 0)
+			   TAG)))))))
 	    ((VECTOR)
 	     `((DEFINE (,predicate-name OBJECT)
-		 (AND (,(absolute 'VECTOR?) OBJECT)
-		      (,(absolute 'NOT)
-		       (,(absolute 'ZERO?)
-			(,(absolute 'VECTOR-LENGTH) OBJECT)))
-		      (,(absolute 'EQ?) (,(absolute 'VECTOR-REF) OBJECT 0)
-					,tag-expression)))))
+		 (AND (,(absolute 'VECTOR? context) OBJECT)
+		      (,(absolute 'NOT context)
+		       (,(absolute 'ZERO? context)
+			(,(absolute 'VECTOR-LENGTH context) OBJECT)))
+		      (,(absolute 'EQ? context)
+		       (,(absolute 'VECTOR-REF context) OBJECT 0)
+		       ,tag-expression)))))
 	    ((LIST)
 	     `((DEFINE (,predicate-name OBJECT)
-		 (AND (,(absolute 'PAIR?) OBJECT)
-		      (,(absolute 'EQ?) (,(absolute 'CAR) OBJECT)
-					,tag-expression)))))))
+		 (AND (,(absolute 'PAIR? context) OBJECT)
+		      (,(absolute 'EQ? context)
+		       (,(absolute 'CAR context) OBJECT)
+		       ,tag-expression)))))))
 	'())))
 
 (define (type-definitions structure)
@@ -894,17 +911,18 @@ differences:
 	    (name
 	     (symbol->string
 	      (parser-context/name (structure/context structure))))
-	    (field-names (map slot/name (structure/slots structure))))
+	    (field-names (map slot/name (structure/slots structure)))
+	    (context (structure/context structure)))
 	(if (eq? type 'RECORD)
 	    `((DEFINE ,type-name
-		(,(absolute 'MAKE-RECORD-TYPE)
+		(,(absolute 'MAKE-RECORD-TYPE context)
 		 ',name ',field-names
 		 ,@(let ((expression (structure/print-procedure structure)))
 		     (if (not expression)
 			 `()
 			 `(,expression))))))
 	    (let ((type-expression
-		   `(,(absolute 'MAKE-DEFINE-STRUCTURE-TYPE)
+		   `(,(absolute 'MAKE-DEFINE-STRUCTURE-TYPE context)
 		     ',type
 		     ',name
 		     ',field-names
