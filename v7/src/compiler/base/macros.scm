@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: macros.scm,v 4.22.2.1 2002/01/16 23:10:01 cph Exp $
+$Id: macros.scm,v 4.22.2.2 2002/01/18 03:29:06 cph Exp $
 
 Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -36,27 +36,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 	      ,x))))))
 
 (define-syntax package
-  (non-hygienic-macro-transformer
-   (lambda (names . body)
-     (make-syntax-closure
-      (scode/make-sequence
-       `(,@(map (lambda (name)
-		  (scode/make-definition name
-					 (make-unassigned-reference-trap)))
+  (rsc-macro-transformer
+   (lambda (form environment)
+     (if (not (syntax-match? '((* IDENTIFIER) * EXPRESSION) (cdr form)))
+	 (error "Ill-formed special form:" form))
+     (let ((names (cadr form))
+	   (body (cddr form)))
+       `(,(make-syntactic-closure environment '() 'BEGIN)
+	 ,@(map (let ((r-define
+		       (make-syntactic-closure environment '() 'DEFINE)))
+		  (lambda (name)
+		    `(,r-define ,name)))
 		names)
-	 ,(scode/make-combination
-	   (let ((block (syntax* (append body (list unspecific)))))
-	     (if (scode/open-block? block)
-		 (scode/open-block-components block
-		   (lambda (names* declarations body)
-		     (scode/make-lambda lambda-tag:let '() '() #f
-					(list-transform-negative names*
-					  (lambda (name)
-					    (memq name names)))
-					declarations
-					body)))
-		 (scode/make-lambda lambda-tag:let '() '() #f '() '() block)))
-	   '())))))))
+	 (,(make-syntactic-closure environment '() 'LET) () ,@body))))))
 
 (define-syntax define-export
   (rsc-macro-transformer
