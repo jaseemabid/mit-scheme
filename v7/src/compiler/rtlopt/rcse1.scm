@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rcse1.scm,v 4.22 1993/07/01 03:29:00 gjr Exp $
+$Id: rcse1.scm,v 4.22.1.1 1994/03/30 21:21:52 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -38,11 +38,18 @@ MIT in each case. |#
 
 (declare (usual-integrations))
 
-(define *initial-queue*)
-(define *branch-queue*)
-
 (define (common-subexpression-elimination rgraphs)
   (with-new-node-marks (lambda () (for-each cse-rgraph rgraphs))))
+
+(define-structure (state (type vector) (conc-name state/))
+  (register-tables false read-only true)
+  (hash-table false read-only true)
+  (stack-offset false read-only true)
+  (stack-reference-quantities false read-only true))
+
+#|
+(define *initial-queue*)
+(define *branch-queue*)
 
 (define (cse-rgraph rgraph)
   (fluid-let ((*current-rgraph* rgraph)
@@ -73,27 +80,6 @@ MIT in each case. |#
 	((not (queue-empty? *initial-queue*))
 	 (state/reset!)
 	 (walk-bblock (dequeue!/unsafe *initial-queue*)))))
-
-(define-structure (state (type vector) (conc-name state/))
-  (register-tables false read-only true)
-  (hash-table false read-only true)
-  (stack-offset false read-only true)
-  (stack-reference-quantities false read-only true))
-
-(define (state/reset!)
-  (register-tables/reset! *register-tables*)
-  (set! *hash-table* (make-hash-table))
-  (set! *stack-offset* 0)
-  (set! *stack-reference-quantities* '())
-  unspecific)
-
-(define (state/get)
-  (make-state (register-tables/copy *register-tables*)
-	      (hash-table-copy *hash-table*)
-	      *stack-offset*
-	      (map (lambda (entry)
-		     (cons (car entry) (quantity-copy (cdr entry))))
-		   *stack-reference-quantities*)))
 
 (define (walk-bblock bblock)
   (let loop ((rinst (bblock-instructions bblock)))
@@ -138,6 +124,177 @@ MIT in each case. |#
   (if (node-previous>1? bblock) (state/reset!))
   (walk-bblock bblock))
 
+(define (state/get)
+  (make-state (register-tables/copy *register-tables*)
+	      (hash-table-copy *hash-table*)
+	      *stack-offset*
+	      (map (lambda (entry)
+		     (cons (car entry) (quantity-copy (cdr entry))))
+		   *stack-reference-quantities*)))
+
+(define (state/reset!)
+  (register-tables/reset! *register-tables*)
+  (set! *hash-table* (make-hash-table))
+  (set! *stack-offset* 0)
+  (set! *stack-reference-quantities* '())
+  unspecific)
+|#
+
+;;;; New rgraph walker
+
+(define *any-preserved?*)
+
+(define (cse-rgraph rgraph)
+  (fluid-let ((*current-rgraph* rgraph)
+	      (*next-quantity-number* 0)
+	      (*register-tables*)
+	      (*hash-table*)
+	      (*stack-offset*)
+	      (*stack-reference-quantities*)
+	      (*any-preserved?*))
+    (state/set! (state/make-empty))
+    (let loop ((bblocks (sort-bblocks-topologically (rgraph-bblocks rgraph)))
+	       (bblock-info '()))
+      (if (not (null? bblocks))
+	  (let ((bblock (car bblocks)))
+	    (restore-state! bblock bblock-info)
+	    (walk-bblock bblock)
+	    (loop (cdr bblocks)
+		  (if (or (pblock? bblock)
+			  (snode-next bblock))
+		      (cons (list bblock
+				  (state/get)
+				  *any-preserved?*
+				  (not (pblock? bblock)))
+			    bblock-info)
+		      ;; No successors, let the state be GC'd
+		      bblock-info)))))))
+
+(define (restore-state! bblock bblock-info)
+  (define (do-single-predecessor info)
+    (cond ((not info)			; loop in graph
+	   (state/make-empty))
+	  ((or (sblock? (car info))
+	       (cadddr info))
+	   (cadr info))
+	  (else
+	   ;; This branch copies the state.
+	   ;; Remember that the other branch need not.
+	   (set-car! (cdddr info) true)
+	   (state/copy (cadr info)))))
+
+  (define (try-to-restore bblock*)
+    (let ((info (assq bblock* bblock-info)))
+      (do-single-predecessor (and info
+				  (caddr info)
+				  info))))
+
+  (set! *any-preserved?* false)
+  (state/restore!
+   (let ((previous (node-previous-edges bblock)))
+     (cond ((null? previous)
+	    (state/set! (state/make-empty)))
+	   ((not (for-all? previous edge-left-node))
+	    (cond ((or (null? (cdr previous))
+		       (not (null? (cddr previous))))
+		   (state/make-empty))
+		  ((edge-left-node (car previous))
+		   => try-to-restore)
+		  ((edge-left-node (cadr previous))
+		   => try-to-restore)
+		  (else
+		   (state/make-empty))))
+	   ((null? (cdr previous))
+	    (do-single-predecessor (assq (edge-left-node (car previous))
+					 bblock-info)))
+	   (else
+	    (state/merge* (map (lambda (edge)
+				 (let ((bblock* (edge-left-node edge)))
+				   (assq bblock* bblock-info)))
+			       previous)))))))
+
+(define (preserve-register! regno)
+  (set! *any-preserved?* true)
+  (set-register-preserved?! regno true))
+
+(define (walk-bblock bblock)
+  (let loop ((rinst (bblock-instructions bblock)))
+    (let ((rtl (rinst-rtl rinst)))
+      (case (rtl:expression-type rtl)
+	((ASSIGN)
+	 (cse/assign rtl))
+	((PRESERVE)
+	 (preserve-register!
+	  (rtl:register-number (rtl:preserve-register rtl))))
+	((RESTORE)
+	 ;; ignore completely
+	 unspecific)
+	(else
+	 (let ((entry (assq (rtl:expression-type rtl)
+			    cse-methods)))
+	   (if (not entry)
+	       (error "Missing CSE method"
+		      (rtl:expression-type rtl)))
+	   ((cdr entry) rtl)))))
+    (if (rinst-next rinst)
+	(loop (rinst-next rinst)))))	 
+
+(define (sort-bblocks-topologically bblocks)
+  (let ((pairs (map (lambda (bblock)
+		      (cons bblock (topo-node/make bblock)))
+		    bblocks)))
+    (for-each
+     (lambda (pair)
+       (let ((bblock (car pair))
+	     (node (cdr pair)))
+	 (for-each (lambda (edge)
+		     (let ((bblock* (edge-left-node edge)))
+		       (if bblock*
+			   (let ((node* (cdr (assq bblock* pairs))))
+			     (set-topo-node/before!
+			      node
+			      (cons node* (topo-node/before node)))
+			     (set-topo-node/after!
+			      node*
+			      (cons node (topo-node/after node*)))))))
+		   (node-previous-edges bblock))))
+     pairs)
+    (map topo-node/contents (sort-topologically (map cdr pairs)))))
+
+(define (state/get)
+  (make-state *register-tables*
+	      *hash-table*
+	      *stack-offset*
+	      *stack-reference-quantities*))
+
+(define (state/copy state)
+  (make-state (register-tables/copy (state/register-tables state))
+	      (hash-table-copy (state/hash-table state))
+	      (state/stack-offset state)
+	      (map (lambda (entry)
+		     (cons (car entry) (quantity-copy (cdr entry))))
+		   (state/stack-reference-quantities state))))
+
+(define (state/set! state)
+  (set! *register-tables* (state/register-tables state))
+  (set! *hash-table* (state/hash-table state))
+  (set! *stack-offset* (state/stack-offset state))
+  (set! *stack-reference-quantities* (state/stack-reference-quantities state))
+  unspecific)
+
+(define (state/restore! state)
+  (state/set! state)
+  (register-tables/restore! *register-tables*))
+
+(define (state/make-empty)
+  (let ((reg-tables
+	 (register-tables/make (rgraph-n-registers *current-rgraph*))))
+    (register-tables/reset! reg-tables)
+    (make-state reg-tables
+		(make-hash-table)
+		0
+		'())))
+
 (define (define-cse-method type method)
   (let ((entry (assq type cse-methods)))
     (if entry
@@ -147,7 +304,7 @@ MIT in each case. |#
 
 (define cse-methods
   '())
-
+
 (define (cse/assign statement)
   (expression-replace! rtl:assign-expression rtl:set-assign-expression!
 		       statement
@@ -206,7 +363,7 @@ MIT in each case. |#
 			    (rtl:make-machine-constant 0))
 	   element))
 	(adjust!))))
-
+
 (define (cse/assign/interpreter-register address expression volatile?
 					 insert-source!)
   expression
@@ -220,7 +377,7 @@ MIT in each case. |#
 				       hash
 				       insert-source!
 				       memory-invalidate!)))))
-
+
 (define (cse/assign/general address expression volatile? insert-source!)
   expression
   (full-expression-hash address
@@ -257,7 +414,7 @@ MIT in each case. |#
   ;; gets used in very fixed way by code generator.
   (if (stack-pop? expression)
       (stack-pointer-adjust! (rtl:address-number expression))))
-
+
 (define (assignment-memory-insertion address hash insert-source!
 				     memory-invalidate!)
   #|
@@ -276,7 +433,7 @@ MIT in each case. |#
   (insert-source!)
   (memory-invalidate!)
   (mention-registers! address))
-
+
 (define (trivial-action volatile? insert-source!)
   (if (not volatile?)
       (insert-source!)))
@@ -295,6 +452,13 @@ MIT in each case. |#
 (define-trivial-two-arg-method 'EQ-TEST
   rtl:eq-test-expression-1 rtl:set-eq-test-expression-1!
   rtl:eq-test-expression-2 rtl:set-eq-test-expression-2!)
+
+(define-trivial-one-arg-method 'PRED-1-ARG
+  rtl:pred-1-arg-operand rtl:set-pred-1-arg-operand!)
+
+(define-trivial-two-arg-method 'PRED-2-ARGS
+  rtl:pred-2-args-operand-1 rtl:set-pred-2-args-operand-1!
+  rtl:pred-2-args-operand-2 rtl:set-pred-2-args-operand-2!)
 
 (define-trivial-one-arg-method 'FIXNUM-PRED-1-ARG
   rtl:fixnum-pred-1-arg-operand rtl:set-fixnum-pred-1-arg-operand!)
@@ -328,16 +492,19 @@ MIT in each case. |#
 (define-cse-method 'INVOCATION:JUMP method/noop)
 (define-cse-method 'INVOCATION:LEXPR method/noop)
 
-(define (method/unknown-invocation statement)
+(define (invalidate-pseudo-registers! n-pushed)
   (for-each-pseudo-register
    (lambda (register)
-     (let ((expression (register-expression register)))
-       (if expression
-	   (register-expression-invalidate! expression)))))
-  (stack-pointer-adjust!
-   (stack->memory-offset (rtl:invocation-pushed statement)))
+     (if (not (register-preserved? register))
+	 (let ((expression (register-expression register)))
+	   (if expression
+	       (register-expression-invalidate! expression))))))
+  (stack-pointer-adjust! (stack->memory-offset n-pushed))
   (expression-invalidate! (interpreter-value-register))
   (expression-invalidate! (interpreter-free-pointer)))
+
+(define (method/unknown-invocation statement)
+  (invalidate-pseudo-registers! (rtl:invocation-pushed statement)))
 
 (define-cse-method 'INVOCATION:APPLY method/unknown-invocation)
 (define-cse-method 'INVOCATION:COMPUTED-JUMP method/unknown-invocation)
@@ -391,7 +558,10 @@ MIT in each case. |#
       (expression-replace! get-environment set-environment! statement
 	(lambda (volatile? insert-source!)
 	  (expression-invalidate! (register))
+	  #|
 	  (non-object-invalidate!)
+	  |#
+	  (invalidate-pseudo-registers! 0)
 	  (if (not volatile?) (insert-source!)))))))
 
 (define-lookup-method 'INTERPRETER-CALL:ACCESS
@@ -453,3 +623,39 @@ MIT in each case. |#
   rtl:set-interpreter-call:set!-environment!
   rtl:interpreter-call:set!-value
   rtl:set-interpreter-call:set!-value!)
+
+;; New stuff
+
+(define-cse-method 'INVOCATION:PROCEDURE method/unknown-invocation)
+(define-cse-method 'INTERRUPT-CHECK:PROCEDURE method/noop)
+(define-cse-method 'INTERRUPT-CHECK:CONTINUATION method/noop)
+(define-cse-method 'INTERRUPT-CHECK:CLOSURE method/noop)
+(define-cse-method 'INTERRUPT-CHECK:SIMPLE-LOOP method/noop)
+(define-cse-method 'PROCEDURE method/noop)
+(define-cse-method 'TRIVIAL-CLOSURE method/noop)
+(define-cse-method 'CLOSURE method/noop)
+(define-cse-method 'EXPRESSION method/noop)
+(define-cse-method 'RETURN-ADDRESS method/noop)
+#|
+;; Handled specially
+(define-cse-method 'PRESERVE method/noop)
+(define-cse-method 'RESTORE method/noop)
+|#
+
+(define-cse-method 'INVOCATION:REGISTER
+  (lambda (statement)
+    (expression-replace! rtl:invocation:register-destination
+			 rtl:set-invocation:register-destination!
+			 statement
+			 trivial-action)
+    (method/unknown-invocation statement)))
+
+(define-cse-method 'INVOCATION:NEW-APPLY
+  (lambda (statement)
+    (expression-replace! rtl:invocation:new-apply-destination
+			 rtl:set-invocation:new-apply-destination!
+			 statement
+			 trivial-action)
+    (method/unknown-invocation statement)))
+
+;; End of new stuff
