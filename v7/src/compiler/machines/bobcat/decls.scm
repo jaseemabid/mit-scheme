@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 4.21 1989/04/26 05:09:22 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 4.21.1.1 1989/05/21 14:50:15 jinx Rel $
 
 Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
@@ -331,8 +331,8 @@ MIT in each case. |#
 		     filenames))))
     (file-dependency/syntax/join
      (append (filename/append "base"
-			      "blocks" "cfg1" "cfg2" "cfg3" "constr"
-			      "contin" "ctypes" "debug" "enumer" "infnew"
+			      "blocks" "cfg1" "cfg2" "cfg3" "constr" "contin"
+			      "crstop" "ctypes" "debug" "enumer" "infnew"
 			      "lvalue" "object" "pmerly" "proced" "refctx"
 			      "rvalue" "scode" "sets" "subprb" "switch"
 			      "toplev" "utils")
