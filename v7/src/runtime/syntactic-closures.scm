@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.11 2002/01/22 17:03:37 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.12 2002/01/26 13:06:52 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -286,7 +286,8 @@
 				     'MAKE-SYNTACTIC-CLOSURE))
       (if (or (memq form free-names)	;LOOKUP-IDENTIFIER assumes this.
 	      (and (syntactic-closure? form)
-		   (null? (syntactic-closure/free-names form)))
+		   (null? (syntactic-closure/free-names form))
+		   (not (identifier? (syntactic-closure/form form))))
 	      (not (or (syntactic-closure? form)
 		       (pair? form)
 		       (symbol? form))))
@@ -325,7 +326,7 @@
        (identifier? (syntactic-closure/form object))))
 
 (define (generate-synthetic-identifier identifier)
-  (make-syntactic-closure null-syntactic-environment '() identifier))
+  (close-syntax identifier null-syntactic-environment))
 
 (define (identifier->symbol identifier)
   (or (let loop ((identifier identifier))
@@ -1108,7 +1109,7 @@
   (let ((environment
 	 (make-internal-syntactic-environment null-syntactic-environment)))
     (syntactic-environment/define environment 'KEYWORD item)
-    (make-syntactic-closure environment '() 'KEYWORD)))
+    (close-syntax 'KEYWORD environment)))
 
 (define (classifier->form classifier)
   `(,(classifier->keyword classifier)))
