@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/machin.scm,v 1.49 1987/06/01 16:10:21 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/machin.scm,v 1.49.1.1 1987/06/10 19:44:02 cph Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -214,13 +214,23 @@ MIT in each case. |#
 (define-integrable (interpreter-stack-pointer? register)
   (= (rtl:register-number register) regnum:stack-pointer))
 
+(define-integrable lap:empty-instructions '())
+
+(define-integrable (lap:cons-instruction inst insts)
+  (cons inst insts))
+
+(define-integrable (lap:append-instructions insts1 insts2)
+  (append insts1 insts2))
+
 (define (lap:make-label-statement label)
-  `(LABEL ,label))
+  (INSTRUCTION (LABEL (EVALUATE label))))
 
 (define (lap:make-unconditional-branch label)
-  `(BRA L (@PCR ,label)))
+  (INSTRUCTION (BRA L (@PCR (EVALUATE label)))))
 
 (define (lap:make-entry-point label block-start-label)
-  `((ENTRY-POINT ,label)
-    (DC W (- ,label ,block-start-label))
+  (INSTRUCTIONS
+   (ENTRY-POINT (EVALUATE label))
+   (DC W (- (EVALUATE label) (EVALUATE block-start-label)))
+   (LABEL (EVALUATE label))))
     (LABEL ,label)))
