@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-output.scm,v 1.1.2.1 2002/01/15 20:46:02 cph Exp $
+;;; $Id: syntax-output.scm,v 1.1.2.2 2002/01/17 16:54:03 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -83,19 +83,24 @@
   (output/combination (output/named-lambda lambda-tag:let names body) values))
 
 (define (output/letrec names values body)
-  (output/body names '()
-	       (if (pair? names)
-		   (output/sequence
-		    (list (if (null? (cdr names))
-			      (output/assignment (car names) (car values))
-			      (let ((temps (map (make-name-generator) names)))
-				(output/let
-				 temps
-				 values
-				 (output/sequence
-				  (map output/assignment names temps)))))
-			  body))
-		   body)))
+  (output/body
+   names '()
+   (if (pair? names)
+       (output/sequence
+	(list (if (null? (cdr names))
+		  (output/assignment (car names) (car values))
+		  (let ((temps (map (make-name-generator) names)))
+		    (output/let
+		     temps
+		     values
+		     (output/sequence
+		      (map (lambda (name temp)
+			     (output/assignment name
+						(output/variable temp)))
+			   names
+			   temps)))))
+	      body))
+       body)))
 
 (define (output/body names declarations body)
   (if (or (pair? names) (pair? declarations))
