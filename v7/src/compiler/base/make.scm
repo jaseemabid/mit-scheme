@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: make.scm,v 4.106 1994/02/02 03:26:21 gjr Exp $
+$Id: make.scm,v 4.106.1.1 1994/03/30 21:16:16 gjr Exp $
 
 Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
@@ -37,22 +37,27 @@ MIT in each case. |#
 (declare (usual-integrations))
 
 (lambda (architecture-name)
-  ((access with-directory-rewriting-rule
-	   (->environment '(RUNTIME COMPILER-INFO)))
-   (working-directory-pathname)
-   (pathname-as-directory "compiler")
-   (lambda ()
-     (load-option 'COMPRESS)
-     (load-option 'HASH-TABLE)
-     (load-option 'RB-TREE)
-     (package/system-loader "compiler" '() 'QUERY)))
-  (let ((initialize-package!
-	 (lambda (package-name)
-	   ((environment-lookup (->environment package-name)
-				'INITIALIZE-PACKAGE!)))))
-    (initialize-package! '(COMPILER MACROS))
-    (initialize-package! '(COMPILER DECLARATIONS)))
-  (add-system!
-   (make-system (string-append "Liar (" architecture-name ")")
-		4 106
-		'())))
+  (let ((core
+	 (lambda ()
+	   (load-option 'COMPRESS)
+	   (load-option 'HASH-TABLE)
+	   (load-option 'RB-TREE)
+	   (package/system-loader "compiler" '() 'QUERY))))
+    #|
+    ((access with-directory-rewriting-rule
+	     (->environment '(RUNTIME COMPILER-INFO)))
+     (working-directory-pathname)
+     (pathname-as-directory "compiler")
+     core)
+    |#
+    (core)
+    (let ((initialize-package!
+	   (lambda (package-name)
+	     ((environment-lookup (->environment package-name)
+				  'INITIALIZE-PACKAGE!)))))
+      (initialize-package! '(COMPILER MACROS))
+      (initialize-package! '(COMPILER DECLARATIONS)))
+    (add-system!
+     (make-system (string-append "Liar (" architecture-name ")")
+		  5 0
+		  '()))))
