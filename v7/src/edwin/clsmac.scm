@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: clsmac.scm,v 1.7.2.1 2002/01/18 20:01:22 cph Exp $
+;;; $Id: clsmac.scm,v 1.7.2.2 2002/01/18 21:46:46 cph Exp $
 ;;;
 ;;; Copyright (c) 1986, 1989, 1999, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -32,26 +32,25 @@
 (define-syntax define-class
   (rsc-macro-transformer
    (lambda (form environment)
-     (if (not (and (syntax-match? '(IDENTIFIER DATUM (* SYMBOL))
-				  (cdr form))
-		   (or (identifier? (caddr form))
-		       (null? (caddr form)))))
-	 (error "Ill-formed special form:" form))
-     (let ((name (cadr form))
-	   (superclass (if (null? (caddr form)) #f (caddr form)))
-	   (variables (cadddr form)))
-       ;; Compile-time definition.
-       (make-class (identifier->symbol name)
-		   (and superclass
-			(name->class (identifier->symbol superclass)))
-		   variables)
-       ;; Load-time definition.
-       `(,(make-syntactic-closure environment '() 'DEFINE)
-	 ,name
-	 ((make-syntactic-closure environment '() 'MAKE-CLASS)
-	  ',(identifier->symbol name)
-	  ,superclass
-	  ',variables))))))
+     (if (and (syntax-match? '(IDENTIFIER DATUM (* SYMBOL)) (cdr form))
+	      (or (identifier? (caddr form))
+		  (null? (caddr form))))
+	 (let ((name (cadr form))
+	       (superclass (if (null? (caddr form)) #f (caddr form)))
+	       (variables (cadddr form)))
+	   ;; Compile-time definition.
+	   (make-class (identifier->symbol name)
+		       (and superclass
+			    (name->class (identifier->symbol superclass)))
+		       variables)
+	   ;; Load-time definition.
+	   `(,(make-syntactic-closure environment '() 'DEFINE)
+	     ,name
+	     (,(make-syntactic-closure environment '() 'MAKE-CLASS)
+	      ',(identifier->symbol name)
+	      ,superclass
+	      ',variables)))
+	 (ill-formed-syntax form)))))
 
 (define-syntax define-method
   (rsc-macro-transformer
@@ -79,31 +78,39 @@
 			 ()
 			 ,@(cdddr form)))))
 	     (else
-	      (error "Ill-formed special form:" form)))))))
+	      (ill-formed-syntax form)))))))
+
+(define with-instance-variables
+  (make-macro-reference-trap
+   (make-compiler-item
+    (lambda (form environment history)
+      (if (syntax-match? '(IDENTIFIER EXPRESSION (* IDENTIFIER) + EXPRESSION)
+			 (cdr form))
+	  (let ((class-name (cadr form))
+		(self (caddr form))
+		(free-names (cadddr form))
+		(body (cddddr form)))
+	    (transform-instance-variables
+	     (class-instance-transforms
+	      (name->class (identifier->symbol class-name)))
+	     (compile/subexpression self environment history select-caddr)
+	     free-names
+	     (compile/subexpression
+	      `(,(make-syntactic-closure system-global-environment '() 'BEGIN)
+		,@body)
+	      environment
+	      history
+	      select-cddddr)))
+	  (ill-formed-syntax form))))))
 
-(define-syntax with-instance-variables
-  (non-hygienic-macro-transformer
-   (lambda (class self free-names . body)
-     (guarantee-symbol "Self name" self)
-     (make-syntax-closure
-      (syntax-class-expression class self free-names body)))))
-
-(define (syntax-class-expression class-name self free-names expression)
-  (guarantee-symbol "Class name" class-name)
-  (transform-instance-variables
-   (class-instance-transforms (name->class class-name))
-   self
-   free-names
-   (syntax* expression)))
-
-(define-syntax =>
+(define-syntax ==>
   (syntax-rules ()
-    ((=> object operation argument ...)
+    ((==> object operation argument ...)
      (let ((temp object))
        ((object-method temp 'operation) temp argument ...)))))
 
-(define-syntax usual=>
+(define-syntax usual==>
   (syntax-rules ()
-    ((usual=> object operation argument ...)
+    ((usual==> object operation argument ...)
      (let ((temp object))
        ((usual-method (object-class temp) 'operation) temp argument ...)))))
