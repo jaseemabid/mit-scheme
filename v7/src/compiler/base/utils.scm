@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: utils.scm,v 4.19 1994/02/02 04:01:23 adams Exp $
+$Id: utils.scm,v 4.19.1.1 1994/03/30 21:17:06 gjr Exp $
 
-Copyright (c) 1987-1992 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -218,6 +218,7 @@ MIT in each case. |#
     COMPLEX? REAL? RATIONAL? INTEGER? EXACT? INEXACT?
     ZERO? POSITIVE? NEGATIVE? ODD? EVEN?
     = < > <= >=
+    INDEX-FIXNUM?
     FIX:FIXNUM? FIX:ZERO? FIX:NEGATIVE? FIX:POSITIVE? FIX:= FIX:< FIX:>
     FLO:FLONUM? FLO:ZERO? FLO:NEGATIVE? FLO:POSITIVE? FLO:= FLO:< FLO:>
     INT:INTEGER? INT:ZERO? INT:NEGATIVE? INT:POSITIVE? INT:= INT:< INT:>
@@ -375,4 +376,15 @@ MIT in each case. |#
 	   (negative? object))
       (+ object unsigned-fixnum/upper-limit)
       (object-datum object)))
-
+
+(define (list-split ol predicate)
+  ;; (values yes no)
+  (let loop ((l (reverse ol))
+	     (yes '())
+	     (no '()))
+    (cond ((null? l)
+	   (values yes no))
+	  ((predicate (car l))
+	   (loop (cdr l) (cons (car l) yes) no))
+	  (else
+	   (loop (cdr l) yes (cons (car l) no))))))

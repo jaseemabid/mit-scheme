@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rtlexp.scm,v 4.19 1993/07/01 03:25:40 gjr Exp $
+$Id: rtlexp.scm,v 4.19.1.1 1994/03/30 21:20:30 gjr Exp $
 
-Copyright (c) 1987-1993 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -49,7 +49,10 @@ MIT in each case. |#
 	  INVOCATION:UUO-LINK
 	  INVOCATION:GLOBAL-LINK
 	  INVOCATION:CACHE-REFERENCE
-	  INVOCATION:LOOKUP)))
+	  INVOCATION:LOOKUP
+	  INVOCATION:REGISTER
+	  INVOCATION:PROCEDURE
+	  INVOCATION:NEW-APPLY)))
 
 (define (rtl:invocation-prefix? rtl)
   (memq (rtl:expression-type rtl)
@@ -70,7 +73,8 @@ MIT in each case. |#
 		      ENTRY:CONTINUATION ENTRY:PROCEDURE
 		      OFFSET-ADDRESS
 		      FLOAT-OFFSET-ADDRESS
-		      BYTE-OFFSET-ADDRESS)
+		      BYTE-OFFSET-ADDRESS
+		      STATIC-CELL ALIGN-FLOAT)
      value-class=address)
     ((MACHINE-CONSTANT)
      value-class=immediate)
@@ -261,7 +265,8 @@ MIT in each case. |#
 	  MACHINE-CONSTANT
 	  POST-INCREMENT
 	  PRE-INCREMENT
-	  VARIABLE-CACHE)))
+	  VARIABLE-CACHE
+	  STATIC-CELL)))
 
 (define (rtl:constant-expression? expression)
   (case (rtl:expression-type expression)
@@ -270,7 +275,8 @@ MIT in each case. |#
       ENTRY:CONTINUATION
       ENTRY:PROCEDURE
       MACHINE-CONSTANT
-      VARIABLE-CACHE)
+      VARIABLE-CACHE
+      STATIC-CELL)
      true)
     ((BYTE-OFFSET-ADDRESS
       CHAR->ASCII
