@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: confshared.h,v 11.1.2.1 2002/01/29 05:03:11 cph Exp $
+$Id: confshared.h,v 11.1.2.2 2002/01/29 06:01:03 cph Exp $
 
 Copyright (c) 2000, 2002 Massachusetts Institute of Technology
 
@@ -48,12 +48,8 @@ USA.
 /* These C type definitions are needed by everybody.
    They should not be here, but it is unavoidable. */
 typedef char Boolean;
-#ifdef HAVE_STDBOOL_H
-#  include <stdbool.h>
-#else
-#  define true		((Boolean) TRUE)
-#  define false		((Boolean) FALSE)
-#endif
+#define true		((Boolean) TRUE)
+#define false		((Boolean) FALSE)
 
 /* This is the Scheme object type.
    The various fields are defined in "object.h". */
