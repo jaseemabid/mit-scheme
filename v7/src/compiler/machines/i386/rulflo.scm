@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulflo.scm,v 1.16 1992/02/19 06:18:25 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulflo.scm,v 1.16.1.1 1992/02/19 22:27:26 jinx Exp $
 $MC68020-Header: /scheme/src/compiler/machines/bobcat/RCS/rules1.scm,v 4.36 1991/10/25 06:49:58 cph Exp $
 
 Copyright (c) 1992 Massachusetts Institute of Technology
@@ -85,17 +85,16 @@ MIT in each case. |#
 	 (ADD W (R ,regnum:free-pointer) (& 12)))))
 
 (define-rule statement
-  ;; convert a flonum object to a floating-point number
-  (ASSIGN (REGISTER (? target)) (OBJECT->FLOAT (REGISTER (? source))))
-  (let* ((source (move-to-temporary-register! source 'GENERAL))
+  ;; convert a flonum object address to a floating-point number
+  (ASSIGN (REGISTER (? target)) (@ADDRESS->FLOAT (REGISTER (? source))))
+  (let* ((source (source-register-reference source))
 	 (target (flonum-target! target)))
-    (LAP ,@(object->address (register-reference source))
-	 (FLD D (@RO B ,source 4))
+    (LAP (FLD D (@RO B ,source 4))
 	 (FSTP (ST ,(1+ target))))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target))
-	  (OBJECT->FLOAT (CONSTANT (? value))))
+	  (@ADDRESS->FLOAT (OBJECT->ADDRESS (CONSTANT (? value)))))
   (QUALIFIER (or (= value 0.) (= value 1.)))
   (let ((target (flonum-target! target)))
     (LAP ,@(if (= value 0.)
