@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/copy.scm,v 3.5.1.1 1987/06/30 06:48:59 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/copy.scm,v 3.5.1.2 1987/07/01 20:44:51 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -43,8 +43,6 @@ MIT in each case. |#
 	      (copy/variable/free copy/variable/free/intern)
 	      (copy/declarations copy/declarations/intern))
     (let ((environment (environment/rebind block (environment/make) uninterned)))
-      ;; Is this right?
-      (block/set-environment! block environment)
       (copy/expression root-block
 		       environment
 		       expression))))
@@ -54,7 +52,6 @@ MIT in each case. |#
 	      (copy/variable/free copy/variable/free/extern)
 	      (copy/declarations copy/declarations/extern))
     (let ((environment (environment/make)))
-      (block/set-environment! root-block environment)
       (let ((expression
 	     (copy/expression root-block environment expression)))
 	(return-2 root-block expression)))))
@@ -78,7 +75,6 @@ MIT in each case. |#
   (fluid-let ((root-block false))
     (let ((block (quotation/block quotation))
 	  (environment (environment/make)))
-      (block/set-environment! block environment)
       (quotation/make block
 		      (copy/expression block
 				       environment
@@ -92,7 +88,6 @@ MIT in each case. |#
 		  (variable/make result (variable/name variable)))
 		old-bound)))
       (let ((environment (environment/bind environment old-bound new-bound)))
-	(block/set-environment! result environment)
 	(block/set-bound-variables! result new-bound)
 	(block/set-declarations!
 	 result
@@ -129,7 +124,7 @@ MIT in each case. |#
 
 (define (copy/variable/free/extern variable)
   (lambda ()
-    (block/lookup-name root-block (variable/name variable))))
+    (block/lookup-name root-block (variable/name variable) true)))
 
 (define copy/declarations)
 
@@ -152,7 +147,7 @@ MIT in each case. |#
 	    identity-procedure
 	    (lambda ()
 	      (block/lookup-name root-block
-				 (variable/name variable)))))
+				 (variable/name variable) true))))
 	(lambda (expression)
 	  (copy/expression block environment expression)))))
 
@@ -172,7 +167,7 @@ MIT in each case. |#
   (environment/bind environment
 		    variables
 		    (map (lambda (variable)
-			   (block/lookup-name block (variable/name variable)))
+			   (block/lookup-name block (variable/name variable) true))
 			 variables)))
 
 (define (make-renamer environment)
