@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: comman.scm,v 1.85.6.1 2002/02/02 01:27:09 cph Exp $
+$Id: comman.scm,v 1.85.6.2 2002/02/02 03:10:32 cph Exp $
 
 Copyright (c) 1986, 1989-2002 Massachusetts Institute of Technology
 
@@ -123,13 +123,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define-integrable variable-value variable-%value)
 (define-integrable variable-default-value variable-%default-value)
-(define-integrable define-variable-value-validity-test
-  set-variable-value-validity-test!)
 
 (define (variable-name-string variable)
   (editor-name/internal->external (symbol-name (variable-name variable))))
 
-(define (make-variable name description value buffer-local?)
+(define (make-variable name description value buffer-local?
+		       #!optional test normalization)
   (let* ((sname (symbol-name name))
 	 (variable
 	  (or (string-table-get editor-variables sname)
@@ -143,11 +142,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
     (set-variable-initial-value! variable value)
     (set-variable-%default-value! variable value)
     (set-variable-assignment-daemons! variable '())
-    (set-variable-value-validity-test! variable #f)
-    (set-variable-value-normalization! variable #f)
+    (set-variable-value-validity-test! variable
+				       (if (default-object? test)
+					   #f
+					   test))
+    (set-variable-value-normalization! variable
+				       (if (default-object? normalization)
+					   #f
+					   normalization))
     variable))
 
-(define-integrable (make-variable-buffer-local! variable)
+(define (make-variable-buffer-local! variable)
   (set-variable-buffer-local?! variable #t))
 
 (define (normalize-variable-value variable value)
