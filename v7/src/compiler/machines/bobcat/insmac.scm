@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/insmac.scm,v 1.118.1.3 1987/07/01 20:53:07 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/insmac.scm,v 1.118.1.4 1987/07/02 01:27:53 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -149,7 +149,7 @@ MIT in each case. |#
 				       (if (unassigned? early?) false early?))
 	       ,code))
 	   (error "PARSE-WORD: Instructions must be 16 bit multiples" size)))))
-  (if (or (unassigned? early) (not early?))
+  (if (or (unassigned? early?) (not early?))
       (kernel)
       (with-early-selectors kernel)))     
 
