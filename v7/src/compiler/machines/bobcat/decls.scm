@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 4.6 1988/07/20 07:35:52 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 4.6.1.1 1988/08/31 06:55:56 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -210,8 +210,16 @@ MIT in each case. |#
 			   (set-source-node/modification-time! node false))
 			 (source-node/dependents node))))
 	 source-nodes)))
-  (for-each source-node/maybe-syntax! source-nodes/circular-dependencies)
-  (for-each source-node/maybe-syntax! source-nodes/by-rank))
+  (for-each (lambda (node)
+	      (if (not (source-node/modification-time node))
+		  (let ((pathname
+			 (pathname-new-type (source-node/pathname node)
+					    "ext")))
+		    (if (file-exists? pathname)
+			(delete-file pathname)))))
+	    source-nodes/by-rank)
+  (for-each source-node/maybe-syntax! source-nodes/by-rank)
+  (for-each source-node/maybe-syntax! source-nodes/circular-dependencies))
 
 (define (source-node/maybe-syntax! node)
   (if (not (source-node/modification-time node))
