@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.88.1.1 1987/06/25 10:52:16 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.88.1.2 1987/07/01 20:52:14 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -252,41 +252,23 @@ MIT in each case. |#
 
 ;;;; Type Codes
 
-(define type-code:lambda
-  (microcode-type 'LAMBDA))
+(let-syntax ((define-type-code
+	       (macro (var-name type-name)
+		 `(define-integrable ,var-name ',(microcode-type type-name)))))
 
-(define type-code:extended-lambda
-  (microcode-type 'EXTENDED-LAMBDA))
-
-(define type-code:procedure
-  (microcode-type 'PROCEDURE))
-
-(define type-code:extended-procedure
-  (microcode-type 'EXTENDED-PROCEDURE))
-
-(define type-code:cell
-  (microcode-type 'CELL))
-
-(define type-code:compiled-expression
-  (microcode-type 'COMPILED-EXPRESSION))
-
-(define type-code:compiler-link
-  (microcode-type 'COMPILER-LINK))
-
-(define type-code:compiled-procedure
-  (microcode-type 'COMPILED-PROCEDURE))
-
-(define type-code:environment
-  (microcode-type 'ENVIRONMENT))
-
-(define type-code:stack-environment
-  (microcode-type 'STACK-ENVIRONMENT))
-
-(define type-code:return-address
-  (microcode-type 'COMPILER-RETURN-ADDRESS))
-
-(define type-code:unassigned
-  (microcode-type 'UNASSIGNED))
+(define-type-code type-code:lambda LAMBDA)
+(define-type-code type-code:extended-lambda EXTENDED-LAMBDA)
+(define-type-code type-code:procedure PROCEDURE)
+(define-type-code type-code:extended-procedure EXTENDED-PROCEDURE)
+(define-type-code type-code:cell CELL)
+(define-type-code type-code:compiled-expression COMPILED-EXPRESSION)
+(define-type-code type-code:compiler-link COMPILER-LINK)
+(define-type-code type-code:compiled-procedure COMPILED-PROCEDURE)
+(define-type-code type-code:environment ENVIRONMENT)
+(define-type-code type-code:stack-environment STACK-ENVIRONMENT)
+(define-type-code type-code:return-address COMPILER-RETURN-ADDRESS)
+(define-type-code type-code:unassigned UNASSIGNED)
+)
 
 ;;; Disgusting hack to replace microcode implementation.
 
