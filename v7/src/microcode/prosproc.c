@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prosproc.c,v 1.18.2.1.2.3 2000/12/02 21:08:30 cph Exp $
+$Id: prosproc.c,v 1.18.2.1.2.4 2000/12/04 01:39:27 cph Exp $
 
 Copyright (c) 1990-2000 Massachusetts Institute of Technology
 
@@ -28,11 +28,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #ifdef __unix__
    extern char ** environ;
-#endif
-
-#ifdef __IBMC__
-   extern char ** _environ;
-#  define environ _environ
 #endif
 
 extern Tchannel EXFUN (arg_channel, (int));
