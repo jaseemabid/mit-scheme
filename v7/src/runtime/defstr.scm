@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: defstr.scm,v 14.37.2.1 2002/01/15 20:46:01 cph Exp $
+$Id: defstr.scm,v 14.37.2.2 2002/01/16 23:03:00 cph Exp $
 
 Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -93,8 +93,7 @@ differences:
 					       environment
 					       closing-environment)))
 		     (parse/options options
-				    (parse/slot-descriptions slot-descriptions
-							     context)
+				    (parse/slot-descriptions slot-descriptions)
 				    context))))))
 	  `(BEGIN ,@(type-definitions structure)
 		  ,@(constructor-definitions structure)
@@ -248,7 +247,7 @@ differences:
 	  (named-option
 	   (let ((arguments (option/arguments named-option)))
 	     (if (pair? arguments)
-		 (values (car arguments) #f)
+		 (values #f (car arguments))
 		 (single (default-type-name context)))))
 	  (else
 	   (single (default-type-name context))))))
@@ -485,10 +484,10 @@ differences:
 
 ;;;; Parse slot descriptions
 
-(define (parse/slot-descriptions slot-descriptions context)
+(define (parse/slot-descriptions slot-descriptions)
   (let ((slots
 	 (map (lambda (description)
-		(cons (parse/slot-description description context)
+		(cons (parse/slot-description description)
 		      description))
 	      slot-descriptions)))
     (do ((slots slots (cdr slots)))
@@ -504,7 +503,7 @@ differences:
 		     (cdr slot*))))))
     (map car slots)))
 
-(define (parse/slot-description slot-description context)
+(define (parse/slot-description slot-description)
   (call-with-values
       (lambda ()
 	(if (pair? slot-description)
@@ -544,7 +543,13 @@ differences:
 			     (else (error "Illegal slot option:" option)))))
 		(else
 		 (error "Unrecognized structure slot option:" option))))))
-	(make-slot name (close default context) type read-only?)))))
+	(make-slot name default type read-only?)))))
+
+(define (get-slot-default slot structure)
+  (make-syntactic-closure
+      (parser-context/environment (structure/context structure))
+      (map slot/name (structure/slots structure))
+    (slot/default slot)))
 
 ;;;; Descriptive Structure
 
@@ -769,8 +774,9 @@ differences:
 		KEYWORD-LIST
 		(,(absolute 'LIST)
 		 ,@(map (lambda (slot)
-			  `(,(absolute 'CONS) ',(slot/name slot)
-					      ,(slot/default slot)))
+			  `(,(absolute 'CONS)
+			    ',(slot/name slot)
+			    ,(get-slot-default slot structure)))
 			(structure/slots structure)))))))
 	(case (structure/type structure)
 	  ((RECORD)
@@ -821,10 +827,10 @@ differences:
 				(slot/name slot))
 			       ((memq slot optional)
 				`(IF (DEFAULT-OBJECT? ,(slot/name slot))
-				     ,(slot/default slot)
+				     ,(get-slot-default slot structure)
 				     ,(slot/name slot)))
 			       (else
-				(slot/default slot))))
+				(get-slot-default slot structure))))
 		       (structure/slots structure))))))))))
 
 (define (make-constructor structure name lambda-list generate-body)
