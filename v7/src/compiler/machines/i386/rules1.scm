@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rules1.scm,v 1.14 1992/02/18 01:53:26 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rules1.scm,v 1.14.1.1 1992/02/20 16:41:04 jinx Exp $
 $MC68020-Header: /scheme/src/compiler/machines/bobcat/RCS/rules1.scm,v 4.36 1991/10/25 06:49:58 cph Exp $
 
 Copyright (c) 1992 Massachusetts Institute of Technology
@@ -226,6 +226,27 @@ MIT in each case. |#
   (QUALIFIER (register-value-class=word? r))
   (LAP (MOV W (@R 7) ,(source-register-reference r))
        (ADD W (R 7) (& 4))))
+
+(define-rule statement
+  (ASSIGN (POST-INCREMENT (REGISTER 7) 1) (CONSTANT (? object)))
+  (QUALIFIER (non-pointer-object? object))
+  (cons-non-pointer (object-type object)
+		    (careful-object-datum object)))
+
+(define-rule statement
+  (ASSIGN (POST-INCREMENT (REGISTER 7) 1)
+	  (CONS-POINTER (MACHINE-CONSTANT (? type))
+			(MACHINE-CONSTANT (? datum))))
+  (cons-non-pointer type datum))
+
+(define (cons-non-pointer type datum)
+  (if (and (zero? type) (zero? datum))
+      (let ((temp (temporary-register-reference)))
+	(LAP (XOR W ,temp ,temp)
+	     (MOV W (@R 7) ,temp)
+	     (ADD W (R 7) (& 4))))
+      (LAP (MOV W (@R 7) (&U ,(make-non-pointer-literal type datum)))
+	   (ADD W (R 7) (& 4)))))
 
 ;;;; Pushes
 
