@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/toplev.scm,v 4.9 1988/08/22 20:25:43 markf Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/toplev.scm,v 4.8 1988/07/16 21:51:09 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -518,9 +518,7 @@ MIT in each case. |#
       (set! *rtl-graphs* '())
       (set! *ic-procedure-headers* '())
       (initialize-machine-register-map!)
-      (cleanup-noop-nodes
-       (lambda ()
-	 (generate/top-level (last-reference *root-expression*))))
+      (generate/top-level (last-reference *root-expression*))
       (set! label->object
 	    (make/label->object *rtl-expression*
 				*rtl-procedures*
@@ -549,9 +547,6 @@ MIT in each case. |#
     (lambda ()
       (if compiler:cse?
 	  (phase/common-subexpression-elimination))
-      (cleanup-noop-nodes
-       (lambda ()
-	 (phase/rtl-expansion)))
       (phase/lifetime-analysis)
       (if compiler:code-compression?
 	  (phase/code-compression))
@@ -562,12 +557,7 @@ MIT in each case. |#
   (compiler-subphase "Eliminating Common Subexpressions"
     (lambda ()
       (common-subexpression-elimination *rtl-graphs*))))
-(define (phase/rtl-expansion)
-  (compiler-subphase "Expanding RTL"
-    (lambda ()
-      (rtl-expansion *rtl-graphs*))))
-
-(define (phase/lifetime-analysis)
+(define (phase/lifetime-analysis)
   (compiler-subphase "Lifetime Analysis"
     (lambda ()
       (lifetime-analysis *rtl-graphs*))))
