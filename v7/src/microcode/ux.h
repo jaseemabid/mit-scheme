@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ux.h,v 1.60 1993/11/24 09:04:09 gjr Exp $
+$Id: ux.h,v 1.60.1.1 1998/07/19 20:36:48 cph Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-98 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -59,7 +59,7 @@ extern int errno;
 
 /* These seem to be missing from versions of unistd.h */
 
-#if !(defined(_HPUX) || defined(sonyrisc) || defined(_SUNOS4))
+#if !(defined(_HPUX) || defined(sonyrisc) || defined(_SUNOS4) || defined(_IRIX6))
 /* As specified by OSF/1 Programmer's reference: */
 extern int EXFUN (ioctl, (int, unsigned long, ...));
 #endif
@@ -133,7 +133,7 @@ extern int EXFUN (kill, (pid_t, int));
 #define ERRNO_NONBLOCK EAGAIN
 #define FCNTL_NONBLOCK O_NONBLOCK
 
-#ifdef _IRIX4
+#ifdef _IRIX
 
 #define HAVE_DIR
 #define HAVE_SELECT
@@ -142,7 +142,7 @@ extern int EXFUN (kill, (pid_t, int));
 #define HAVE_SYMBOLIC_LINKS
 #define HAVE_UNIX_SOCKETS
 
-#endif /* _IRIX4 */
+#endif /* _IRIX */
 
 #ifdef _AIX
 #define UNION_WAIT_STATUS
