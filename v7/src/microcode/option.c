@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: option.c,v 1.35 1993/08/10 04:56:30 cph Exp $
+$Id: option.c,v 1.35.1.1 1998/07/19 20:24:36 cph Exp $
 
-Copyright (c) 1990-1993 Massachusetts Institute of Technology
+Copyright (c) 1990-98 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -49,10 +49,15 @@ extern int atoi ();
 #ifdef WINNT
 #include <io.h>
 #include <string.h>
-#else
+#else /* not WINNT */
+#ifdef _POSIX
+#include <unistd.h>
+#include <string.h>
+#else /* not _POSIX */
 extern int access ();
 extern int strlen ();
-#endif
+#endif /* not _POSIX */
+#endif /* not WINNT */
 
 #ifndef NULL
 # define NULL 0
