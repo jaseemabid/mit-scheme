@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchdmp.c,v 9.85.2.1.2.3 2000/12/04 20:49:51 cph Exp $
+$Id: bchdmp.c,v 9.85.2.1.2.4 2000/12/04 22:04:08 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -51,68 +51,22 @@ extern SCHEME_OBJECT * EXFUN
 #ifdef __unix__
 #  include "ux.h"
 #  include "uxio.h"
-   static char FASDUMP_FILENAME[] = "/tmp/fasdumpXXXXXX";
+   static char FASDUMP_FILENAME[] = "fasdumpXXXXXX";
 #endif
 
 #ifdef __WIN32__
 #  include "nt.h"
 #  include "ntio.h"
-   static char FASDUMP_FILENAME[] = "\\tmp\\faXXXXXX";
+   static char FASDUMP_FILENAME[] = "faXXXXXX";
 #endif
 
 #ifdef __OS2__
 #  include "os2.h"
-#  ifdef __EMX__
-#    include <io.h>
-#  endif
-   static char FASDUMP_FILENAME[] = "\\tmp\\faXXXXXX";
+   static char FASDUMP_FILENAME[] = "faXXXXXX";
 #endif
-
-#if defined(__IBMC__) || defined(__WATCOMC__)
-
-#include <io.h>
-#include <sys\stat.h>
-#include <fcntl.h>
-
-#ifndef F_OK
-#  define F_OK 0
-#  define X_OK 1
-#  define W_OK 2
-#  define R_OK 4
-#endif
-
-char *
-DEFUN (mktemp, (fname), char * fname)
-{
-  /* This assumes that fname ends in at least 3 Xs.
-     tmpname seems too random to use.
-     This, of course, has a window in which another program can
-     create the file.  */
-
-  int posn = ((strlen (fname)) - 3);
-  int counter;
-
-  for (counter = 0; counter < 1000; counter++)
-    {
-      sprintf (&fname[posn], "%03d", counter);
-      if ((access (fname, F_OK)) != 0)
-	{
-	  int fid = (open (fname,
-			   (O_CREAT | O_EXCL | O_RDWR),
-			   (S_IREAD | S_IWRITE)));
-	  if (fid < 0)
-	    continue;
-	  close (fid);
-	  break;
-	}
-    }
-  return ((counter < 1000) ? fname : 0);
-}
-
-#endif /* __IBMC__ or __WATCOMC__ */
 
 static Tchannel dump_channel;
-static char * dump_file_name;
+static CONST char * dump_file_name;
 static int real_gc_file;
 static int dump_file;
 static SCHEME_OBJECT * saved_free;
@@ -131,7 +85,7 @@ static Boolean compiled_code_present_p;
 
 #include "dump.c"
 
-static SCHEME_OBJECT EXFUN (dump_to_file, (SCHEME_OBJECT, char *));
+static SCHEME_OBJECT EXFUN (dump_to_file, (SCHEME_OBJECT, CONST char *));
 static int EXFUN (fasdump_exit, (long length));
 static int EXFUN (reset_fixes, (void));
 static ssize_t EXFUN (eta_read, (int, char *, int));
@@ -167,25 +121,13 @@ DEFINE_PRIMITIVE ("PRIMITIVE-FASDUMP", Prim_prim_fasdump, 3, 3, 0)
       PRIMITIVE_RETURN (dump_to_file (root, (STRING_ARG (2))));
     {
       Tchannel channel = (arg_channel (2));
-      char temp_name [(sizeof (FASDUMP_FILENAME)) + 1];
+      char * temp_name = (make_gc_file_name (FASDUMP_FILENAME));
+      transaction_begin ();
+      protect_gc_file_name (temp_name);
+      if (!allocate_gc_file (temp_name))
+	signal_error_from_primitive (ERR_EXTERNAL_RETURN);
       {
-	char * scan1 = (& (FASDUMP_FILENAME[0]));
-	char * scan2 = temp_name;
-	while (1)
-	  {
-	    char c = (*scan1++);
-	    (*scan2++) = c;
-	    if (c == '\0')
-	      break;
-	  }
-      }
-      {
-	char * temp_file = (mktemp (temp_name));
-	if ((temp_file == 0) || ((*temp_file) == '\0'))
-	  signal_error_from_primitive (ERR_EXTERNAL_RETURN);
-      }
-      {
-	SCHEME_OBJECT fasdump_result = (dump_to_file (root, (temp_name)));
+	SCHEME_OBJECT fasdump_result = (dump_to_file (root, temp_name));
 	if (fasdump_result == SHARP_T)
 	  {
 	    Tchannel temp_channel = (OS_open_input_file (temp_name));
@@ -195,6 +137,7 @@ DEFINE_PRIMITIVE ("PRIMITIVE-FASDUMP", Prim_prim_fasdump, 3, 3, 0)
 				  channel));
 	    OS_channel_close (temp_channel);
 	    OS_file_remove (temp_name);
+	    transaction_commit ();
 	    if (copy_result < 0)
 	      signal_error_from_primitive (ERR_IO_ERROR);
 	  }
@@ -302,7 +245,7 @@ DEFINE_PRIMITIVE ("DUMP-BAND", Prim_band_dump, 2, 2, 0)
 static SCHEME_OBJECT
 DEFUN (dump_to_file, (root, fname),
        SCHEME_OBJECT root AND
-       char * fname)
+       CONST char * fname)
 {
   Boolean success = 1;
   long value;
@@ -584,7 +527,12 @@ DEFUN (transport_vector_tail, (free, free_end, tail),
        SCHEME_OBJECT * tail)
 {
   unsigned long n_words = (free_end - free);
-  DUMP_FREE (free);
+  {
+    Boolean success = 1;
+    free = (dump_and_reset_free_buffer (free, (&success)));
+    if (!success)
+      return (0);
+  }
   {
     unsigned long n_blocks = (n_words >> gc_buffer_shift);
     if (n_blocks > 0)

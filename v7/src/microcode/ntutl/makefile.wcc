@@ -1,6 +1,6 @@
 ### -*- Fundamental -*-
 ###
-###     $Id: makefile.wcc,v 1.13.2.1.2.3 2000/12/03 05:27:43 cph Exp $
+###     $Id: makefile.wcc,v 1.13.2.1.2.4 2000/12/04 22:04:25 cph Exp $
 ###
 ###     Copyright (c) 1992-2000 Massachusetts Institute of Technology
 ###
@@ -592,8 +592,8 @@ wabbit.obj: wabbit.c $(SCHEME_H) $(GCCODE_H)
 bchdmp.obj: bchdmp.c $(SCHEME_H) $(PRIMS_H) $(OSFILE_H) $(OSFS_H) $(TRAP_H) &
 	$(LOOKUP_H) $(FASL_H) $(NT_H) $(NTIO_H) $(BCHGCC_H) $(DUMP_C)
 bchgcl.obj: bchgcl.c $(SCHEME_H) $(BCHGCC_H)
-bchmmg.obj: bchmmg.c $(SCHEME_H) $(PRIMS_H) $(MEMMAG_H) $(OSENV_H) $(NT_H) &
-	$(BCHGCC_H) $(BCHDRN_H)
+bchmmg.obj: bchmmg.c $(SCHEME_H) $(PRIMS_H) $(MEMMAG_H) $(OPTION_H) &
+	$(OSENV_H) $(OSENV_H) $(NT_H) $(BCHGCC_H) $(BCHDRN_H)
 bchpur.obj: bchpur.c $(SCHEME_H) $(PRIMS_H) $(BCHGCC_H) $(ZONES_H)
 bchutl.obj: bchutl.c $(CONFIG_H)
 

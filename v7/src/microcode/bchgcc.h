@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcc.h,v 9.60.2.3.2.4 2000/12/04 05:58:36 cph Exp $
+$Id: bchgcc.h,v 9.60.2.3.2.5 2000/12/04 22:04:11 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -86,6 +86,10 @@ extern int EXFUN (retrying_file_operation,
 
 extern int EXFUN (io_error_retry_p, (char *, char *));
 extern int EXFUN (io_error_always_abort, (char *, char *));
+
+extern char * EXFUN (make_gc_file_name, (CONST char *));
+extern int EXFUN (allocate_gc_file, (char *));
+extern void EXFUN (protect_gc_file_name, (CONST char *));
 
 struct saved_scan_state
 {

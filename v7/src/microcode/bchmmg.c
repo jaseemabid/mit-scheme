@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.95.2.3.2.4 2000/12/02 05:51:05 cph Exp $
+$Id: bchmmg.c,v 9.95.2.3.2.5 2000/12/04 22:04:14 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -26,6 +26,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "memmag.h"
 #include "option.h"
 #include "osenv.h"
+#include "osfs.h"
 
 #ifdef __unix__
 #  include "ux.h"
@@ -157,11 +158,10 @@ static SCHEME_OBJECT
   * virtual_scan_base;
 
 static char
-  * gc_file_name = ((char *) NULL),
-  gc_file_name_buffer[FILE_NAME_LENGTH];
+  * gc_file_name = 0;
 
 CONST char
-  * drone_file_name = ((char *) NULL);
+  * drone_file_name = 0;
 
 static int
   keep_gc_file_p = 0,
@@ -1859,9 +1859,9 @@ DEFUN (close_gc_file, (unlink_p), int unlink_p)
   gc_file = -1;
   if (!keep_gc_file_p && unlink_p)
     unlink (gc_file_name);
-  gc_file_name = ((char *) NULL);
+  OS_free (gc_file_name);
+  gc_file_name = 0;
   keep_gc_file_p = 0;
-  return;
 }
 
 #define EMPTY_STRING_P(string)						\
@@ -1886,57 +1886,102 @@ DEFUN (termination_open_gc_file, (operation, extra),
   /*NOTREACHED*/
 }
 
+char *
+DEFUN (make_gc_file_name, (suffix), CONST char * suffix)
+{
+  unsigned int s = (strlen (suffix));
+  if ((option_gc_file[0]) == SUB_DIRECTORY_DELIMITER)
+    {
+      unsigned int n
+	= (((strrchr (option_gc_file, SUB_DIRECTORY_DELIMITER))
+	    - option_gc_file)
+	   + 1);
+      char * result = (OS_malloc (n + s + 1));
+      strncpy (result, option_gc_file, n);
+      (result[n]) = '\0';
+      strcat (result, suffix);
+      return (result);
+    }
+  {
+    unsigned int l = (strlen (option_gc_directory));
+    if ((option_gc_directory [l - 1]) == SUB_DIRECTORY_DELIMITER)
+      {
+	unsigned int n = l;
+	char * result = (OS_malloc (n + s + 1));
+	sprintf (result, "%s%s", option_gc_directory, suffix);
+	return (result);
+      }
+    else
+      {
+	unsigned int n = (l + 1);
+	char * result = (OS_malloc (n + s + 1));
+	sprintf (result, "%s%c%s",
+		 option_gc_directory, SUB_DIRECTORY_DELIMITER, suffix);
+	return (result);
+      }
+  }
+}
+
+int
+DEFUN (allocate_gc_file, (name), char * name)
+{
+  /* `name' must end in 6 `X' characters.  */
+  char * exxes = (name + ((strlen (name)) - 6));
+  unsigned int n = 0;
+
+  while (n < 1000000)
+    {
+      sprintf (exxes, "%06d", n);
+      if (OS_file_touch (name))
+	return (1);
+      n += 1;
+    }
+  return (0);
+}
+
+void
+DEFUN (protect_gc_file_name, (name), CONST char * name)
+{
+  CONST char ** p = (dstack_alloc (sizeof (char *)));
+  (*p) = name;
+  transaction_record_action (tat_always, OS_free, p);
+}
+
 #ifndef _POSIX_VERSION
 extern off_t EXFUN (lseek, (int, off_t, int));
 #endif
 
-#if defined(__IBMC__) || defined(__WATCOMC__)
-extern char * EXFUN (mktemp, (unsigned char *));
-#endif
-
 static void
 DEFUN (open_gc_file, (size, unlink_p),
-       long size AND int unlink_p)
+       long size AND
+       int unlink_p)
 {
   struct stat file_info;
-  int position, flags;
+  int flags;
   Boolean temp_p, exists_p;
 
-  gc_file_name = &gc_file_name_buffer[0];
-  if (option_gc_file[0] == SUB_DIRECTORY_DELIMITER)
-    strcpy (gc_file_name, option_gc_file);
-  else
+  gc_file_name
+    = (make_gc_file_name
+       (((option_gc_file[0]) == SUB_DIRECTORY_DELIMITER)
+	? ((strrchr (option_gc_file, SUB_DIRECTORY_DELIMITER)) + 1)
+	: option_gc_file));
+
   {
-    position = (strlen (option_gc_directory));
-    if ((position == 0) || 
-	(option_gc_directory[position - 1] != SUB_DIRECTORY_DELIMITER))
-      sprintf (gc_file_name, "%s%c%s", 
-	       option_gc_directory, SUB_DIRECTORY_DELIMITER, option_gc_file);
+    unsigned int n = (strlen (option_gc_file));
+    if ((n >= 6) && ((strcmp ((option_gc_file + (n - 6)), "XXXXXX")) == 0))
+      {
+	if (!allocate_gc_file (gc_file_name))
+	  {
+	    outf_fatal
+	      ("%s: Unable to allocate a temporary file for the spare heap.\n",
+	       scheme_program_name);
+	    termination_open_gc_file (0, 0);
+	    /*NOTREACHED*/
+	  }
+	temp_p = true;
+      }
     else
-      sprintf (gc_file_name, "%s%s", option_gc_directory, option_gc_file);
-  }
-
-  /* mktemp supposedly only clobbers Xs from the end.
-     If the string does not end in Xs, it should be untouched. 
-     This presents a quoting problem, but...
-     Unfortunately, it seems to clobber the string when there are no Xs.
-   */
-
-  temp_p = false;
-  position = (strlen (option_gc_file));
-  if ((position >= 6)
-      && ((strncmp ((option_gc_file + (position - 6)), "XXXXXX", 6)) == 0))
-  {
-    char * gc_temp = (mktemp (gc_file_name));
-    if (EMPTY_STRING_P (gc_temp))
-    {
-      outf_fatal
-	("%s (open_gc_file): \
-	  Unable to allocate a temporary file for the spare heap.\n",
-	 scheme_program_name);
-      termination_open_gc_file (((char *) NULL), ((char *) NULL));
-    }
-    temp_p = true;
+      temp_p = false;
   }
 
   flags = GC_FILE_FLAGS;
@@ -1954,7 +1999,7 @@ DEFUN (open_gc_file, (size, unlink_p),
        scheme_program_name,
        option_gc_start_position, gc_file_start_position,
        option_gc_end_position, gc_file_end_position);
-    termination_open_gc_file (((char *) NULL), ((char *) NULL));
+    termination_open_gc_file (0, 0);
   }
 
   absolute_gc_file_end_position = gc_file_end_position;
@@ -2037,7 +2082,7 @@ DEFUN (open_gc_file, (size, unlink_p),
     termination_open_gc_file ("open", ((char *) NULL));
   }
 
-  keep_gc_file_p = (option_gc_keep || (exists_p && (! temp_p)));
+  keep_gc_file_p = (option_gc_keep || (exists_p && (!temp_p)));
 
 #ifdef UNLINK_BEFORE_CLOSE
   if (!keep_gc_file_p && unlink_p)
