@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ppband.c,v 9.50 2000/12/05 21:23:47 cph Exp $
+$Id: ppband.c,v 9.50.8.1 2002/03/29 20:42:30 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright (c) 1987-2000, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
 */
 
 /* Dumps Scheme FASL in user-readable form. */
@@ -277,7 +278,7 @@ DEFUN (Display, (Location, Type, The_Datum),
 
   switch (Type)
   { /* "Strange" cases */
-    case TC_NULL:
+    case TC_FALSE:
       if (The_Datum == 0)
       {
 	printf ("#F\n");

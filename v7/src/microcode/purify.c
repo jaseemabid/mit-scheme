@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.61 2001/12/16 06:01:33 cph Exp $
+$Id: purify.c,v 9.61.4.1 2002/03/29 20:42:31 cph Exp $
 
-Copyright (c) 1988-1999, 2001 Massachusetts Institute of Technology
+Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -375,7 +375,7 @@ DEFUN (purifyloop, (Scan, To_Pointer, GC_Mode),
         | END   | Total Size M |   . Where END   = TC_FIXNUM
         |----------------------|    .      SNMH  = TC_MANIFEST_SPECIAL_...
         | SNMH  |      1       |    |      CONST = TC_CONSTANT
-        |----------------------|    |      PURE  = TC_NULL
+        |----------------------|    |      PURE  = TC_FALSE
         |                      |    |
         |                      |    |
         |    CONSTANT AREA     |    |

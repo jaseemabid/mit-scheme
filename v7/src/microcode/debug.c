@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: debug.c,v 9.53 2001/07/31 03:11:17 cph Exp $
+$Id: debug.c,v 9.53.8.1 2002/03/29 20:42:22 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright (c) 1987-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -475,7 +475,7 @@ DEFUN (do_printing, (stream, Expr, Detailed),
       print_list (stream, Expr);
       return;
 
-    case TC_NULL:
+    case TC_FALSE:
       break;
 
     case TC_UNINTERNED_SYMBOL:

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: confshared.h,v 11.3 2002/01/29 05:57:24 cph Exp $
+$Id: confshared.h,v 11.3.2.1 2002/03/29 20:42:20 cph Exp $
 
 Copyright (c) 2000, 2002 Massachusetts Institute of Technology
 
@@ -210,6 +210,8 @@ typedef unsigned long SCHEME_OBJECT;
   ((SCHEME_OBJECT) (((unsigned long) (address)) & (~(HPPA_QUAD_MASK))))
 
 #if (SCHEME_VERSION > 11)
+
+/* This no longer works.  If we revive this port it will have to be fixed.  */
 
 /* SHARP_F is a magic value:
    Typecode TC_CONSTANT, high datum bits #b100, low datum bits are the top

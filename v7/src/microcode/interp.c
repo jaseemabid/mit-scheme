@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: interp.c,v 9.92 2001/08/10 04:37:13 cph Exp $
+$Id: interp.c,v 9.92.8.1 2002/03/29 20:42:27 cph Exp $
 
-Copyright (c) 1988-2001 Massachusetts Institute of Technology
+Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -648,13 +648,13 @@ Eval_Non_Trapping:
     case TC_ENTITY:
     case TC_ENVIRONMENT:
     case TC_EXTENDED_PROCEDURE:
+    case TC_FALSE:
     case TC_FIXNUM:
     case TC_HUNK3_A:
     case TC_HUNK3_B:
     case TC_INTERNED_SYMBOL:
     case TC_LIST:
     case TC_NON_MARKED_VECTOR:
-    case TC_NULL:
     case TC_PRIMITIVE:
     case TC_PROCEDURE:
     case TC_QUAD:

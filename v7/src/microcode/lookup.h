@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: lookup.h,v 9.55 2001/08/07 01:26:36 cph Exp $
+$Id: lookup.h,v 9.55.8.1 2002/03/29 20:42:28 cph Exp $
 
 Copyright (c) 1988-2001 Massachusetts Institute of Technology
 
@@ -71,6 +71,6 @@ extern long compiler_unassigned_p_trap
 extern long compiler_assignment_trap
   (SCHEME_OBJECT, SCHEME_OBJECT, SCHEME_OBJECT *);
 
-#define UNCOMPILED_VARIABLE (MAKE_OBJECT (TC_CONSTANT, 0))
+#define UNCOMPILED_VARIABLE SHARP_T
 
 #endif /* not SCM_LOOKUP_H */

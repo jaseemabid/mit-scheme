@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: memmag.c,v 9.66 2000/12/05 21:23:45 cph Exp $
+$Id: memmag.c,v 9.66.8.1 2002/03/29 20:42:29 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright (c) 1987-2000, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
 */
 
 /* Memory management top level.
@@ -280,7 +281,7 @@ DEFUN_VOID (Fix_Weak_Chain)
     Weak_Chain = * Old_Weak_Cell;
     Old_Car = * Scan;
     Temp = (MAKE_OBJECT_FROM_OBJECTS (Weak_Chain, Old_Car));
-    Weak_Chain = (OBJECT_NEW_TYPE (TC_NULL, Weak_Chain));
+    Weak_Chain = (OBJECT_NEW_TYPE (TC_FALSE, Weak_Chain));
 
     switch (GC_Type (Temp))
     { case GC_Non_Pointer:

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.91 2001/12/16 06:01:32 cph Exp $
+$Id: fasload.c,v 9.91.4.1 2002/03/29 20:42:24 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright (c) 1987-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1160,7 +1160,7 @@ DEFUN (String_Inversion, (Orig_Pointer), SCHEME_OBJECT * Orig_Pointer)
 	(Last_String, STRING_LENGTH_INDEX,
 	 (MAKE_POINTER_OBJECT ((Count + MAGIC_OFFSET), Orig_Pointer)));
 
-    Last_String = (MAKE_POINTER_OBJECT (TC_NULL, Orig_Pointer));
+    Last_String = (MAKE_POINTER_OBJECT (TC_FALSE, Orig_Pointer));
     Orig_Pointer[STRING_LENGTH_INDEX] = SHARP_F;
     Count = (OBJECT_DATUM (Orig_Pointer[STRING_HEADER])) - 1;
     if (Reloc_Debug)

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: wabbit.c,v 1.9 2001/12/16 06:01:33 cph Exp $
+$Id: wabbit.c,v 1.9.4.1 2002/03/29 20:42:33 cph Exp $
 
-Copyright (c) 1994-2001 Massachusetts Institute of Technology
+Copyright (c) 1994-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ extern void
 /* Wabbit hunting code */
 /* Be wary, wary, quiet... */
 
-#define TC_HEADLESS_REFERENCE		TC_NULL
+#define TC_HEADLESS_REFERENCE		TC_FALSE
 #define TC_REFERENCE_TO_STACK		TC_STACK_ENVIRONMENT
 #define TC_REFERENCE_TO_CONSTANT_SPACE	TC_CHARACTER
 
@@ -151,7 +151,7 @@ Boolean EXFUN (discard_wabbit_holes_p, (SCHEME_OBJECT *, SCHEME_OBJECT *));
 {									\
   long car_tag = (OBJECT_TYPE (* old_space_addr));			\
   (*new_space_free++)							\
-    = (OBJECT_NEW_TYPE (TC_NULL, (* old_space_addr)));			\
+    = (OBJECT_NEW_TYPE (TC_FALSE, (* old_space_addr)));			\
   *new_space_free++ = *++old_space_addr;				\
   * old_space_addr = (OBJECT_NEW_TYPE (car_tag, Weak_Chain));		\
   Weak_Chain = this_object;						\
@@ -943,7 +943,7 @@ DEFUN_VOID (fix_weak_chain_and_hunt_wabbits)
     Weak_Chain = * old_weak_pair;
     nulled_car = * scan;
     this_object = (MAKE_OBJECT_FROM_OBJECTS (Weak_Chain, nulled_car));
-    Weak_Chain = (OBJECT_NEW_TYPE (TC_NULL, Weak_Chain));
+    Weak_Chain = (OBJECT_NEW_TYPE (TC_FALSE, Weak_Chain));
 
     switch (GC_Type (this_object))
     {

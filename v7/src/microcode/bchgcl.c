@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: bchgcl.c,v 9.54 2001/12/16 06:01:32 cph Exp $
+$Id: bchgcl.c,v 9.54.4.1 2002/03/29 20:42:17 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright (c) 1987-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -131,8 +131,8 @@ DEFUN (gc_loop,
 
 	case TC_CHARACTER:
 	case TC_CONSTANT:
+	case TC_FALSE:
 	case TC_FIXNUM:
-	case TC_NULL:
 	case TC_PCOMB0:
 	case TC_PRIMITIVE:
 	case TC_RETURN_CODE:
@@ -377,7 +377,7 @@ DEFUN (gc_loop,
 	    else
 	      {
 		SCHEME_OBJECT weak_car = (old_start[0]);
-		if (((OBJECT_TYPE (weak_car)) == TC_NULL)
+		if (((OBJECT_TYPE (weak_car)) == TC_FALSE)
 		    || ((OBJECT_ADDRESS (weak_car)) < low_heap))
 		  {
 		    (*free++) = weak_car;
@@ -392,7 +392,7 @@ DEFUN (gc_loop,
 		  }
 		else
 		  {
-		    (*free++) = (OBJECT_NEW_TYPE (TC_NULL, weak_car));
+		    (*free++) = (OBJECT_NEW_TYPE (TC_FALSE, weak_car));
 		    (*free++) = (old_start[1]);
 		    (old_start[1])
 		      = (MAKE_OBJECT_FROM_OBJECTS (weak_car, Weak_Chain));

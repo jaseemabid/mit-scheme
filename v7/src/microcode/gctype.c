@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: gctype.c,v 9.34 1999/01/02 06:06:43 cph Exp $
+$Id: gctype.c,v 9.34.12.1 2002/03/29 20:42:26 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright (c) 1987-1999, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
 */
 
 /* This file contains the table which maps between Types and GC Types.  */
@@ -28,7 +29,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 	    /*********************************/
 
 int GC_Type_Map[MAX_TYPE_CODE + 1] = {
-    GC_Non_Pointer,		/* TC_NULL,etc */
+    GC_Non_Pointer,		/* TC_FALSE, etc. */
     GC_Pair,			/* TC_LIST */
     GC_Non_Pointer,		/* TC_CHARACTER */
     GC_Pair,		   	/* TC_SCODE_QUOTE */

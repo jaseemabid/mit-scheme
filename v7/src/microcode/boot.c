@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: boot.c,v 9.105 2001/07/31 03:10:57 cph Exp $
+$Id: boot.c,v 9.105.8.1 2002/03/29 20:42:19 cph Exp $
 
-Copyright (c) 1988-2001 Massachusetts Institute of Technology
+Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -245,7 +245,8 @@ DEFUN_VOID (initialize_fixed_objects_vector)
   Fixed_Objects = fixed_objects_vector;
   FAST_VECTOR_SET (fixed_objects_vector, Me_Myself, fixed_objects_vector);
   FAST_VECTOR_SET
-    (fixed_objects_vector, Non_Object, (MAKE_OBJECT (TC_CONSTANT, 2)));
+    (fixed_objects_vector, Non_Object,
+     (MAKE_OBJECT (TC_CONSTANT, CONSTANT_DATUM_NON_OBJECT)));
   FAST_VECTOR_SET
     (fixed_objects_vector,
      System_Interrupt_Vector,

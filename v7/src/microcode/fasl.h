@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.38 1999/01/02 06:06:43 cph Exp $
+$Id: fasl.h,v 9.38.12.1 2002/03/29 20:42:23 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright (c) 1987-1999, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
 */
 
 /* Contains information relating to the format of FASL files.
@@ -78,7 +79,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define CI_BAND_P(P)		((OBJECT_TYPE (P)) == TC_CONSTANT)
 
 #define MAKE_CI_VERSION(Band_p, Version, Processor_Type)		\
-  MAKE_OBJECT (((Band_p) ? TC_CONSTANT : TC_NULL),				\
+  MAKE_OBJECT (((Band_p) ? TC_CONSTANT : TC_FALSE),			\
 	       ((((unsigned long) (Version)) << (DATUM_LENGTH / 2))	\
 		| (Processor_Type)))
 

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: types.h,v 9.38 2001/08/07 01:27:17 cph Exp $
+$Id: types.h,v 9.38.8.1 2002/03/29 20:42:32 cph Exp $
 
-Copyright (c) 1987-1999, 2001 Massachusetts Institute of Technology
+Copyright (c) 1987-1999, 2001, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ USA.
 
 /*	Name				Value	Previous Name */
 
-#define TC_NULL	                	0x00
+#define TC_FALSE                	0x00
 #define TC_LIST				0x01
 #define TC_CHARACTER			0x02
 #define	TC_SCODE_QUOTE                 	0x03
@@ -102,7 +102,7 @@ USA.
 
 #define TYPE_NAME_TABLE							\
 {									\
-  /* 0x00 */	                "NULL",					\
+  /* 0x00 */	                "FALSE",				\
   /* 0x01 */			"LIST",					\
   /* 0x02 */			"CHARACTER",				\
   /* 0x03 */                 	"SCODE-QUOTE",				\
@@ -110,7 +110,7 @@ USA.
   /* 0x05 */			"UNINTERNED-SYMBOL",			\
   /* 0x06 */			"BIG-FLONUM",				\
   /* 0x07 */			"COMBINATION-1",			\
-  /* 0x08 */			"TRUE",					\
+  /* 0x08 */			"CONSTANT",				\
   /* 0x09 */			"EXTENDED-PROCEDURE",			\
   /* 0x0A */			"VECTOR",				\
   /* 0x0B */ 			"RETURN-CODE",				\
@@ -175,8 +175,7 @@ USA.
 
 /* Aliases */
 
-#define TC_FALSE	        	TC_NULL
-#define TC_MANIFEST_VECTOR		TC_NULL
+#define TC_MANIFEST_VECTOR		TC_FALSE
 #define TC_BIT_STRING			TC_VECTOR_1B
 #define TC_VECTOR_8B			TC_CHARACTER_STRING
 #define TC_HUNK3			TC_HUNK3_B
@@ -185,3 +184,8 @@ USA.
 #define MARKED_HISTORY_TYPE		TC_HUNK3_B
 
 #define case_TC_FIXNUMs case TC_FIXNUM
+
+#define CONSTANT_DATUM_SHARP_T 0
+#define CONSTANT_DATUM_UNSPECIFIC 1
+#define CONSTANT_DATUM_NON_OBJECT 2
+#define CONSTANT_DATUM_EMPTY_LIST 3

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.98 2000/12/05 21:34:56 cph Exp $
+$Id: bchmmg.c,v 9.98.8.1 2002/03/29 20:42:18 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright (c) 1987-2000, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
 */
 
 /* Memory management top level.  Garbage collection to disk. */
@@ -2933,7 +2934,7 @@ DEFUN (pre_read_weak_pair_buffers, (low_heap), SCHEME_OBJECT * low_heap)
 	weak_buffer_pre_read_count += 1;
       }
     }
-    next = (OBJECT_NEW_TYPE (TC_NULL, (*pair_addr)));
+    next = (OBJECT_NEW_TYPE (TC_FALSE, (*pair_addr)));
   }
   weak_pair_break = next;
   return;
@@ -3186,7 +3187,7 @@ DEFUN (fix_weak_chain_1, (low_heap), SCHEME_OBJECT * low_heap)
     *scan
       = (update_weak_pointer
 	 ((MAKE_OBJECT_FROM_OBJECTS (Weak_Chain, (* scan))), low_heap));
-    Weak_Chain = (OBJECT_NEW_TYPE (TC_NULL, Weak_Chain));
+    Weak_Chain = (OBJECT_NEW_TYPE (TC_FALSE, Weak_Chain));
   }
   flush_new_space_buffer ();
   Weak_Chain = chain;

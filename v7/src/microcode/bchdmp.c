@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: bchdmp.c,v 9.90 2001/12/16 06:01:32 cph Exp $
+$Id: bchdmp.c,v 9.90.4.1 2002/03/29 20:42:16 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright (c) 1987-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -616,8 +616,8 @@ DEFUN (dump_loop, (scan, free_ptr, new_address_ptr),
 
 	case TC_CHARACTER:
 	case TC_CONSTANT:
+	case TC_FALSE:
 	case TC_FIXNUM:
-	case TC_NULL:
 	case TC_RETURN_CODE:
 	case TC_STACK_ENVIRONMENT:
 	case TC_THE_ENVIRONMENT:

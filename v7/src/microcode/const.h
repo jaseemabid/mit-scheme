@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: const.h,v 9.46 2000/12/05 21:23:43 cph Exp $
+$Id: const.h,v 9.46.8.1 2002/03/29 20:42:21 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright (c) 1987-2000, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
 */
 
 /* Named constants used throughout the interpreter */
@@ -36,6 +37,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #    define SHARP_F		0x00000000
 #    define SHARP_T		0x08000000
 #    define UNSPECIFIC		0x08000001
+/* #    define EMPTY_LIST		0x08000003 */
 #    define FIXNUM_ZERO		0x1A000000
 #    define BROKEN_HEART_ZERO	0x22000000
 #  endif
@@ -43,17 +45,19 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #    define SHARP_F		0x00000000
 #    define SHARP_T		0x20000000
 #    define UNSPECIFIC		0x20000001
+/* #    define EMPTY_LIST		0x20000003 */
 #    define FIXNUM_ZERO		0x68000000
 #    define BROKEN_HEART_ZERO	0x88000000
 #  endif
 #endif
 
 #ifndef SHARP_F			/* Safe version */
-#  define SHARP_F		MAKE_OBJECT (TC_NULL, 0)
-#  define SHARP_T		MAKE_OBJECT (TC_CONSTANT, 0)
-#  define UNSPECIFIC		MAKE_OBJECT (TC_CONSTANT, 1)
-#  define FIXNUM_ZERO		MAKE_OBJECT (TC_FIXNUM, 0)
-#  define BROKEN_HEART_ZERO	MAKE_OBJECT (TC_BROKEN_HEART, 0)
+#  define SHARP_F MAKE_OBJECT (TC_FALSE, 0)
+#  define SHARP_T MAKE_OBJECT (TC_CONSTANT, CONSTANT_DATUM_SHARP_T)
+#  define UNSPECIFIC MAKE_OBJECT (TC_CONSTANT, CONSTANT_DATUM_UNSPECIFIC)
+/* #  define EMPTY_LIST MAKE_OBJECT (TC_CONSTANT, CONSTANT_DATUM_EMPTY_LIST) */
+#  define FIXNUM_ZERO MAKE_OBJECT (TC_FIXNUM, 0)
+#  define BROKEN_HEART_ZERO MAKE_OBJECT (TC_BROKEN_HEART, 0)
 #endif /* SHARP_F */
 
 #define EMPTY_LIST SHARP_F
@@ -135,9 +139,14 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 /* VMS preprocessor does not like line continuations in conditionals */
 
 #define Are_The_Constants_Incompatible					\
-((TC_NULL != 0x00) || (TC_CONSTANT != 0x08) ||				\
- (TC_FIXNUM != 0x1A) || (TC_BROKEN_HEART != 0x22) || 			\
- (TC_CHARACTER_STRING != 0x1E))
+(! ((TC_FALSE == 0x00)							\
+    && (TC_CONSTANT == 0x08)						\
+    && (TC_FIXNUM == 0x1A)						\
+    && (TC_BROKEN_HEART == 0x22)					\
+    && (TC_CHARACTER_STRING == 0x1E)					\
+    && (CONSTANT_DATUM_SHARP_T == 0)					\
+    && (CONSTANT_DATUM_UNSPECIFIC == 1)					\
+    && (CONSTANT_DATUM_EMPTY_LIST == 3)))
 
 /* The values used above are in sdata.h and types.h,
    check for consistency if the check below fails. */

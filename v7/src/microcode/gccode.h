@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.58 2001/08/07 01:26:09 cph Exp $
+$Id: gccode.h,v 9.58.8.1 2002/03/29 20:42:25 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright (c) 1987-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ USA.
   switch (OBJECT_TYPE (P))
 
 #define case_simple_Non_Pointer						\
-  case TC_NULL:								\
+  case TC_FALSE:							\
   case TC_CONSTANT:							\
   case TC_RETURN_CODE:							\
   case TC_THE_ENVIRONMENT
@@ -485,12 +485,12 @@ Move_Vector:								\
 
 extern SCHEME_OBJECT Weak_Chain;
 
-#define EMPTY_WEAK_CHAIN   (OBJECT_NEW_TYPE(TC_NULL, 0))
+#define EMPTY_WEAK_CHAIN   (OBJECT_NEW_TYPE(TC_FALSE, 0))
 
 #define Transport_Weak_Cons()						\
 {									\
   long Car_Type = (OBJECT_TYPE (*Old));					\
-  (*To++) = (OBJECT_NEW_TYPE (TC_NULL, (*Old)));			\
+  (*To++) = (OBJECT_NEW_TYPE (TC_FALSE, (*Old)));			\
   Old += 1;								\
   TRANSPORT_ONE_THING ((*To++) = (*Old));				\
   *Old = (OBJECT_NEW_TYPE (Car_Type, Weak_Chain));			\
