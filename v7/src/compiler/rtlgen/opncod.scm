@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/opncod.scm,v 4.7.1.1 1988/06/09 17:41:57 markf Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/opncod.scm,v 4.7.1.2 1988/06/13 05:20:57 cph Exp $
 
-Copyright (c) 1987 Massachusetts Institute of Technology
+Copyright (c) 1988 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -159,7 +159,7 @@ MIT in each case. |#
 		 (set! name->open-coders
 		       (cons (cons name item) name->open-coders)))))))
     (lambda (name handler)
-      (if (pair? name)
+      (if (list? name)
 	  (for-each (lambda (name)
 		      (per-name name handler))
 		    name)
@@ -235,7 +235,7 @@ MIT in each case. |#
 		(scfg*scfg->scfg!
 		  (rtl:make-push (rtl:make-fetch temp))
 		  pushes))))))
-		  
+
 (define (range-check checkee-locative limit-locative non-error-cfg
 		     error-finish prim-invocation)
   (if compiler:generate-range-checks?
@@ -243,7 +243,9 @@ MIT in each case. |#
 	     (error-continuation
 	      (scfg*scfg->scfg!
 	       (rtl:make-continuation-entry continuation-label)
-	       (error-finish (rtl:make-fetch register:value))))
+	       (if error-finish
+		   (error-finish (rtl:make-fetch register:value))
+		   (make-null-cfg))))
 	     (error-cfg
 	      (scfg*scfg->scfg!
 	       (generate-primitive
@@ -350,35 +352,35 @@ MIT in each case. |#
     (define/length '(VECTOR-LENGTH SYSTEM-VECTOR-SIZE) 0)
     (define/length '(STRING-LENGTH BIT-STRING-LENGTH) 1)))
 
-(define generate-index-locative
-  (lambda (expressions non-error-finish error-finish prim-invocation)
-    (let* ((index (cadr expressions))
-	   (vector (car expressions))
-	   (temporary (rtl:make-pseudo-register))
-	   (element-address-code
-	    (rtl:make-assignment
-	      temporary
-	      (rtl:make-fixnum-2-args
-	       'PLUS-FIXNUM
-	       (rtl:make-object->address (car expressions))
-	       (rtl:make-fixnum-2-args
-		'MULTIPLY-FIXNUM
-		(rtl:make-object->fixnum
-		 (rtl:make-constant
-		  (quotient scheme-object-width
-			    addressing-granularity)))
-		(rtl:make-object->fixnum
-		 (cadr expressions))))))
-	   (index-locative (rtl:make-fetch temporary)))
-       (range-check
-        index
-	(rtl:make-fetch (rtl:locative-offset vector 0))
-	(scfg*scfg->scfg!
-	 element-address-code
-	 (non-error-finish index-locative))
-	error-finish
-	prim-invocation))))
-       
+(define (generate-index-locative expressions non-error-finish error-finish
+				 prim-invocation)
+  (let* ((index (cadr expressions))
+	 (vector (car expressions))
+	 (temporary (rtl:make-pseudo-register))
+	 (element-address-code
+	  (rtl:make-assignment
+	    temporary
+	    (rtl:make-fixnum-2-args
+	     'PLUS-FIXNUM
+	     (rtl:make-object->address (car expressions))
+	     (rtl:make-fixnum-2-args
+	      'MULTIPLY-FIXNUM
+	      (rtl:make-object->fixnum
+	       (rtl:make-constant
+		(quotient scheme-object-width
+			  addressing-granularity)))
+	      (rtl:make-object->fixnum
+	       (cadr expressions))))))
+	 (index-locative (rtl:make-fetch temporary)))
+     (range-check
+      index
+      (rtl:make-fetch (rtl:locative-offset vector 0))
+      (scfg*scfg->scfg!
+       element-address-code
+       (non-error-finish index-locative))
+      error-finish
+      prim-invocation)))
+
 (let* ((open-code/memory-ref
        (lambda (index)
 	 (lambda (expressions finish)
@@ -405,7 +407,7 @@ MIT in each case. |#
 			  '(0)))))))
     (define/ref
       '(CAR SYSTEM-PAIR-CAR CELL-CONTENTS SYSTEM-HUNK3-CXR0) 0)
-    (define/ref 
+    (define/ref
       '(CDR SYSTEM-PAIR-CDR SYSTEM-HUNK3-CXR1) 1)
     (define/ref 'SYSTEM-HUNK3-CXR2 2))
 
@@ -472,33 +474,29 @@ MIT in each case. |#
 	     finish
 	     (make-invocation name expressions))))))
 
+  ;; For now SYSTEM-XXXX side effect procedures are considered
+  ;; dangerous to the garbage collector's health.  Some day we will
+  ;; again be able to enable them.
+
   (let ((define/set!
 	  (lambda (name index)
 	    (define-open-coder/effect name
 	      (lambda (operands)
 		(return-2 (open-code/memory-assignment index)
 			  '(0 1)))))))
-;;;  For now SYSTEM-XXXX procedures with side effects are considered
-;;; dangerous to the garbage collectors health. Some day we will again
-;;; be able to do the following:
-;;; (define/set! '(SET-CAR! SYSTEM-PAIR-SET-CAR!
-;;;                SET-CELL-CONTENTS!
-;;; 	           SYSTEM-HUNK3-SET-CXR0!)
-;;;   0)
-;;; (define/set! '(SET-CDR! SYSTEM-PAIR-SET-CDR!
-;;;                  SYSTEM-HUNK3-SET-CXR1!) 1)
-;;; (define/set! 'SYSTEM-HUNK3-SET-CXR2!
-;;;   2)
-    (define/set! '(SET-CAR! SET-CELL-CONTENTS!) 0)
-    (define/set! '(SET-CDR!) 1))
+    (define/set! '(SET-CAR!
+		   SET-CELL-CONTENTS!
+		   #| SYSTEM-PAIR-SET-CAR! |#
+		   #| SYSTEM-HUNK3-SET-CXR0! |#)
+      0)
+    (define/set! '(SET-CDR!
+		   #| SYSTEM-PAIR-SET-CDR! #|
+		   #| SYSTEM-HUNK3-SET-CXR1! |#)
+      1)
+    (define/set! '(#| SYSTEM-HUNK3-SET-CXR2! |#)
+      2))
 
-
-;;;  For now SYSTEM-XXXX procedures with side effects are considered
-;;; dangerous to the garbage collectors health. Some day we will again
-;;; be able to do the following:
-;;; (define-open-coder-effect '(VECTOR-SET! SYSTEM-VECTOR-SET!) ... )
-
-  (define-open-coder/effect '(VECTOR-SET!)
+  (define-open-coder/effect '(VECTOR-SET! #| SYSTEM-VECTOR-SET! |#)
     (lambda (operands)
       (let ((good-constant-index
 	     (filter/nonnegative-integer (cadr operands)
@@ -507,8 +505,7 @@ MIT in each case. |#
 			   '(0 2))))))
 	(if good-constant-index
 	    good-constant-index
-	    (return-2 (open-code/vector-set 'VECTOR-SET!)
-		      '(0 1 2)))))))
+	    (return-2 (open-code/vector-set 'VECTOR-SET!) '(0 1 2)))))))
 
 (let ((define-fixnum-2-args
 	(lambda (fixnum-operator)
@@ -597,20 +594,21 @@ MIT in each case. |#
       (lambda (index)
 	(return-2
 	 (lambda (expressions finish)
-	   (finish (rtl:make-cons-pointer 
+	   (finish (rtl:make-cons-pointer
 		    (rtl:make-constant (ucode-type character))
 		    (rtl:make-fetch
-		     (rtl:locative-byte-offset (car expressions)
-					       (+ string-header-size index))))))
+		     (rtl:locative-byte-offset
+		      (car expressions)
+		      (+ string-header-size index))))))
 	 '(0))))))
 
 (define-open-coder/effect 'STRING-SET!
   (lambda (operands)
     (filter/nonnegative-integer (cadr operands)
-      (lambda (index)				
+      (lambda (index)
 	(return-2
 	 (lambda (expressions finish)
-	   (let* ((locative 
+	   (let* ((locative
 		   (rtl:locative-byte-offset (car expressions)
 					     (+ string-header-size index)))
 		  (assignment
@@ -619,10 +617,11 @@ MIT in each case. |#
 	     (if finish
 		 (let ((temporary (rtl:make-pseudo-register)))
 		   (scfg-append!
-		    (rtl:make-assignment temporary
-					 (rtl:make-cons-pointer
-					  (rtl:make-constant (ucode-type character))
-					  (rtl:make-fetch locative)))
+		    (rtl:make-assignment
+		     temporary
+		     (rtl:make-cons-pointer
+		      (rtl:make-constant (ucode-type character))
+		      (rtl:make-fetch locative)))
 		    assignment
 		    (finish (rtl:make-fetch temporary))))
 		 assignment)))
