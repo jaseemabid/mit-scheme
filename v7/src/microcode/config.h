@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/Attic/config.h,v 9.59.1.2 1991/08/24 02:15:46 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/Attic/config.h,v 9.59.1.3 1991/08/24 02:29:23 cph Exp $
 
 Copyright (c) 1987-91 Massachusetts Institute of Technology
 
@@ -499,8 +499,13 @@ typedef unsigned long SCHEME_OBJECT;
 #endif /* alliant */
 
 #ifdef apollo
+#if _ISP__M68K
 #define MACHINE_TYPE          "Apollo 68k"
 #define FASL_INTERNAL_FORMAT  FASL_APOLLO_68K
+#else
+#define MACHINE_TYPE          "Apollo Prism"
+#define FASL_INTERNAL_FORMAT  FASL_APOLLO_PRISM
+#endif
 #define b32
 #define HEAP_IN_LOW_MEMORY
 #define HAS_FLOOR
