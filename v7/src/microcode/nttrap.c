@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: nttrap.c,v 1.17.2.1 2000/11/27 05:57:56 cph Exp $
+$Id: nttrap.c,v 1.17.2.1.2.1 2000/12/02 20:08:03 cph Exp $
 
 Copyright (c) 1992-2000 Massachusetts Institute of Technology
 
@@ -34,6 +34,7 @@ extern int EXFUN (TellUser, (char *, ...));
 extern int EXFUN (TellUserEx, (int, char *, ...));
 #endif /* W32_TRAP_DEBUG */
 
+extern void EXFUN (callWinntExceptionTransferHook, (void));
 extern void EXFUN (NT_initialize_traps, (void));
 extern void EXFUN (NT_restore_traps, (void));
 
@@ -413,7 +414,7 @@ static SCHEME_OBJECT
   * real_stack_pointer;
 
 int
-Win32ExceptionTransferHook (void)
+WinntExceptionTransferHook (void)
 {
   /* These must be static because the memcpy below may
      be overwriting this procedure's locals!
@@ -424,7 +425,7 @@ Win32ExceptionTransferHook (void)
 
   temp_stack_ptr = Stack_Pointer;
   size = (temp_stack_limit - temp_stack_ptr);
-  IFVERBOSE (TellUserEx (MB_OKCANCEL, "Win32ExceptionTransferHook."));
+  IFVERBOSE (TellUserEx (MB_OKCANCEL, "WinntExceptionTransferHook."));
 
   if (clear_real_stack)
     INITIALIZE_STACK ();
@@ -814,7 +815,7 @@ pc_in_hyperspace:
 
   /* Handshake with try+except. */
 
-  context->Eip = ((DWORD) callWin32ExceptionTransferHook);
+  context->Eip = ((DWORD) callWinntExceptionTransferHook);
   context->SegCs = (getCS ());
   return_by_aborting = TRUE;
 
@@ -1213,7 +1214,7 @@ DEFUN_VOID (win32_stack_reset)
 #define EXCEPTION_CODE_GUARDED_PAGE_ACCESS	0x80000001L
 
 static LONG
-DEFUN (Win32Exception, (code, info),
+DEFUN (WinntException, (code, info),
        DWORD code AND LPEXCEPTION_POINTERS info)
 {
   PCONTEXT context;
@@ -1268,7 +1269,7 @@ DEFUN (Win32Exception, (code, info),
 static LONG WINAPI
 scheme_unhandled_exception_filter (LPEXCEPTION_POINTERS info)
 {
-  return (Win32Exception (((info -> ExceptionRecord) -> ExceptionCode), info));
+  return (WinntException (((info -> ExceptionRecord) -> ExceptionCode), info));
 }
 #endif /* USE_SET_UNHANDLED_EXCEPTION_FILTER */
 
@@ -1287,7 +1288,7 @@ win32_enter_interpreter (void (*enter_interpreter) (void))
     {
       (* enter_interpreter) ();
     }
-    __except (Win32Exception ((GetExceptionCode ()),
+    __except (WinntException ((GetExceptionCode ()),
 			      (GetExceptionInformation ())))
     {
       outf_fatal ("Exception!\n");
