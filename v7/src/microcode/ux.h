@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/ux.h,v 1.30 1992/01/20 18:06:15 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/ux.h,v 1.30.1.1 1992/02/10 13:44:59 jinx Exp $
 
 Copyright (c) 1988-1992 Massachusetts Institute of Technology
 
@@ -59,7 +59,7 @@ extern int errno;
 
 /* These seem to be missing from versions of unistd.h */
 extern int EXFUN (ioctl, (int, int, ...));
-extern int EXFUN (open, (const char *, int, ...));
+extern int EXFUN (open, (CONST char *, int, int));
 extern int EXFUN (kill, (pid_t, int));
 
 #include "intext.h"
