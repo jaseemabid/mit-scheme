@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: decls.scm,v 4.34 1993/10/12 23:51:58 cph Exp $
+$Id: decls.scm,v 4.34.1.1 1994/03/30 21:18:01 gjr Exp $
 
-Copyright (c) 1988-93 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -351,14 +351,19 @@ MIT in each case. |#
 	     (filename/append "rtlbase"
 			      "regset" "rgraph" "rtlcfg" "rtlcon" "rtlexp"
 			      "rtline" "rtlobj" "rtlreg" "rtlty1" "rtlty2"
-			      "valclass")
+			      "valclass"
+			      ;; New stuff
+			      "rtlpars"
+			      ;; End of New stuff
+			      )
 	     (filename/append "rtlgen"
 			      "fndblk" "fndvar" "opncod" "rgcomb" "rgproc"
 			      "rgretn" "rgrval" "rgstmt" "rtlgen")
 	     (filename/append "rtlopt"
 			      "ralloc" "rcompr" "rcse1" "rcse2" "rcseep"
-			      "rcseht" "rcserq" "rcsesr" "rdebug" "rdflow"
-			      "rerite" "rinvex" "rlife" "rtlcsm"))
+			      "rcseht" "rcserq" "rcsesr" "rcsemrg"
+			      "rdebug" "rdflow" "rerite" "rinvex"
+			      "rlife" "rtlcsm"))
      compiler-syntax-table)
     (file-dependency/syntax/join
      (filename/append "machines/spectrum"
@@ -399,7 +404,7 @@ MIT in each case. |#
 			   "rcse1" "rcseht" "rcserq" "rcsesr"))
 	 (cse-all
 	  (append (filename/append "rtlopt"
-				   "rcse2" "rcseep")
+				   "rcse2" "rcsemrg" "rcseep")
 		  cse-base))
 	 (instruction-base
 	  (filename/append "machines/spectrum" "assmd" "machin"))
@@ -510,6 +515,11 @@ MIT in each case. |#
 		      "fndblk" "fndvar" "opncod" "rgcomb" "rgproc" "rgretn"
 		      "rgrval" "rgstmt" "rtlgen")
      (append spectrum-base front-end-base rtl-base))
+
+    ;; New stuff
+    (file-dependency/integration/join (filename/append "rtlbase" "rtlpars")
+				      rtl-base)
+    ;; End of new stuff
 
     (file-dependency/integration/join
      (append cse-all
