@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/xform.scm,v 3.4.1.3 1987/06/30 07:02:42 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/xform.scm,v 3.4.1.4 1987/07/01 20:42:34 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -50,28 +50,32 @@ MIT in each case. |#
 ;;; same variable object.  So, instead we intern them in GLOBAL-BLOCK,
 ;;; which never has any user defined names in it.
 
+(define try-deep-lookup?)
+
 (define (transform/top-level expression)
-  (let ((block (block/make (block/make false false) false))
-	(environment (environment/make)))
-    (block/set-environment! block environment)
-    (return-2 block (transform/top-level-1 block block expression true))))
+  (fluid-let ((try-deep-lookup? false))
+    (let ((block (block/make (block/make false false) false)))
+      (return-2 block (transform/top-level-1 true block block expression)))))
 
 (define (transform/recursive block top-level-block expression)
-  (transform/top-level-1 block top-level-block expression false))
+  (fluid-let ((try-deep-lookup? true))
+    (transform/top-level-1 false block top-level-block expression)))
 
-(define (transform/top-level-1 block top-level-block expression allow-open-block?)
-  (fluid-let ((global-block
+(define (transform/top-level-1 top-level? block top-level-block expression)
+  (fluid-let ((try-deep-lookup? (not top-level?))
+	      (global-block
 	       (let block/global-parent ((block top-level-block))
 		 (if (block/parent block)
 		     (block/global-parent (block/parent block))
 		     block))))
-    (cond ((not (scode-open-block? expression))
-	   (transform/expression block (block/environment block) expression))
-	  ((not allow-open-block?)
-	   (error "transform/top-level-1: open blocks disallowed" expression))
-	  (else
-	   (open-block-components expression
-	     (transform/open-block* block (block/environment block)))))))
+    (let ((environment (environment/make)))
+      (cond ((not (scode-open-block? expression))
+	     (transform/expression block environment expression))
+	    ((not top-level?)
+	     (error "transform/top-level-1: open blocks disallowed" expression))
+	    (else
+	     (open-block-components expression
+	       (transform/open-block* block environment)))))))
 
 (define (transform/expressions block environment expressions)
   (map (lambda (expression)
@@ -86,11 +90,12 @@ MIT in each case. |#
 (define (environment/make)
   '())
 
-(define (environment/lookup environment name)
+(define (environment/lookup block environment name)
   (let ((association (assq name environment)))
-    (if association
-	(cdr association)
-	(block/lookup-name global-block name))))
+    (cond (association (cdr association))
+	  ((and try-deep-lookup?
+		(block/lookup-name block name false)))
+	  (else (block/lookup-name global-block name true)))))
 
 (define (environment/bind environment variables)
   (map* environment
@@ -137,20 +142,19 @@ MIT in each case. |#
       (define (transform subexpression)
 	(transform/expression block environment subexpression))
 
-      (block/set-environment! block environment)
       (transmit-values (loop variables (sequence-actions body))
 	(lambda (values actions)
 	  (open-block/make block variables values actions))))))
 
 (define (transform/variable block environment expression)
   (reference/make block
-		  (environment/lookup environment (variable-name expression))))
+		  (environment/lookup block environment (variable-name expression))))
 
 (define (transform/assignment block environment expression)
   (assignment-components expression
     (lambda (name value)
       (assignment/make block
-		       (environment/lookup environment name)
+		       (environment/lookup block environment name)
 		       (transform/expression block environment value)))))
 
 (define (transform/lambda block environment expression)
@@ -165,7 +169,6 @@ MIT in each case. |#
 	  (lambda (required optional rest)
 	    (let* ((bound `(,@required ,@optional ,@(if rest `(,rest) '())))
 		   (environment (environment/bind environment bound)))
-	      (block/set-environment! block environment)
 	      (block/set-bound-variables! block bound)
 	      (procedure/make
 	       block name required optional rest

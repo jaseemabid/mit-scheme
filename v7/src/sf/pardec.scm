@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/pardec.scm,v 3.4.1.3 1987/06/30 21:28:49 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/pardec.scm,v 3.4.1.4 1987/07/01 20:45:19 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -69,7 +69,9 @@ MIT in each case. |#
   (lambda (bindings global? operation export? names values)
     (let ((result
 	   (binding/make global? operation export?
-			 (if global? names (block/lookup-names block names))
+			 (if global?
+			     names
+			     (block/lookup-names block names true))
 			 values)))
       (transmit-values bindings
 	(lambda (before after)
