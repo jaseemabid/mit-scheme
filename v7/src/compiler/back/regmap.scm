@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/regmap.scm,v 4.7.1.1 1988/12/06 22:32:41 arthur Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/regmap.scm,v 4.7.1.2 1988/12/06 22:34:50 arthur Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
