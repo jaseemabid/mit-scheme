@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: make.scm,v 14.83.2.4 2002/01/18 05:35:44 cph Exp $
+$Id: make.scm,v 14.83.2.5 2002/02/01 04:34:38 cph Exp $
 
 Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
@@ -55,8 +55,10 @@ USA.
 (define (*make-environment parent names . values)
   (let-syntax
       ((ucode-type
-	(non-hygienic-macro-transformer
-	 (lambda (name) (microcode-type name)))))
+	(sc-macro-transformer
+	 (lambda (form environment)
+	   environment
+	   (microcode-type (cadr form))))))
     (system-list->vector
      (ucode-type environment)
      (cons (system-pair-cons (ucode-type procedure)
@@ -71,14 +73,16 @@ USA.
 			  (vector lambda-tag:unnamed))))
 
 (define-syntax ucode-primitive
-  (non-hygienic-macro-transformer
-   (lambda arguments
-     (apply make-primitive-procedure arguments))))
+  (sc-macro-transformer
+   (lambda (form environment)
+     environment
+     (apply make-primitive-procedure (cdr form)))))
 
 (define-syntax ucode-type
-  (non-hygienic-macro-transformer
-   (lambda (name)
-     (microcode-type name))))
+  (sc-macro-transformer
+   (lambda (form environment)
+     environment
+     (microcode-type (cadr form)))))
 
 (define-integrable + (ucode-primitive integer-add))
 (define-integrable - (ucode-primitive integer-subtract))
