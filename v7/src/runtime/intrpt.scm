@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;;	$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/intrpt.scm,v 13.44 1987/05/27 14:58:22 cph Rel $
+;;;	$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/intrpt.scm,v 13.44.1.1 1987/12/08 04:44:49 cph Exp $
 ;;;
 ;;;	Copyright (c) 1987 Massachusetts Institute of Technology
 ;;;
@@ -146,6 +146,8 @@
 (define ^G-interrupt-handler
   (flush-typeahead
    (lambda (interrupt-character interrupt-enables)
+     (if ((access under-emacs? emacs-interface-package))
+	 ((access transmit-signal emacs-interface-package) #\g))
      (abort-to-top-level-driver "Quit!"))))
 
 (define ^U-interrupt-handler
