@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: make.scm,v 14.57 1995/04/13 22:24:53 cph Exp $
+$Id: make.scm,v 14.57.1.1 1998/10/18 08:47:19 cph Exp $
 
 Copyright (c) 1988-95 Massachusetts Institute of Technology
 
@@ -424,6 +424,7 @@ MIT in each case. |#
    ;; Condition System
    (RUNTIME ERROR-HANDLER)
    (RUNTIME MICROCODE-ERRORS)
+   ((RUNTIME STREAM) INITIALIZE-CONDITIONS! #t)
    ;; System dependent stuff
    (() INITIALIZE-SYSTEM-PRIMITIVES! #f)
    ;; Threads
