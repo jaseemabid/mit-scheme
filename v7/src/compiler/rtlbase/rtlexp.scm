@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlexp.scm,v 4.6 1988/05/19 15:20:13 markf Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlexp.scm,v 4.6.1.1 1988/08/25 20:06:36 markf Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -166,3 +166,14 @@ MIT in each case. |#
 				  (lambda (expression)
 				    (set-car! tail expression))))
 		   (loop (cdr tail)))))))
+
+(define (rtl:expand-statement statement expander finish)
+  (let loop ((subexpressions (cdr statement))
+	     (new-subexpressions '()))
+    (if (null? subexpressions)
+	(finish (reverse new-subexpressions))
+	(expander (car subexpressions)
+		  (lambda (new-subexpression)
+		    (loop (cdr subexpressions)
+			  (cons new-subexpression
+				new-subexpressions)))))))
