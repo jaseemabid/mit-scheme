@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/mermap.scm,v 1.4 1991/07/25 02:32:06 cph Exp $
+$Id: mermap.scm,v 1.4.1.1 1994/03/30 21:12:05 gjr Exp $
 
-Copyright (c) 1988-91 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -33,6 +33,7 @@ promotional, or sales literature without prior written consent from
 MIT in each case. |#
 
 ;;;; LAP Generator: Merge Register Maps
+;; package: (compiler lap-syntaxer map-merger)
 
 (declare (usual-integrations))
 
@@ -48,7 +49,7 @@ MIT in each case. |#
 		     (map map->weighted-entries maps weights)))))
     (for-each eliminate-unlikely-aliases! entries)
     (eliminate-conflicting-aliases! entries)
-    (weighted-entries->map entries)))
+    (weighted-entries->map (car maps) entries)))
 
 (define (eliminate-unlikely-aliases! entry)
   (let ((home-weight (vector-ref entry 1))
@@ -157,7 +158,7 @@ MIT in each case. |#
 (define find-weighted-entry
   (association-procedure eqv? (lambda (entry) (vector-ref entry 0))))
 
-(define (weighted-entries->map entries)
+(define (weighted-entries->map map entries)
   (let loop
       ((entries entries)
        (map-entries '())
