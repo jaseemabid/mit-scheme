@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/order.scm,v 4.9 1988/11/01 04:52:18 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/order.scm,v 4.9.1.1 1988/11/29 06:19:55 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
