@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: make.scm,v 14.83.2.1 2002/01/15 20:46:01 cph Exp $
+$Id: make.scm,v 14.83.2.2 2002/01/17 21:22:23 cph Exp $
 
 Copyright (c) 1988-2001 Massachusetts Institute of Technology
 
@@ -332,11 +332,10 @@ USA.
 (package/add-child! system-global-package 'PACKAGE environment-for-package)
 
 (define packages-file
-  (fasload (case os-name
-	     ((NT) "runtime-w32.pkd")
-	     ((OS/2) "runtime-os2.pkd")
-	     ((UNIX) "runtime-unx.pkd")
-	     (else "runtime-unk.pkd"))
+  (fasload (cond ((eq? os-name 'NT) "runtime-w32.pkd")
+		 ((eq? os-name 'OS/2) "runtime-os2.pkd")
+		 ((eq? os-name 'UNIX) "runtime-unx.pkd")
+		 (else "runtime-unk.pkd"))
 	   #f))
 ((lexical-reference environment-for-package 'CONSTRUCT-PACKAGES-FROM-FILE)
  packages-file)
