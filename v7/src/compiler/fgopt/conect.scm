@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/conect.scm,v 4.3.1.1 1988/12/06 03:38:50 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/conect.scm,v 4.3.1.2 1988/12/12 21:28:12 cph Exp $
 
-Copyright (c) 1987 Massachusetts Institute of Technology
+Copyright (c) 1987, 1988 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -36,9 +36,7 @@ MIT in each case. |#
 
 (declare (usual-integrations))
 
-(package (connectivity-analysis)
-
-(define-export (connectivity-analysis expression procedures)
+(define (connectivity-analysis expression procedures)
   (walk-node (expression-entry-node expression) (make-subgraph-color))
   (for-each (lambda (procedure)
 	      (if (not (procedure-direct-linked? procedure))
@@ -88,7 +86,7 @@ MIT in each case. |#
 		  (walk-node (procedure-entry-node operator) color)))))
        ((RETURN)
 	(walk-continuation (return/operator node) color))))
-    ((VIRTUAL-RETURN POP ASSIGNMENT DEFINITION FG-NOOP)
+    ((VIRTUAL-RETURN POP ASSIGNMENT DEFINITION FG-NOOP STACK-OVERWRITE)
      (walk-node (snode-next node) color))
     ((TRUE-TEST)
      (walk-node (pnode-consequent node) color)
@@ -98,5 +96,3 @@ MIT in each case. |#
   (let ((rvalue (rvalue-known-value continuation)))
     (if rvalue
 	(walk-node (continuation/entry-node rvalue) color))))
-
-)
