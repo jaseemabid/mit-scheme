@@ -1,6 +1,6 @@
-# $Id: Makefile.in.in,v 1.17 2001/11/27 04:20:31 cph Exp $
+# $Id: Makefile.in.in,v 1.17.2.1 2002/01/14 16:57:29 cph Exp $
 #
-# Copyright (c) 2000-2001 Massachusetts Institute of Technology
+# Copyright (c) 2000-2002 Massachusetts Institute of Technology
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -191,7 +191,7 @@ MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps config.h.in configure
 
 # **** Main rules ****
 
-default-target: scheme bchscheme
+default-target: $(ALL_PROGRAMS) $(ALL_LIBS)
 
 all: $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA)
 
