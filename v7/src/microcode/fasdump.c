@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.63.2.1 2000/11/27 05:57:54 cph Exp $
+$Id: fasdump.c,v 9.63.2.1.2.1 2000/11/29 21:41:19 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -343,7 +343,7 @@ DEFUN (DumpLoop, (Scan, mode), fast SCHEME_OBJECT * Scan AND int mode)
 	break;
 
       default:
-	GC_BAD_TYPE ("dumploop");
+	GC_BAD_TYPE ("dumploop", Temp);
 	/* Fall Through */
 
       case TC_STACK_ENVIRONMENT:

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.95.2.3 2000/11/28 05:08:02 cph Exp $
+$Id: bchmmg.c,v 9.95.2.3.2.1 2000/11/29 21:41:08 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -674,7 +674,6 @@ DEFUN (start_gc_drones, (first_drone, how_many, restarting),
   }
   else
   {
-
     sigset_t old_mask, new_mask;
 
     UX_sigemptyset (&new_mask);
@@ -864,7 +863,7 @@ DEFUN (sysV_initialize, (first_time_p, size, r_overlap, w_overlap, drfnam),
   malloc_size = ((n_gc_drones == 0)
 		 ? shared_size
 		 : (first_time_p ? MALLOC_SPACE : 0));
-
+
   if (malloc_size > 0)
   {
     malloc_memory = ((char *) (malloc (malloc_size)));
@@ -920,7 +919,7 @@ DEFUN (sysV_initialize, (first_time_p, size, r_overlap, w_overlap, drfnam),
     free (malloc_memory);
     malloc_memory = ((char *) NULL);
   }
-
+
   gc_buffers = ((struct buffer_info *) (shared_memory + buffer_space));
   gc_drones = ((struct drone_info *) (gc_buffers + n_gc_buffers));
   drone_version = ((unsigned long *) (gc_drones + n_gc_drones));
@@ -975,7 +974,7 @@ DEFUN (sysV_initialize, (first_time_p, size, r_overlap, w_overlap, drfnam),
       UX_sigaddset ((&mask), SIGCONT);
       UX_sigprocmask (SIG_UNBLOCK, (&mask), 0);
     }
-
+
     for (cntr = 0, entry = gc_read_queue;
 	 cntr < read_overlap;
 	 cntr++, entry++)
@@ -1174,7 +1173,6 @@ DEFUN (allocate_queue_entry, (queue, queue_size, position, request, mask),
   drone_mask = ((unsigned long) 0);
   for (cntr = 0, entry = queue; cntr < queue_size; cntr++, entry++)
   {
-
     if (entry->state == entry_idle)
       queue_index = cntr;
     else if ((entry->buffer)->position == position)
@@ -1363,7 +1361,7 @@ buffer_failed:
 	STATISTICS_INCR (reads_pending);
 	goto buffer_available;
       }
-
+
       case buffer_queued:
 	STATISTICS_INCR (reads_queued);
 	goto buffer_available;
@@ -1702,12 +1700,8 @@ DEFUN (await_io_completion, (start_p), int start_p)
 
 #define LOAD_BUFFER(buffer, position, size, noise)			\
   buffer = (read_buffer (position, size, noise))
-
-#endif /* USE_SYSV_SHARED_MEMORY */
-
-
-
-#ifndef GC_BUFFER_ALLOCATION
+
+#else /* not USE_SYSV_SHARED_MEMORY */
 
 static struct buffer_info
   * gc_disk_buffer_1,
@@ -1731,14 +1725,13 @@ do {									\
 
 #define INITIALIZE_IO()		do { } while (0)
 #define AWAIT_IO_COMPLETION()	do { } while (0)
-
+
 #define INITIAL_FREE_BUFFER()	gc_disk_buffer_1
 #define INITIAL_SCAN_BUFFER()	OTHER_BUFFER(free_buffer)
 
 /* (gc_disk_buffer_1 - (gc_disk_buffer_2 - (buffer))) does not work
    because scan_buffer is not initialized until after scanning
-   constant space.
-*/
+   constant space.  */
 
 #define OTHER_BUFFER(buffer)	(((buffer) == gc_disk_buffer_1)		\
 				 ? gc_disk_buffer_2			\
@@ -1772,8 +1765,8 @@ DEFUN (catastrophic_failure, (name), char * name)
 #define DUMP_BUFFER(buffer, position, size, successp, noise)		\
   write_data (((char *) buffer), position, size, noise, successp)
 
-#endif /* GC_BUFFER_ALLOCATION */
-
+#endif /* not USE_SYSV_SHARED_MEMORY */
+
 #define DUMP_SCAN_BUFFER(success)					\
   DUMP_BUFFER (scan_buffer, scan_position, gc_buffer_bytes,		\
 	       success, "the scan buffer")
@@ -1805,14 +1798,14 @@ DEFUN (next_exponent_of_two, (value), int value)
     ;
   return (exponent);
 }
-
+
 /* Hacking the gc file */
 
 static int
   saved_gc_file = -1,
   saved_read_overlap,
   saved_write_overlap;
-
+
 static long
   saved_start_position,
   saved_end_position;
@@ -1948,7 +1941,7 @@ DEFUN (open_gc_file, (size, unlink_p),
     }
     temp_p = true;
   }
-
+
   flags = GC_FILE_FLAGS;
   gc_file_start_position = (ALIGN_UP_TO_IO_PAGE (option_gc_start_position));
   gc_file_end_position = option_gc_end_position;
@@ -2010,7 +2003,7 @@ DEFUN (open_gc_file, (size, unlink_p),
     can_dump_directly_p = true;
 #endif
   }
-
+
   gc_file = (open (gc_file_name, flags, GC_FILE_MASK));
   if (gc_file == -1)
   {
@@ -2058,7 +2051,7 @@ DEFUN (open_gc_file, (size, unlink_p),
   if (!exists_p)
     prealloc (gc_file, ((unsigned int) gc_file_end_position));
 #endif
-
+
 #ifdef HAVE_LOCKF
   if (exists_p)
     {
@@ -2436,7 +2429,7 @@ DEFUN_VOID (abort_pre_reads)
 }
 
 static void
-DEFUN (reload_scan_buffer, (skip), int skip)
+DEFUN (reload_scan_buffer, (skip), unsigned long skip)
 {
   scan_position += (skip << gc_buffer_byte_shift);
   virtual_scan_pointer += (skip << gc_buffer_shift);
@@ -2463,56 +2456,57 @@ DEFUN (reload_scan_buffer, (skip), int skip)
 }
 
 SCHEME_OBJECT *
-DEFUN (dump_and_reload_scan_buffer, (number_to_skip, success),
-       long number_to_skip AND Boolean * success)
+DEFUN (dump_and_reload_scan_buffer, (end, success),
+       SCHEME_OBJECT * end AND
+       Boolean * success)
 {
+  unsigned long number_to_skip = (end - scan_buffer_top);
   DUMP_SCAN_BUFFER (success);
-  reload_scan_buffer (1 + number_to_skip);
-  return (scan_buffer_bottom);
+  reload_scan_buffer (1 + (number_to_skip >> gc_buffer_shift));
+  return (scan_buffer_bottom + (number_to_skip & gc_buffer_mask));
 }
 
 SCHEME_OBJECT *
-DEFUN (dump_and_reset_free_buffer, (overflow, success),
-       fast long overflow AND Boolean * success)
+DEFUN (dump_and_reset_free_buffer, (current_free, success),
+       SCHEME_OBJECT * current_free AND
+       Boolean * success)
 {
-  Boolean buffer_overlap_p, same_buffer_p;
-  fast SCHEME_OBJECT *into, *from;
-
-  from = free_buffer_top;
-  buffer_overlap_p = extension_overlap_p;
-  same_buffer_p = (scan_buffer == free_buffer);
+  unsigned long overflow = (current_free - free_buffer_top);
+  SCHEME_OBJECT * from = free_buffer_top;
+  Boolean buffer_overlap_p = extension_overlap_p;
+  Boolean same_buffer_p = (scan_buffer == free_buffer);
 
   if (read_overlap > 0)
-  {
-    if (buffer_overlap_p)
     {
-      extension_overlap_p = false;
-      next_scan_buffer = free_buffer;
+      if (buffer_overlap_p)
+	{
+	  extension_overlap_p = false;
+	  next_scan_buffer = free_buffer;
+	}
+      else if (!same_buffer_p)
+	enqueue_free_buffer (success);
     }
-    else if (!same_buffer_p)
-      enqueue_free_buffer (success);
-  }
   else if (!same_buffer_p)
     DUMP_FREE_BUFFER (success);
 
   /* Otherwise there is no need to dump now, it will be dumped
      when scan is dumped.  Note that the next buffer may be dumped
      before this one, but there should be no problem lseeking past the
-     end of file.
-   */
-
+     end of file.  */
   free_position += gc_buffer_bytes;
   free_buffer = (OTHER_BUFFER (scan_buffer));
   free_buffer_bottom = (GC_BUFFER_BOTTOM (free_buffer));
   free_buffer_top = (GC_BUFFER_TOP (free_buffer));
-
-  for (into = free_buffer_bottom; --overflow >= 0; )
-    *into++ = *from++;
-
-  if (same_buffer_p && !buffer_overlap_p)
-    *scan_buffer_top =
-      (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, scan_buffer_top));
-  return (into);
+  {
+    SCHEME_OBJECT * into = free_buffer_bottom;
+    SCHEME_OBJECT * end = (into + overflow);
+    while (into < end)
+      (*into++) = (*from++);
+    if (same_buffer_p && (!buffer_overlap_p))
+      (*scan_buffer_top)
+	= (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, scan_buffer_top));
+    return (into);
+  }
 }
 
 /* These utilities are needed when pointers fall accross window boundaries.
@@ -2523,7 +2517,8 @@ DEFUN (dump_and_reset_free_buffer, (overflow, success),
 
 void
 DEFUN (extend_scan_buffer, (to_where, current_free),
-       fast char * to_where AND SCHEME_OBJECT * current_free)
+       char * to_where AND
+       SCHEME_OBJECT * current_free)
 {
   fast char * source, * dest;
   long new_scan_position = (scan_position + gc_buffer_bytes);
@@ -2581,12 +2576,12 @@ DEFUN (end_scan_buffer_extension, (to_relocate), char * to_relocate)
      */
     SCHEME_OBJECT old, new;
     fast char * source, * dest, * limit;
-
+
     extension_overlap_p = false;
     source = ((char *) scan_buffer_top);
     old = (* ((SCHEME_OBJECT *) source));
     limit = (source + extension_overlap_length);
-    dest = ((char *) (dump_and_reload_scan_buffer (0, ((Boolean *) NULL))));
+    dest = ((char *) (dump_and_reload_scan_buffer (scan_buffer_top, 0)));
     /* The following is only necesary if we are reusing the scan buffer. */
     new = (* scan_buffer_top);
     (* ((SCHEME_OBJECT *) source)) = old;
@@ -2636,7 +2631,7 @@ DEFUN (end_scan_buffer_extension, (to_relocate), char * to_relocate)
     limit = (source + extension_overlap_length);
     dest = ((char *) (GC_BUFFER_BOTTOM (next_scan_buffer)));
     result = (dest + (to_relocate - source));
-
+
     while (source < limit)
       *dest++ = *source++;
     
@@ -2690,7 +2685,7 @@ DEFUN (dump_free_directly, (from, nbuffers, success),
       for (to = free_buffer_bottom, bufend = free_buffer_top; to != bufend; )
 	*to++ = *from++;
 
-      (void) (dump_and_reset_free_buffer (0, success));
+      (void) (dump_and_reset_free_buffer (to, success));
     }
   }
   return (free_buffer_bottom);
@@ -3196,9 +3191,7 @@ DEFUN (GC_relocate_root, (free_buffer_ptr), SCHEME_OBJECT ** free_buffer_ptr)
   *free_buffer++ = Fluid_Bindings;
   skip = (free_buffer - initial_free_buffer);
   if (free_buffer >= free_buffer_top)
-    free_buffer =
-      (dump_and_reset_free_buffer ((free_buffer - free_buffer_top),
-				   NULL));
+    free_buffer = (dump_and_reset_free_buffer (free_buffer, 0));
   * free_buffer_ptr = free_buffer;
   return (skip);
 }
@@ -3282,12 +3275,14 @@ DEFUN (GC, (weak_pair_transport_initialized_p),
   end_of_constant_area = (CONSTANT_AREA_END ());
   the_precious_objects = (Get_Fixed_Obj_Slot (Precious_Objects));
   root = Free;
-
+
   /* The 4 step GC */
 
   Free += (GC_relocate_root (&free_buffer));
 
-  result = (GCLoop ((CONSTANT_AREA_START ()), &free_buffer, &Free));
+  result
+    = (gc_loop ((CONSTANT_AREA_START ()), &free_buffer, &Free,
+		Constant_Top, NORMAL_GC));
   if (result != end_of_constant_area)
   {
     outf_fatal ("\n%s (GC): The Constant Space scan ended too early.\n",
@@ -3296,8 +3291,9 @@ DEFUN (GC, (weak_pair_transport_initialized_p),
     /*NOTREACHED*/
   }
 
-  result = (GCLoop (((initialize_scan_buffer (block_start)) + skip_length),
-		    &free_buffer, &Free));
+  result
+    = (gc_loop (((initialize_scan_buffer (block_start)) + skip_length),
+		&free_buffer, &Free, Constant_Top, NORMAL_GC));
   if (free_buffer != result)
   {
     outf_fatal ("\n%s (GC): The Heap scan ended too early.\n",
@@ -3310,10 +3306,9 @@ DEFUN (GC, (weak_pair_transport_initialized_p),
   *free_buffer++ = the_precious_objects;
   Free += (free_buffer - result);
   if (free_buffer >= free_buffer_top)
-    free_buffer =
-      (dump_and_reset_free_buffer ((free_buffer - free_buffer_top), NULL));
+    free_buffer = (dump_and_reset_free_buffer (free_buffer, 0));
 
-  result = (GCLoop (result, &free_buffer, &Free));
+  result = (gc_loop (result, &free_buffer, &Free, Constant_Top, NORMAL_GC));
   if (free_buffer != result)
   {
     outf_fatal ("\n%s (GC): The Precious Object scan ended too early.\n",
@@ -3586,7 +3581,7 @@ DEFINE_PRIMITIVE ("BCHSCHEME-PARAMETERS-SET!", Prim_bchscheme_set_params, 1, 1, 
       if (new_drone_ptr != ((char *) NULL))
 	strcpy (new_drone_ptr, ((char *) (STRING_LOC (new_drone, 0))));
     }
-
+
     if (new_buffer_size != old_buffer_size)
     {
       int power = (next_exponent_of_two (new_buffer_size));

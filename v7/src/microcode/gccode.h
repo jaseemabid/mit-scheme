@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.56.2.1 2000/11/27 05:57:55 cph Exp $
+$Id: gccode.h,v 9.56.2.1.2.1 2000/11/29 21:41:22 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -155,14 +155,13 @@ extern void
 
 #ifndef BAD_TYPES_INNOCUOUS
 
-#define GC_BAD_TYPE(name)						\
-do									\
+#define GC_BAD_TYPE(name, object) do					\
 {									\
   sprintf								\
     (gc_death_message_buffer,						\
      "%s: bad type code (0x%02lx)",					\
      (name),								\
-     (OBJECT_TYPE (Temp)));						\
+     (OBJECT_TYPE (object)));						\
   gc_death								\
     (TERM_INVALID_TYPE_CODE,						\
      gc_death_message_buffer,						\
@@ -173,13 +172,12 @@ do									\
 
 #else /* BAD_TYPES_INNOCUOUS */
 
-#define GC_BAD_TYPE(name)						\
-do									\
+#define GC_BAD_TYPE(name, object) do					\
 {									\
   outf_error ("\n%s: bad type code (0x%02lx) 0x%lx",			\
      (name),								\
-     (OBJECT_TYPE (Temp)),						\
-     Temp);								\
+     (OBJECT_TYPE (object)),						\
+     (object));								\
   outf_error (" -- Treating as non-pointer.\n");			\
   /* Fall through */							\
 } while (0)

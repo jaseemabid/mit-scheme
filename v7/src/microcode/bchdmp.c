@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchdmp.c,v 9.85.2.1 2000/11/27 05:57:52 cph Exp $
+$Id: bchdmp.c,v 9.85.2.1.2.1 2000/11/29 21:40:49 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -176,8 +176,7 @@ static Boolean compiled_code_present_p;
   To_Address += (length);						\
   if (To >= free_buffer_top)						\
   {									\
-    To = (dump_and_reset_free_buffer ((To - free_buffer_top),		\
-				      &success));			\
+    To = (dump_and_reset_free_buffer (To, (&success)));			\
     if (! success)							\
       return (PRIM_INTERRUPT);						\
   }									\
@@ -267,6 +266,66 @@ static Boolean compiled_code_present_p;
   BCH_STORE_CLOSURE_ENTRY_ADDRESS (Temp, Scan);				\
 } while (0)
 
+#define copy_cell()							\
+{									\
+  *To++ = *Old;								\
+}
+
+#define copy_pair()							\
+{									\
+  *To++ = *Old++;							\
+  *To++ = *Old;								\
+}
+
+#define copy_triple()							\
+{									\
+  *To++ = *Old++;							\
+  *To++ = *Old++;							\
+  *To++ = *Old;								\
+}
+
+#define copy_quadruple()						\
+{									\
+  *To++ = *Old++;							\
+  *To++ = *Old++;							\
+  *To++ = *Old++;							\
+  *To++ = *Old;								\
+}
+
+/* Transporting vectors is done in 3 parts:
+   - Finish filling the current free buffer, dump it, and get a new one.
+   - Dump the middle of the vector directly by bufferfulls.
+   - Copy the end of the vector to the new buffer.
+   The last piece of code is the only one executed when the vector does
+   not overflow the current buffer.
+*/
+
+#define copy_vector(success)						\
+{									\
+  SCHEME_OBJECT * Saved_Scan = Scan;					\
+  unsigned long real_length = (1 + (OBJECT_DATUM (*Old)));		\
+									\
+  To_Address += real_length;						\
+  Scan = (To + real_length);						\
+  if (Scan >= free_buffer_top)						\
+  {									\
+    unsigned long overflow;						\
+									\
+    overflow = (Scan - free_buffer_top);				\
+    while (To != free_buffer_top)					\
+      *To++ = *Old++;							\
+    To = (dump_and_reset_free_buffer (0, success));			\
+    real_length = (overflow >> gc_buffer_shift);			\
+    if (real_length > 0)						\
+      To = dump_free_directly (Old, real_length, success);		\
+    Old += (real_length << gc_buffer_shift);				\
+    Scan = To + (overflow & gc_buffer_mask);				\
+  }									\
+  while (To != Scan)							\
+    *To++ = *Old++;							\
+  Scan = Saved_Scan;							\
+}
+
 ssize_t
 DEFUN (eta_read, (fid, buffer, size),
        int fid AND char * buffer AND int size)
@@ -355,7 +414,7 @@ DEFUN_VOID (reset_fixes)
   return (true);
 }
 
-/* A copy of GCLoop, with minor modifications. */
+/* A copy of gc_loop, with minor modifications. */
 
 long
 DEFUN (dumploop, (Scan, To_ptr, To_Address_ptr),
@@ -391,7 +450,7 @@ DEFUN (dumploop, (Scan, To_ptr, To_Address_ptr),
 
 	/* The -1 is here because of the Scan++ in the for header. */
 
-	Scan = ((dump_and_reload_scan_buffer (0, &success)) - 1);
+	Scan = ((dump_and_reload_scan_buffer (Scan, (&success))) - 1);
 	if (!success)
 	  return (PRIM_INTERRUPT);
 	continue;
@@ -406,13 +465,10 @@ area_skipped:
 	  break;
 	else
 	{
-	  unsigned long overflow;
-
 	  /* The + & -1 are here because of the Scan++ in the for header. */
-	  overflow = ((Scan - scan_buffer_top) + 1);
-	  Scan = (((dump_and_reload_scan_buffer ((overflow >> gc_buffer_shift),
-						 &success)) +
-		   (overflow & gc_buffer_mask)) - 1);
+	  Scan += 1;
+	  Scan = (dump_and_reload_scan_buffer (Scan, (&success)));
+	  Scan -= 1;
 	  if (!success)
 	    return (PRIM_INTERRUPT);
 	  break;
@@ -455,7 +511,7 @@ area_skipped:
 	      if (max_count != 0)
 	      {
 		/* We stopped because we needed to relocate too many. */
-		Scan = (dump_and_reload_scan_buffer (0, NULL));
+		Scan = (dump_and_reload_scan_buffer (Scan, 0));
 		max_here = gc_buffer_size;
 	      }
 	    }
@@ -651,7 +707,7 @@ area_skipped:
 	continue;
 
       default:
-	GC_BAD_TYPE ("dumploop");
+	GC_BAD_TYPE ("dumploop", Temp);
 	/* Fall Through */
 
       case TC_STACK_ENVIRONMENT:
