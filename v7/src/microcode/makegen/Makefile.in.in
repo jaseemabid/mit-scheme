@@ -1,4 +1,4 @@
-# $Id: Makefile.in.in,v 1.1.2.1 2000/11/27 05:58:00 cph Exp $
+# $Id: Makefile.in.in,v 1.1.2.1.2.1 2000/12/05 03:50:23 cph Exp $
 #
 # Copyright (c) 2000 Massachusetts Institute of Technology
 #
@@ -220,7 +220,7 @@ psbtobin: $(psbtobin_OBJECTS) $(psbtobin_DEPENDENCIES)
 
 tags: TAGS
 TAGS:
-	etags *.[ch]
+	etags -r '/^DEF[A-Za-z_ \t(]+"\([^"]+\)"/' *.[ch]
 
 mostlyclean:
 	-rm -f $(MOSTLYCLEAN_FILES)
