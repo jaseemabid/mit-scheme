@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/regmap.scm,v 4.12 1992/07/05 14:26:38 jinx Exp $
+$Id: regmap.scm,v 4.12.1.1 1994/03/30 21:12:16 gjr Exp $
 
-Copyright (c) 1988-1992 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -147,10 +147,10 @@ registers into some interesting sorting order.
   (cons new (map-entries:delete map old)))
 
 (define-integrable (map-registers:add map register)
-  (sort-machine-registers (cons register (map-registers map))))
+  (sort-machine-registers (append (map-registers map) (list register))))
 
 (define-integrable (map-registers:add* map registers)
-  (sort-machine-registers (append registers (map-registers map))))
+  (sort-machine-registers (append (map-registers map) registers)))
 
 (define-integrable (map-registers:delete map register)
   (eqv-set-delete (map-registers map) register))
@@ -287,10 +287,9 @@ registers into some interesting sorting order.
       regmap
       (make-register-map (map-entries:delete* regmap entries)
 			 (map-registers:add* regmap
-					     (apply append
-						    (map map-entry-aliases
-							 entries))))))
-
+					     (append-map map-entry-aliases
+							 entries)))))
+
 (define (register-map:delete-alias map entry alias)
   (make-register-map (if (null? (cdr (map-entry-aliases entry)))
 			 (map-entries:delete map entry)
@@ -323,7 +322,7 @@ registers into some interesting sorting order.
 	     pseudo-register-entry->temporary-entry
 	     entries)
        (map-registers regmap))))
-
+
 (define (register-map:keep-live-entries map live-registers)
   (let loop
       ((entries (map-entries map))
@@ -343,6 +342,12 @@ registers into some interesting sorting order.
 		 (append (map-entry-aliases (car entries)) registers)
 		 entries*)))))
 
+(define (register-map:without-labels regmap)
+  (register-map:delete-entries
+   regmap
+   (list-transform-positive (map-entries regmap)
+     map-entry-label)))
+
 (define (map-equal? x y)
   (let loop
       ((x-entries (map-entries x))
@@ -599,12 +604,12 @@ for REGISTER.  If no such register exists, returns #F."
 
 (define (save-machine-register map register receiver)
   (let ((entry (map-entries:find-alias map register)))
-    (if (and entry
-	     (not (map-entry-saved-into-home? entry))
-	     (null? (cdr (map-entry-aliases entry))))
+    (if (or (not entry)
+	    (map-entry-saved-into-home? entry)
+	    (not (null? (cdr (map-entry-aliases entry)))))
+	(receiver map '())
 	(receiver (register-map:save-entry map entry)
-		  (save-into-home-instruction entry))
-	(receiver map '()))))
+		  (save-into-home-instruction entry)))))
 
 (define (save-pseudo-register map register receiver)
   (let ((entry (map-entries:find-home map register)))
@@ -614,6 +619,33 @@ for REGISTER.  If no such register exists, returns #F."
 		  (save-into-home-instruction entry))
 	(receiver map '()))))
 
+;; Like save-machine-register, but saves into another machine register,
+;; avoiding avoidregs.  Only does so if there are enough temporaries left
+;; after the assignment.
+
+(define *min-number-of-temps* 1)
+
+(define (preserve-machine-register map register avoidregs receiver)
+  (let ((entry (map-entries:find-alias map register)))
+    (if (or (not entry)
+	    (map-entry-saved-into-home? entry)
+	    (not (null? (cdr (map-entry-aliases entry)))))
+	(receiver map '())
+	(let* ((available
+		(list-transform-positive
+		    (eq-set-difference (map-registers map) avoidregs)
+		  (let ((type (register-type register)))
+		    (lambda (register*)
+		      (register-type? register* type)))))
+	       (navailable (length available)))
+	  (if (<= navailable *min-number-of-temps*)
+	      (receiver (register-map:save-entry map entry)
+			(save-into-home-instruction entry))
+	      (let ((register* (car (sort-machine-registers available))))
+		(receiver
+		 (register-map:add-alias map entry register*)
+		 (register->register-transfer register register*))))))))
+
 (define (register-map-label map type)
   (let loop ((entries (map-entries map)))
     (if (null? entries)
@@ -666,6 +698,16 @@ for REGISTER.  If no such register exists, returns #F."
     (if entry
 	(register-map:delete-alias map entry register)
 	map)))
+
+(define (lock-machine-register map register)
+  (make-register-map (map-entries map)
+		     (map-registers:delete map register)))
+
+(define (release-machine-register map register)
+  (if (map-entries:find-alias map register)
+      map
+      (make-register-map (map-entries map)
+			 (map-registers:add map register))))  
 
 (define (delete-pseudo-register map register receiver)
   ;; If the pseudo-register has any alias with a cached value --
@@ -748,13 +790,30 @@ for REGISTER.  If no such register exists, returns #F."
 (package (coerce-map-instructions clear-map-instructions)
 
 (define-export (coerce-map-instructions input-map output-map)
-  (three-way-sort map-entry=?
-		  (map-entries input-map)
-		  (map-entries output-map)
-    (lambda (input-entries shared-entries output-entries)
-      (input-loop input-entries
-		  (shared-loop shared-entries
-			       (output-loop output-entries))))))
+  (three-way-sort
+   map-entry=?
+   (list-transform-negative (map-entries input-map)
+     (lambda (entry)
+       (null? (map-entry-aliases entry))))
+   (list-transform-negative (map-entries output-map)
+     (lambda (entry)
+       (null? (map-entry-aliases entry))))
+   (lambda (input-entries shared-entries output-entries)
+     #|
+     (input-loop input-entries
+		 (shared-loop shared-entries
+			      (output-loop output-entries)))
+     |#
+     (LAP ,@(input-loop input-entries (LAP))
+	  ,@(fluid-let ((*register-map* input-map))
+	      (register-set-assign
+	       (map (lambda (entry)
+		      (map-entry-aliases (car entry)))
+		    shared-entries)
+	       (map (lambda (entry)
+		      (map-entry-aliases (cdr entry)))
+		    shared-entries)))
+	  ,@(output-loop output-entries)))))
 
 (define-export (clear-map-instructions input-map)
   input-map
@@ -770,6 +829,10 @@ for REGISTER.  If no such register exists, returns #F."
 	   (LAP ,@(save-into-home-instruction (car entries))
 		,@(loop (cdr entries)))))))
 
+#|
+;; This is severely broken.  It does not do parallel assignments,
+;; so it may overwrite something that it needs.
+
 (define (shared-loop entries tail)
   (let entries-loop ((entries entries))
     (if (null? entries)
@@ -784,6 +847,7 @@ for REGISTER.  If no such register exists, returns #F."
 		(LAP ,@(register->register-transfer (car input-aliases)
 						    (car output-aliases))
 		     ,@(aliases-loop (cdr output-aliases)))))))))
+|#
 
 (define (output-loop entries)
   (if (null? entries)
@@ -802,3 +866,180 @@ for REGISTER.  If no such register exists, returns #F."
 	    (output-loop (cdr entries))))))
 
 )
+
+;; This depends heavily on the registers being fixnums!
+
+(define (register-set-assign sets sets*)
+  ;; Each element of set is a list of registers.
+  ;; Each register belongs to at most one of the sets in each
+  ;; of sets and sets*
+  ;; Each of the elements of sets (sets*) defines an equivalence class
+  ;; of registers containing the same value.  The purpose of this
+  ;; procedure is to make the contents of each equivalence class in sets*
+  ;; be the contents of the corresponding equivalence class in sets
+  ;; Typically (except on 68k!) each equivalence class consists of exactly
+  ;; one register, so that case is handled specially
+  (if (and (for-all? sets singleton?)
+	   (for-all? sets* singleton?))
+      (call-with-values
+       (lambda ()
+	 (singleton-register-set-assign sets sets*))
+       (lambda (instrs needed clobbered)
+	 needed clobbered		; ignored
+	 instrs))
+      ;; This is pretty poor, but...
+      (call-with-values
+       (lambda ()
+	 (choose-representatives sets sets*))
+       (lambda (sets1 sets*1)
+	 (call-with-values
+	  (lambda ()
+	    (singleton-register-set-assign sets1 sets*1))
+	  (lambda (instrs needed clobbered)
+	    needed			; ignored
+	    (let outer ((instrs instrs)
+			(sets* sets*)
+			(sets*1 sets*1)
+			(sets sets))
+	      (cond ((null? sets*)
+		     instrs)
+		    ((null? (cdr sets*))
+		     (outer instrs (cdr sets*) (cdr sets*1) (cdr sets)))
+		    (else
+		     (let ((rep (caar sets*1)))
+		       (let inner
+			   ((instrs instrs)
+			    (to-fill
+			     (let ((intersection
+				    (eq-set-intersection (car sets*)
+							 (car sets))))
+			       (list-transform-negative (car sets*)
+				 (lambda (reg)
+				   (or (eq? reg rep)
+				       (and (memq reg intersection)
+					    (not (memq reg clobbered)))))))))
+			 (if (null? to-fill)
+			     (outer instrs
+				    (cdr sets*)
+				    (cdr sets*1)
+				    (cdr sets))
+			     (inner
+			      (LAP ,@instrs
+				   ,@(register->register-transfer
+				      rep
+				      (car to-fill)))
+			      (cdr to-fill))))))))))))))
+
+(define (singleton? set)
+  (and (not (null? set))
+       (null? (cdr set))))
+
+(define (choose-free-register avoid)
+  (list-search-negative available-machine-registers
+    (lambda (reg)
+      (memq reg avoid))))
+
+(define (choose-representatives sets sets*)
+  (if (null? sets)
+      (values '() '())
+      (call-with-values
+       (lambda ()
+	 (choose-representatives (cdr sets) (cdr sets*)))
+       (lambda (reps reps*)
+	 (let ((set (car sets))
+	       (set* (car sets*)))
+	   (let ((intersection (eq-set-intersection set set*)))
+	     (if (null? intersection)
+		 (values (cons (list (car set)) reps)
+			 (cons (list (car set*)) reps*))
+		 (values (cons (list (car intersection)) reps)
+			 (cons (list (car intersection)) reps*)))))))))
+
+(define (singleton-register-set-assign sets sets*)
+  (let ((need-work
+	 (list-transform-negative (map (lambda (set set*)
+					 (list (car set*) (car set)))
+				       sets sets*)
+	   (lambda (pair)
+	     (eq? (car pair) (cadr pair))))))
+    (if (null? need-work)
+	(values (LAP) (map car sets) '())
+	;; This is trying to be clever, because only one temp
+	;; is needed
+	(singleton-register-set-assign-finish
+	 (map car sets)
+	 (parallel-assignment need-work)))))
+
+;; Used only when there aren't enough physical registers
+
+(define (restore-from-home dst)
+  (home->register-transfer (machine-register-contents *register-map* dst)
+			   dst))
+
+(define (store-in-home src dst)
+  (register->home-transfer src
+			   (machine-register-contents *register-map* dst)))
+
+(define (singleton-register-set-assign-finish inuse parresult)
+  (let loop ((result parresult)
+	     (regsinuse inuse)
+	     (regswritten '())
+	     (instrs (LAP))
+	     (pending '()))
+    (cond ((and (not (null? pending))
+		(there-exists? pending
+		  (lambda (pair)
+		    (and (not (memq (car pair) regsinuse))
+			 pair))))
+	   => (lambda (pair)
+		(let ((src (cadr pair))
+		      (dst (car pair)))
+		  (if (eq? src '*HOME*)
+		      (loop result
+			    (eq-set-adjoin dst regsinuse)
+			    (eq-set-adjoin dst regswritten)
+			    (LAP ,@instrs
+				 ,@(restore-from-home dst))
+			    (delq pair pending))
+		      (loop result
+			    (eq-set-adjoin dst
+					   (eq-set-delete regsinuse src))
+			    (eq-set-adjoin dst regswritten)
+			    (LAP ,@instrs
+				 ,@(register->register-transfer src dst))
+			    (delq pair pending))))))
+	  ((not (null? result))
+	   (let* ((next (car result))
+		  (dependency (vector-ref next 1))
+		  (last-refs (vector-ref next 2))
+		  (inuse* (eq-set-difference regsinuse last-refs))
+		  (src (cadr dependency))
+		  (dst (car dependency)))
+	     (if (not (vector-ref next 0))
+		 ;; Can do assignment now
+		 (loop (cdr result)
+		       (eq-set-adjoin dst inuse*)
+		       (eq-set-adjoin dst regswritten)
+		       (LAP ,@instrs
+			    ,@(register->register-transfer src dst))
+		       pending)
+		 (begin
+		   (if (not (null? pending))
+		       (warn "More than one temp for singleton assignment?"
+			     parresult))
+		   (let ((temp (choose-free-register regsinuse)))
+		     (if (not temp)
+			 (loop (cdr result)
+			       inuse*
+			       regswritten
+			       (LAP ,@instrs
+				    ,@(store-in-home src dst))
+			       (cons (list dst '*HOME*) pending))
+			 (loop (cdr result)
+			       (eq-set-adjoin temp inuse*)
+			       (eq-set-adjoin temp regswritten)
+			       (LAP ,@instrs
+				    ,@(register->register-transfer src temp))
+			       (cons (list dst temp) pending))))))))
+	  (else
+	   (values instrs regsinuse regswritten)))))
