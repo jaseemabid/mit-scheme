@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/object.scm,v 3.1 1987/03/13 04:12:53 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/object.scm,v 3.1.1.1 1987/06/30 06:49:25 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -159,7 +159,7 @@ MIT in each case. |#
      )))
 
 (define-type block random
-  (parent children safe? declarations bound-variables))
+  (parent children safe? declarations bound-variables environment))
 
 (define (block/make parent safe?)
   (let ((block
