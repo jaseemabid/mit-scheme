@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: bufwin.scm,v 1.309.6.1 2002/01/18 21:46:43 cph Exp $
+;;; $Id: bufwin.scm,v 1.309.6.2 2002/01/19 02:18:45 cph Exp $
 ;;;
 ;;; Copyright (c) 1986, 1989-2000, 2002 Massachusetts Institute of Technology
 ;;;
@@ -877,7 +877,8 @@
   (let ((group (%window-group window)))
     (add-group-clip-daemon! group (%window-clip-daemon window))
     (%set-window-point-index! window (mark-index (group-point group))))
-  (if (buffer-display-start new-buffer)
+  (if (and (buffer-display-start new-buffer)
+	   (window-x-size window))
       (set-new-coordinates! window
 			    (mark-index (buffer-display-start new-buffer))
 			    0
