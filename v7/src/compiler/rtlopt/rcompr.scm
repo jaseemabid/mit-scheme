@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rcompr.scm,v 1.14 1993/07/03 08:34:51 gjr Exp $
+$Id: rcompr.scm,v 1.14.1.1 1994/03/30 21:21:39 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -76,8 +76,10 @@ MIT in each case. |#
 	     (eq? (register-bblock register) bblock)
 	     (= 2 (register-n-refs register)))
 	(let ((expression (rtl:assign-expression rtl)))
-	  (if (not (rtl:expression-contains? expression
-					     rtl:volatile-expression?))
+	  (if (not (or (rtl:expression-contains? expression
+						 rtl:volatile-expression?)
+		   (and (rtl:register? expression)
+			(machine-register? (rtl:register-number expression)))))
 	      (with-values
 		  (lambda ()
 		    (let ((next (rinst-next rinst)))

@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: lapopt.scm,v 1.14 1993/12/08 17:49:18 gjr Exp $
+$Id: lapopt.scm,v 1.14.1.1 1994/03/30 21:18:28 gjr Exp $
 
-Copyright (c) 1991-1993 Massachusetts Institute of Technology
+Copyright (c) 1991-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -43,167 +43,248 @@ MIT in each case. |#
   (+ 32 reg))
 
 (define (classify-instruction instr)
-  ;; (values type target source-1 source-2 offset)
-  ;; This needs the following:
-  ;; - Loads with base modification (LDWM)
-  ;; - Third source (indexed loads)
+  ;; (values type writes reads offset)
   (let ((opcode (car instr)))
-    (cond ((memq opcode '(ANDCM AND OR XOR UXOR SUB DS SUBT
-				SUBB ADD SH1ADD SH2ADD SH3ADD ADDC
-				COMCLR UADDCM UADDCMT ADDL SH1ADDL
-				SH2ADDL SH3ADDL SUBO SUBTO SUBBO
-				ADDO SH1ADDO SH2ADDO SH3ADDO ADDCO
-				VSHD SHD))
-	   ;; source source ... target
-	   (values 'ALU
-		   ;; not (list-ref instr 4)
-		   (car (last-pair instr))
-		   (list-ref instr 2)
-		   (list-ref instr 3)
-		   false))
-	  ((memq opcode '(ADDI ADDIO ADDIT ADDITO SUBI SUBIO COMICLR))
-	   ;; immed source target
-	   (values 'ALU
-		   (list-ref instr 4)
-		   (list-ref instr 3)
-		   false
-		   false))
-	  ((memq opcode '(COPY))
-	   ;; source target
-	   (values 'ALU
-		   (list-ref instr 3)
-		   (list-ref instr 2)
-		   false
-		   false))
-	  ((memq opcode '(LDW LDB LDO LDH))
-	   ;; (offset n m source) target
-	   (let ((offset (list-ref instr 2)))
-	     (values 'MEMORY
-		     (list-ref instr 3)
-		     (cadddr offset)
-		     false
-		     (cadr offset))))
-	  ((memq opcode '(STW STB STH))
-	   ;; source1 (offset n m source2)
-	   (let ((offset (list-ref instr 3)))
-	     (values 'MEMORY
-		     false
-		     (list-ref instr 2)
-		     (cadddr offset)
-		     (cadr offset))))
-	  ((memq opcode '(STWM STWS))
-	   ;; source1 (offset n m target/source)
-	   (let* ((offset (list-ref instr 3))
-		  (base (cadddr offset)))
-	     (values 'MEMORY
-		     base
-		     (list-ref instr 2)
-		     base
-		     (cadr offset))))
+    (case opcode
+      ((ANDCM AND OR XOR UXOR SUB DS SUBT
+	      SUBB ADD SH1ADD SH2ADD SH3ADD ADDC
+	      COMCLR UADDCM UADDCMT ADDL SH1ADDL
+	      SH2ADDL SH3ADDL SUBO SUBTO SUBBO
+	      ADDO SH1ADDO SH2ADDO SH3ADDO ADDCO
+	      VSHD SHD)
+       ;; source source ... target
+       (values 'ALU
+	       ;; not (list-ref instr 4)
+	       (list (car (last-pair instr)))
+	       (list (list-ref instr 2) (list-ref instr 3))
+	       false))
+      ((ADDI ADDIO ADDIT ADDITO SUBI SUBIO COMICLR)
+       ;; immed source target
+       (values 'ALU
+	       (list (list-ref instr 4))
+	       (list (list-ref instr 3))
+	       false))
+      ((COPY)
+       ;; source target
+       (values 'ALU
+	       (list (list-ref instr 3))
+	       (list (list-ref instr 2))
+	       false))
+
+      ((LDW LDB LDO LDH)
+       ;; (offset n m source) target
+       (let ((offset (list-ref instr 2)))
+	 (values (if (eq? opcode 'LDO)
+		     'ALU
+		     'MEMORY)
+		 (list (list-ref instr 3))
+		 (list (cadddr offset))
+		 (cadr offset))))
+      ((LDWM)
+       ;; (offset n m target/source) target
+       (let* ((offset (list-ref instr 2))
+	      (base (cadddr offset)))
+	 (values 'MEMORY
+		 (list base (list-ref instr 3))
+		 (list base)
+		 (cadr offset))))
+      ((LDWS LDHS LDBS LDWAS LDCWS)
+       ;; (offset n m target/source) target
+       (let* ((offset (list-ref instr 2))
+	      (base (cadddr offset)))
+	 (values 'MEMORY
+		 (cons (list-ref instr 3)
+		       (if (or (memq 'MA (cadr instr))
+			       (memq 'MB (cadr instr)))
+			   (list base)
+			   '()))
+		 (list base)
+		 (cadr offset))))
 
-	  ((memq opcode '(LDI LDIL))
-	   ;; immed target
-	   (values 'ALU
-		   (list-ref instr 3)
-		   false
-		   false
-		   false))
-	  ((memq opcode '(ADDIL))
-	   ;; immed source
-	   (values 'ALU
-		   regnum:addil-result
-		   (list-ref instr 3)
-		   false
-		   false))
-	  ((memq opcode '(NOP))
-	   (values 'ALU false false false false))
-	  ((memq opcode '(VDEPI DEPI ZVDEPI ZDEPI))
-	   (values 'ALU
-		   (car (last-pair instr))
-		   false
-		   false
-		   false))
-	  ((memq opcode '(EXTRU EXTRS DEP ZDEP))
-	   (values 'ALU
-		   (list-ref instr 5)
-		   (list-ref instr 2)
-		   false
-		   false))
-	  ((memq opcode '(VEXTRU VEXTRS VDEP ZVDEP))
-	   (values 'ALU
-		   (list-ref instr 4)
-		   (list-ref instr 2)
-		   false
-		   false))
-	  ((memq opcode '(FCPY FABS FSQRT FRND))
-	   ;; source target
-	   (values 'FALU
-		   (float-reg (list-ref instr 3))
-		   (float-reg (list-ref instr 2))
-		   false
-		   false))
-	  ((memq opcode '(FADD FSUB FMPY FDIV FREM))
-	   ;; source1 source2 target
-	   (values 'FALU
-		   (float-reg (list-ref instr 4))
-		   (float-reg (list-ref instr 2))
-		   (float-reg (list-ref instr 3))
-		   false))
-	  ((eq? opcode 'FSTDS)
-	   ;; source (offset n m base)
-	   (let* ((offset (list-ref instr 3))
-		  (base (cadddr offset)))
-	     (values 'MEMORY
-		     (and (or (memq 'MA (cadr instr))
-			      (memq 'MB (cadr instr)))
-			  base)
-		     base
-		     (float-reg (list-ref instr 2))
-		     (cadr offset))))
+      ((LDWX LDHX LDBX LDWAX LDCWX)
+       ;; (INDEX source1 m source2/target) target
+       (let* ((index (list-ref instr 2))
+	      (base (cadddr index)))
+	 (values 'MEMORY
+		 (cons (list-ref instr 3)
+		       (if (or (memq 'M (cadr instr))
+			       (memq 'SM (cadr instr)))
+			   (list base)
+			   '()))
+		 (list (cadr index) base)
+		 false)))
+      ((STW STB STH)
+       ;; source1 (offset n m source2)
+       (let ((offset (list-ref instr 3)))
+	 (values 'MEMORY
+		 '()
+		 (list (list-ref instr 2) (cadddr offset))
+		 (cadr offset))))
+      ((STWM)
+       ;; source1 (offset n m target/source)
+       (let* ((offset (list-ref instr 3))
+	      (base (cadddr offset)))
+	 (values 'MEMORY
+		 (list base)
+		 (list (list-ref instr 2) base)
+		 (cadr offset))))
+      ((STWS STHS STBS STWAS)
+       ;; source1 (offset n m target/source)
+       (let* ((offset (list-ref instr 3))
+	      (base (cadddr offset)))
+	 (values 'MEMORY
+		 (if (or (memq 'MA (cadr instr))
+			 (memq 'MB (cadr instr)))
+		     (list base)
+		     '())
+		 (list base (list-ref instr 2))
+		 (cadr offset))))
+      ((LDI LDIL)
+       ;; immed target
+       (values 'ALU
+	       (list (list-ref instr 3))
+	       '()
+	       (list-ref instr 2)))
+      ((ADDIL)
+       ;; immed source
+       (values 'ALU
+	       (list regnum:addil-result)
+	       (list (list-ref instr 3))
+	       (list-ref instr 2)))
+      ((NOP SKIP)
+       (values 'ALU '() '() false))
+      ((VDEPI DEPI)
+       (values 'ALU
+	       (list (car (last-pair instr)))
+	       (list (car (last-pair instr)))
+	       false))
+      ((ZVDEPI ZDEPI)
+       (values 'ALU
+	       (list (car (last-pair instr)))
+	       '()
+	       false))
+      ((EXTRU EXTRS ZDEP)
+       (values 'ALU
+	       (list (list-ref instr 5))
+	       (list (list-ref instr 2))
+	       false))
 
-	  #|
-	  ((memq opcode '(B BL GATE))
-	   <>)
-	  ((memq opcode '(BV BLR))
-	   ;; source-1 source-2
-	   (values 'CONTROL
-		   false
-		   (list-ref instr 2)
-		   (list-ref instr 3)
-		   false))
-	  ((memq opcode '(BLR))
-	   ;; source target
-	   (values 'CONTROL
-		   (list-ref instr 3)
-		   (list-ref instr 2)
-		   false
-		   false))
-	  ((memq opcode '(BV))
-	   ;; source-1 source-2
-	   (values 'CONTROL
-		   false
-		   (list-ref instr 2)
-		   (list-ref instr 3)
-		   false))
-	  ((memq opcode '(BE))
-	   <>)
-	  ((memq opcode '(BLE))
-	   <>)
-	  ((memq opcode '(COMB ...))
-	   <>)
-	  ((memq opcode '(PCR-HOOK))
-	   <>)
-	  ((memq opcode '(LABEL EQUATE ENTRY-POINT
-				EXTERNAL-LABEL BLOCK-OFFSET
-				SCHEME-OBJECT SCHEME-EVALUATION PADDING))
-	   (values 'DIRECTIVE false false false false))
-	  |#
-	  (else
-	   (values 'UNKNOWN false false false false)))))
+      ((DEP)
+       (values 'ALU
+	       (list (list-ref instr 5))
+	       (list (list-ref instr 5) (list-ref instr 2))
+	       false))
+      ((VEXTRU VEXTRS VDEP ZVDEP)
+       (values 'ALU
+	       (list (list-ref instr 4))
+	       (list (list-ref instr 2))
+	       false))
+      ((FCPY FABS FSQRT FRND)
+       ;; source target
+       (values 'FALU
+	       (list (float-reg (list-ref instr 3)))
+	       (list (float-reg (list-ref instr 2)))
+	       false))
+      ((FADD FSUB FMPY FDIV FREM)
+       ;; source1 source2 target
+       (values 'FALU
+	       (list (float-reg (list-ref instr 4)))
+	       (list (float-reg (list-ref instr 2))
+		     (float-reg (list-ref instr 3)))
+	       false))
+      ((FSTDS)
+       ;; source (offset n m base)
+       (let* ((offset (list-ref instr 3))
+	      (base (cadddr offset)))
+	 (values 'MEMORY
+		 (if (or (memq 'MA (cadr instr))
+			 (memq 'MB (cadr instr)))
+		     (list base)
+		     '())
+		 (list base
+		       (float-reg (list-ref instr 2)))
+		 (cadr offset))))
+      ((COMBT COMBF COMB COMBN)
+       ;; source1 source2
+       (values 'CONTROL
+	       '()
+	       (list (list-ref instr 2) (list-ref instr 3))
+	       false))
+      ((COMIBT COMIBF COMIB COMIBTN COMIBFN)
+       ;; immediate source
+       (values 'CONTROL
+	       '()
+	       (list (list-ref instr 3))
+	       false))
+      ((BL)
+       ;; target
+       (values 'CONTROL
+	       (list (list-ref instr 2))
+	       '()
+	       false))
+      ((B)
+       ;; target
+       (values 'CONTROL
+	       '()
+	       '()
+	       false))
+      ((BV)
+       ;; source-1 source-2
+       (values 'CONTROL
+	       '()
+	       (list (list-ref instr 2) (list-ref instr 3))
+	       false))
+
+      ((BLR)
+       ;; source target
+       (values 'CONTROL
+	       (list (list-ref instr 3))
+	       (list (list-ref instr 2))
+	       false))
+      ((BLE)
+       (let ((offset-expr (list-ref instr 2)))
+	 (values 'CONTROL
+		 (list 31)
+		 (list (list-ref offset-expr 3))
+		 (list-ref offset-expr 1))))
+      ((BE)
+       (let ((offset-expr (list-ref instr 2)))
+	 (values 'CONTROL
+		 '()
+		 (list (list-ref offset-expr 3))
+		 (list-ref offset-expr 1))))
+      #|
+      ((ADDBT ADDBF ADDB)
+       ;; source1 source2/target
+       (let ((target (list-ref instr 3)))
+	 (values 'CONTROL
+		 (list target)
+		 (list (list-ref instr 2) target)
+		 false)))
+      ((ADDIBT ADDIBF ADDIB)
+       ;; immediate source/target
+       (let ((target (list-ref instr 3)))
+	 (values 'CONTROL
+		 (list target)
+		 (list target)
+		 false)))
+      ((GATE)
+       <>)
+      ((MOVB ...)
+       <>)
+      ((PCR-HOOK)
+       <>)
+      ((LABEL EQUATE ENTRY-POINT
+	      EXTERNAL-LABEL BLOCK-OFFSET
+	      SCHEME-OBJECT SCHEME-EVALUATION PADDING)
+       (values 'DIRECTIVE '() '() false))
+      |#
+      (else
+       (values 'UNKNOWN '() '() false)))))
 
 (define (offset-fits? offset opcode)
   (and (number? offset)
-       (memq opcode '(LDW LDB LDO LDH STW STB STH STWM LDWM
+       (memq opcode '(LDW LDB LDO LDI LDH STW STB STH STWM LDWM
 			  STWS LDWS FLDWS FLDDS FSTWS FSTDS))
        (<= -8192 offset 8191)))
 
@@ -236,23 +317,12 @@ MIT in each case. |#
     (and (match-internal pattern instance)
 	 dict)))
 
-(define (pc-sensitive? instr)
-  (or (eq? instr '*PC*)
-      (and (pair? instr)
-	   (or (pc-sensitive? (car instr))
-	       (pc-sensitive? (cdr instr))))))
-
-(define (skips? instr)
-  ;; Not really true, for example
-  ;; (COMBT (<) ...)
-  (and (pair? (cadr instr))
-       (not (memq (car instr)
-		  '(B BL BV BLR BLE BE
-		      LDWS LDHS LDBS LDCWS
-		      STWS STHS STBS STBYS
-		      FLDWS FLDDS FSTWS FSTDS)))
-       ;; or SGL, or QUAD, but not used now.
-       (not (memq 'DBL (cadr instr)))))
+(define (directive? instr)
+  (memq (car instr)
+	'(COMMENT
+	  LABEL EQUATE ENTRY-POINT
+	  EXTERNAL-LABEL BLOCK-OFFSET
+	  SCHEME-OBJECT SCHEME-EVALUATION PADDING)))
 
 (define (find-or-label instrs)
   (and (not (null? instrs))
@@ -281,10 +351,7 @@ MIT in each case. |#
 	;; About to store return address.  Forego store completely
 	(let ((ret (caddr instr)))
 	  `(,@(reverse junk)
-	    (DEP () ,regnum:quad-bitmask
-		 ,(-1+ scheme-type-width)
-		 ,scheme-type-width
-		 ,ret)
+	    ,@(entry->address ret)
 	    (BV () 0 ,ret)
 	    (LDO () (OFFSET ,(+ frame 4) 0 ,regnum:stack-pointer)
 		 ,regnum:stack-pointer)))
@@ -296,10 +363,7 @@ MIT in each case. |#
 	  `(,@(reverse junk)
 	    (LDW () ,syll ,ret)
 	    ,instr
-	    (DEP () ,regnum:quad-bitmask
-		 ,(-1+ scheme-type-width)
-		 ,scheme-type-width
-		 ,ret)
+	    ,@(entry->address ret)
 	    (BV () 0 ,ret)
 	    (LDO () (OFFSET ,(+ frame 4) 0 ,regnum:stack-pointer)
 		 ,regnum:stack-pointer))))))
@@ -309,10 +373,7 @@ MIT in each case. |#
     (LDW () (OFFSET ,frame 0 ,regnum:stack-pointer) ,ret)
     (LDO () (OFFSET ,(+ frame 4) 0 ,regnum:stack-pointer)
 	 ,regnum:stack-pointer)
-    (DEP () ,regnum:quad-bitmask
-	 ,(-1+ scheme-type-width)
-	 ,scheme-type-width
-	 ,ret)
+    ,@(entry->address ret)
     (BV (N) 0 ,ret)))
 
 (define (fix-a-return dict1 junk dict2 rest)
@@ -321,55 +382,166 @@ MIT in each case. |#
 	 (frame (cdr (assq 'frame dict2)))
 	 (ret (cdr (assq 'ret dict1))))
     (cond ((or (not next)
-	       (pc-sensitive? (car next))
+	       (instr-pc-sensitive? (car next))
 	       (memq (caar next)
 		     '(ENTRY-POINT EXTERNAL-LABEL BLOCK-OFFSET PCR-HOOK))
 	       (and (eq? (caar next) 'LABEL)
 		    (or (not next*)
-			(not (skips? (car next*))))))
+			(not (instr-skips? (car next*))))))
 	   (values (fix-simple-return ret frame junk)
 		   rest))
 	  ((or (eq? (caar next) 'LABEL)
-	       (skips? (car next)))
+	       (instr-skips? (car next)))
 	   (values '() false))
 	  (else
-	   (with-values
-	       (lambda () (classify-instruction (car next)))
-	     (lambda (type target src1 src2 offset)
-	       offset			; ignored
-	       (if (or (not (memq type '(MEMORY ALU FALU)))
-		       (eq? target regnum:stack-pointer))
-		   (values (fix-simple-return ret frame junk)
-			   rest)
-		   (values
-		    (fix-complex-return ret frame
-					(append junk
-						(list-difference rest next))
-					(car next)
-					(list target src1 src2))
-		    (cdr next)))))))))
+	   (call-with-values
+	    (lambda () (classify-instruction (car next)))
+	    (lambda (type writes reads offset)
+	      offset			; ignored
+	      (if (or (not (memq type '(ALU MEMORY FALU)))
+		      (equal? writes (list regnum:stack-pointer)))
+		  (values (fix-simple-return ret frame junk)
+			  rest)
+		  (values
+		   (fix-complex-return ret frame
+				       (append junk
+					       (list-difference rest next))
+				       (car next)
+				       (append writes reads))
+		   (cdr next)))))))))
 
 (define (fix-sequences instrs tail)
-  (define-integrable (fail)
+  (define-integrable (single instr)
     (fix-sequences (cdr instrs)
-		   (cons (car instrs) tail)))
+		   (cons instr tail)))
+
+  (define-integrable (fail)
+    (single (car instrs)))
 
   (if (null? instrs)
       tail
       (let* ((instr (car instrs))
 	     (opcode (car instr)))
+
+	(define (try-skip)
+	  (let ((label (let ((address (list-ref instr 4)))
+			 (and (eq? (car address) '@PCR)
+			      (cadr address)))))
+	    (if (not label)
+		(fail)
+		(let* ((next (find-non-label tail))
+		       (instr* (and next
+				    (not (directive? (car next)))
+				    (car next)))
+		       (next* (and instr* (find-or-label (cdr next))))
+		       (instr** (and next* (car next*))))
+		  (if (or (not instr**)
+			  (not (eq? (car instr**) 'LABEL))
+			  (not (eq? (cadr instr**) label))
+			  (instr-expands? instr*))
+		      (fail)
+		      (case opcode
+			 ((COMB COMBT COMBN)
+			  (single
+			   `(COMCLR ,(delq 'N (cadr instr))
+				    ,(caddr instr)
+				    ,(cadddr instr)
+				    0)))
+			 ((COMIB COMIBT COMIBTN)
+			  (single
+			   `(COMICLR ,(delq 'N (cadr instr))
+				     ,(caddr instr)
+				     ,(cadddr instr)
+				     0)))
+			 ((COMBF)
+			  (single
+			   `(COMCLR ,(map invert-condition
+					  (delq 'N (cadr instr)))
+				    ,(caddr instr)
+				    ,(cadddr instr)
+				    0)))
+			 (else
+			  ;; (COMIBF COMIBFN)
+			  (single
+			   `(COMCLR ,(map invert-condition
+					  (delq 'N (cadr instr)))
+				    ,(caddr instr)
+				    ,(cadddr instr)
+				    0)))))))))
+
+	(define (fix-unconditional-branch)
+	  (if (not (equal? (cadr instr) '(N)))
+	      (fail)
+	      (call-with-values
+	       (lambda ()
+		 (find-movable-instr/delay instr (cdr instrs)))
+	       (lambda (movable junk rest)
+		 (if (not movable)
+		     (fail)
+		     (fix-sequences
+		      rest
+		      `(,@(reverse junk)
+			(,opcode () ,@(cddr instr))
+			,movable
+			,@tail)))))))
+
+	(define (drop-instr)
+	  (fix-sequences (cdr instrs)
+			 (cons '(COMMENT (branch removed))
+			       tail)))
+
+	(define (generate-skip)
+	  (let* ((default (lambda () (single `(SKIP (TR)))))
+		 (previous (find-or-label (cdr instrs)))
+		 (skipify
+		  (lambda (instr*)
+		    (fix-sequences
+		     (cdr previous)
+		     (cons instr*
+			   (append
+			    (reverse (list-difference (cdr instrs) previous))
+			    tail)))))
+		 (instr (and previous (car previous)))
+		 (previous* (and previous (find-non-label (cdr previous)))))
+	    (if (or (not instr)
+		    (not (null? (cadr instr)))
+		    (directive? instr)
+		    (and previous*
+			 (instr-skips? (car previous*))))
+		(default)
+		(call-with-values
+		 (lambda ()
+		   (classify-instruction instr))
+		 (lambda (type writes reads offset)
+		   (cond ((or (not (eq? type 'ALU))
+			      (memq (car instr) '(LDIL ADDIL)))
+			  (default))
+			 ((not (memq (car instr) '(LDO LDI)))
+			  (skipify
+			   `(,(car instr) (TR) ,@(cddr instr))))
+			 ((not (fits-in-11-bits-signed? offset))
+			  (default))
+			 (else
+			  (skipify
+			   `(ADDI (TR)
+				  ,offset
+				  ,(if (null? reads)
+				       0
+				       (car reads))
+				  ,(car writes))))))))))
+
 	(case opcode
 	  ((BV)
 	   (let ((dict1 (match (cdr return-pattern) instrs)))
 	     (if (not dict1)
-		 (fail)
-		 (let* ((tail* (cdddr instrs))
+		 (fix-unconditional-branch)
+		 (let* ((tail* (cddr instrs))
 			(next (find-or-label tail*))
 			(fail*
 			 (lambda ()
 			   (fix-sequences
 			    tail*
-			    (append (reverse (list-head instrs 3))
+			    (append (reverse (list-head instrs 2))
 				    tail))))
 			(dict2
 			 (and next
@@ -377,66 +549,273 @@ MIT in each case. |#
 			     
 		   (if (not dict2)
 		       (fail*)
-		       (with-values
-			   (lambda ()
-			     (fix-a-return dict1
-					   (list-difference tail* next)
-					   dict2
-					   (cdr next)))
-			 (lambda (frobbed untouched)
-			   (if (null? frobbed)
-			       (fail*)
-			       (fix-sequences untouched
-					      (append frobbed tail))))))))))
-	  ((B BE BLE)
-	   (let ((completer (cadr instr)))
-	     (if (or (not (pair? completer))
-		     (not (eq? 'N (car completer)))
-		     (not (null? (cdr completer))))
-		 (fail)
-		 (with-values (lambda () (find-movable-instr (cdr instrs)))
-		   (lambda (movable junk rest)
-		     (if (not movable)
-			 (fail)
-			 (fix-sequences
-			  rest
-			  `(,@(reverse junk)
-			    (,opcode () ,@(cddr instr))
-			    ,movable
-			    ,@tail))))))))
+		       (call-with-values
+			(lambda ()
+			  (fix-a-return dict1
+					(list-difference tail* next)
+					dict2
+					(cdr next)))
+			(lambda (frobbed untouched)
+			  (if (null? frobbed)
+			      (fail*)
+			      (fix-sequences untouched
+					     (append frobbed tail))))))))))
+
+	  ((B)
+	   (let ((address (caddr instr)))
+	     (if (not (eq? (car address) '@PCR))
+		 (fix-unconditional-branch)
+		 (let ((label (cadr address)))
+		   (if (equal? (cadr instr) '(N))
+		       ;; Branch with nullification
+		       (let* ((next (find-or-label tail))
+			      (instr* (and next (car next))))
+			  (cond ((not instr*)
+				 (fix-unconditional-branch))
+				((eq? (car instr*) 'LABEL)
+				 (if (not (eq? (cadr instr*) label))
+				     (fix-unconditional-branch)
+				     (drop-instr)))
+				((eq? (car instr*) 'EXTERNAL-LABEL)
+				 (let ((address* (list-ref instr* 3)))
+				   (if (or (not (eq? (car address*) '@PCR))
+					   (not (eq? label (cadr address*))))
+				       (fix-unconditional-branch)
+				       (generate-skip))))
+				(else
+				 (fix-unconditional-branch))))
+		       ;; Branch with no nullification
+		       (let* ((next (find-non-label tail))
+			      (instr* (and next (car next)))
+			      (next* (and next (find-or-label (cdr next))))
+			      (instr** (and next* (car next*))))
+			 (cond ((not instr**)
+				(fix-unconditional-branch))
+			       ((and (eq? (car instr**) 'LABEL)
+				     (eq? (cadr instr**) label)
+				     (not (instr-expands? instr*)))
+				(drop-instr))
+			       (else
+				(fix-unconditional-branch)))))))))
 
+	  ((BE BLE)
+	   (fix-unconditional-branch))
 	  ((NOP)
 	   (let ((dict (match hook-pattern instrs)))
 	     (if (not dict)
 		 (fail)
-		 (with-values (lambda () (find-movable-instr (cddr instrs)))
-		   (lambda (movable junk rest)
-		     (if (not movable)
-			 (fail)
-			 (fix-sequences
-			  rest
-			  `(,@(reverse junk)
-			    ,(cadr instrs)
-			    ,movable
-			    ,@tail))))))))
+		 (call-with-values
+		  (lambda ()
+		    (find-movable-instr/delay instr (cddr instrs)))
+		  (lambda (movable junk rest)
+		    (if (not movable)
+			(fail)
+			(fix-sequences
+			 rest
+			 `(,@(reverse junk)
+			   ,(cadr instrs)
+			   ,movable
+			   ,@tail))))))))
+	  ((LDW LDB LDH)
+	   #|
+	   ;; yyy
+	   ;; LD[WB] ... Rx
+	   ;; use Rx
+	   ;; =>
+	   ;; LD[WB] ... Rx
+	   ;; yyy
+	   ;; use Rx
+	   |#
+	   (let* ((writes (fourth instr))
+		  (next (find-non-label tail)))
+	     (if (or (not next)
+		     (not (instr-uses? (car next) writes)))
+		 (fail)
+		 (call-with-values
+		  (lambda ()
+		    (find-movable-instr/load (cdr instrs)
+					     (list (fourth (third instr)))
+					     (list writes)
+					     (car next)))
+		  (lambda (movable junk rest)
+		    (if (not movable)
+			(fix-sequences
+			 (cdr instrs)
+			 (cons* instr '(COMMENT *load-stall*) tail))
+			(fix-sequences
+			 rest
+			 `(,@(reverse junk)
+			   (COMMENT (moved for load scheduling))
+			   ,instr
+			   ,movable
+			   ,@tail))))))))
+
+	  #|
+	  (else
+	   (cond (;; Load scheduling
+		  ;;    xxx
+		  ;;    LD[WB] ... Rx
+		  ;;    use Rx
+		  ;;   =>
+		  ;;    LD[WB] ... Rx
+		  ;;    xxx
+		  ;;    use Rx
+		  (and (pair? (cdr instrs))
+		       ;; `use Rx' is not, say, a comment
+		       (not (directive? instr))
+		       (eq? instrs (find-or-label instrs))
+		       (memq (caar (find-or-label (cdr instrs))) '(LDW LDB))
+		       (instr-uses?
+			instr
+			(fourth (car (find-or-label (cdr instrs))))))
+		  (call-with-values
+		      (lambda ()
+			(find-movable-instr-for-load-slot
+			 (cdr (find-or-label (cdr instrs)))))
+		    (lambda (movable junk rest)
+		      (if (or (not movable)
+			      (memq (car movable) '(LDWM STWM)))
+			  ;; This annotates them, otherwise eqv to (fail):
+			  (fix-sequences (cdr instrs)
+					 (cons* '(COMMENT *load-stall*)
+						(car instrs) tail))
+			  (fix-sequences
+			   rest
+			   `(,@(reverse junk)
+			     ,(car (find-or-label (cdr instrs)))
+			     (COMMENT (moved for load scheduling))
+			     ,movable
+			     ,(car instrs)
+			     ,@tail))))))
+		 (else
+		  (fail))))
+	  |#
+	  ((COMB COMBT COMBF COMIB COMIBT COMIBF)
+	   (if (not (memq 'N (cadr instr)))
+	       (fail)
+	       (try-skip)))
+	  ((COMBN COMIBTN COMIBFN)
+	   (try-skip))
 	  (else
 	   (fail))))))
 
-(define (find-movable-instr instrs)
+(define (fits-in-11-bits-signed? value)
+  (and (< value 1024)
+       (>= value -1024)))
+
+(define (instr-skips? instr)
+  ;; Not really true, for example
+  ;; (COMBT (<) ...)
+  (or (and (pair? (cadr instr))
+	   (not (memq (car instr)
+		      '(B BL BV BLR BLE BE
+			  LDWS LDHS LDBS LDCWS
+			  STWS STHS STBS STBYS
+			  FLDWS FLDDS FSTWS FSTDS
+			  COMBN COMIBTN COMIBFN)))
+	   ;; or SGL, or QUAD, but not used now.
+	   (not (memq 'DBL (cadr instr))))
+
+      ;; A jump with a non-nullified delay slot
+      (and (memq (car instr) '(B BL BV BLR BLE BE))
+	   (null? (cadr instr)))))
+
+(define (instr-uses? instr reg)
+  ;; Might INSTR have a data dependency on REG?
+  (call-with-values
+   (lambda () (classify-instruction instr))
+   (lambda (type writes reads offset)
+     writes offset			; ignored
+     (or (eq? type 'UNKNOWN)
+	 (eq? type 'DIRECTIVE)
+	 (memq reg reads)))))
+
+(define (instr-expands? instr)
+  (call-with-values
+   (lambda () (classify-instruction instr))
+   (lambda (type writes reads offset)
+     writes reads			; ignored
+     (or (eq? type 'UNKNOWN)
+	 (eq? type 'DIRECTIVE)
+	 (cond (offset
+		(not (offset-fits? offset (car instr))))
+	       ((eq? type 'CONTROL)
+		(instr-pc-sensitive? instr))
+	       (else
+		false))))))
+
+(define (instr-pc-sensitive? instr)
+  (let walk ((instr instr))
+    (or (memq instr '(*PC* @PCR))
+	(and (pair? instr)
+	     (or (walk (car instr))
+		 (walk (cdr instr)))))))
+
+(define (find-movable-instr/delay instr instrs)
+  (let* ((next (find-or-label instrs))
+	 (instr* (and next (car next)))
+	 (next* (and next (find-non-label (cdr next)))))
+    (if (and instr*
+	     (call-with-values
+	      (lambda () (classify-instruction instr*))
+	      (lambda (type writes reads offset)
+		(and (memq type '(ALU MEMORY FALU))
+		     (or (not offset)
+			 (offset-fits? offset (car instr*)))
+		     (call-with-values
+		      (lambda () (classify-instruction instr))
+		      (lambda (type* writes* reads* offset*)
+			type* offset*	; ignored
+			(and (null? (eq-set-intersection writes reads*))
+			     (null? (eq-set-intersection reads writes*))))))))
+	     (not (instr-skips? instr*))
+	     (not (instr-pc-sensitive? instr*))
+	     (or (not next*)
+		 (not (instr-skips? (car next*)))))
+	(values instr*
+		(list-difference instrs next)
+		(cdr next))
+	(values false false false))))
+
+;; Certainly dont try (equal? instr recache-memtop) in above as it causes the
+;; branch for which we are seeking an instruction to fill its delay slot to
+;; be put in the delay slot of the COMB instruction.
+
+#|
+(define (find-movable-instr-for-load-slot instrs)
+  ;; This needs to be taught about dependencies between instructiions.
+  ;; Currently it will only reschedule the recaching of memtop as that has no
+  ;; dependencies at all.
+  (let* ((next (find-or-label instrs))
+	 (instr (and next (car next))))
+    (if (or (equal? instr recache-memtop)
+	    #F)
+	(values instr
+		(list-difference instrs next)
+		(cdr next))
+	(values false false false))))
+|#
+
+(define (find-movable-instr/load instrs reads writes next**)
   (let* ((next (find-or-label instrs))
 	 (instr (and next (car next)))
 	 (next* (and next (find-non-label (cdr next)))))
     (if (and instr
-	     (with-values (lambda () (classify-instruction instr))
-	       (lambda (type tgt src1 src2 offset)
-		 tgt src1 src2		; ignored
-		 (or (memq type '(ALU FALU))
-		     (and (eq? type 'MEMORY)
-			  (offset-fits? offset (car instr))))))
-	     (not (skips? instr))
-	     (not (pc-sensitive? instr))
+	     (not (instr-skips? instr))
+	     (call-with-values
+	      (lambda () (classify-instruction instr))
+	      (lambda (type writes* reads* offset)
+		offset			; ignored
+		(and (memq type '(ALU MEMORY FALU))
+		     (null? (eq-set-intersection writes* reads))
+		     (null? (eq-set-intersection writes reads*))
+		     (or (null? writes*)
+			 (not (there-exists? writes*
+				(lambda (tgt)
+				  (instr-uses? next** tgt))))))))
 	     (or (not next*)
-		 (not (skips? (car next*)))))
+		 (not (instr-skips? (car next*)))
+		 (equal? instr recache-memtop)))
 	(values instr
 		(list-difference instrs next)
 		(cdr next))
@@ -446,17 +825,103 @@ MIT in each case. |#
   (cons
    `(LDO () (OFFSET (? frame) 0 ,regnum:stack-pointer) ,regnum:stack-pointer)
    `((BV (N) 0 (? ret))
-     (DEP () ,regnum:quad-bitmask
-	  ,(-1+ scheme-type-width)
-	  ,scheme-type-width
-	  (? ret))
      (LDWM () (OFFSET 4 0 ,regnum:stack-pointer) (? ret))
      . (? more-insts))))
-
+
 (define hook-pattern
   `((NOP ())
     (BLE () (OFFSET (? hook) 4 ,regnum:scheme-to-interface-ble))
     . (? more-insts)))
 
-(define (optimize-linear-lap instructions)
+(define recache-memtop '(LDW () (OFFSET 0 0 4) #x14))
+
+(define (old-optimize-linear-lap instructions)
   (fix-sequences (reverse! instructions) '()))
+
+#|
+** I believe that I have fixed this - there are cdd..drs and list
+   indexes in the code that assume that the return pattern has a
+   certain length.
+
+;; At the moment the code removes the assignment to r2 in the following:
+
+((entry-point fixmul-5)
+ (scheme-object CONSTANT-0 debugging-info)
+ (scheme-object CONSTANT-1 environment)
+ (comment (rtl (procedure-header fixmul-0 3 3)))
+ (equate fixmul-5 fixmul-0)
+ (label label-4)
+ (ble () (offset 0 4 3))
+ (ldi () 26 28)
+ (external-label () 771 (@pcr fixmul-0))
+ (label fixmul-0)
+ (comb (>=) 21 20 (@pcr label-4))
+ (ldw () (offset 0 0 4) 20)
+ (comment
+  (rtl (assign (register 65) (offset (register 22) (machine-constant 0)))))
+ (ldw () (offset 0 0 22) 6)
+ (comment
+  (rtl (assign (register 66) (offset (register 22) (machine-constant 1)))))
+ (ldw () (offset 4 0 22) 7)
+ (comment
+  (rtl
+   (assign
+    (register 2)
+    (fixnum-2-args multiply-fixnum (register 65) (register 66) #f))))
+ (copy () 6 26)
+ (copy () 7 25)
+ (ble () (offset 116 4 3))
+ (nop ())
+ (comment
+  (rtl
+   (assign
+    (register 22)
+    (offset-address (register 22) (machine-constant 2)))))
+ (ldo () (offset 8 0 22) 22)
+ (comment (rtl (pop-return)))
+ (copy () 26 2)
+ (ldwm () (offset 4 0 22) 6)
+ (bv (n) 0 6))
+
+** But there is still a bug:
+
+gc.scm when optimized SEGVs in flush-purification-queue for no apparent reason
+
+
+|#
+(define (optimize-linear-lap instructions)
+  (old-optimize-linear-lap instructions))
+
+;;;; This works in conjuction with try-skip in fix-sequences.
+
+(define (lap:mark-preferred-branch! pblock cn an)
+  ;; This can leave pblock unchanged
+  (define (single-instruction bblock other)
+    (and (sblock? bblock)
+	 (let ((next (snode-next bblock)))
+	   (or (not next)
+	       (eq? next other)))
+	 (let find-first ((instrs (bblock-instructions bblock)))
+	   (and (not (null? instrs))
+		(let ((instr (car instrs)))
+		  (if (eq? 'COMMENT (car instr))
+		      (find-first (cdr instrs))
+		      (and (let find-next ((instrs (cdr instrs)))
+			     (or (null? instrs)
+				 (and (eq? 'COMMENT (car (car instrs)))
+				      (find-next (cdr instrs)))))
+			   instr)))))))
+  
+  (define (try branch bblock other)
+    (let ((instr (single-instruction bblock other)))
+      (and instr
+	   (not (instr-expands? instr))
+	   (pnode/prefer-branch! pblock branch)
+	   true)))
+
+  (let ((branch-instr
+	 (car (last-pair ((pblock-consequent-lap-generator pblock) 'FOO)))))
+    (and (memq (car branch-instr)
+	       '(COMB COMBT COMBF COMIB COMIBT COMIBF COMBN COMIBTN COMIBFN))
+	 (or (try 'CONSEQUENT cn an)
+	     (try 'ALTERNATIVE an cn)))))
