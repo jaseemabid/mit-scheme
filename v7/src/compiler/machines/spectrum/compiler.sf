@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: compiler.sf,v 1.16 1994/02/02 01:20:50 gjr Exp $
+$Id: compiler.sf,v 1.16.1.1 1994/03/30 21:17:36 gjr Exp $
 
 Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
@@ -61,6 +61,9 @@ MIT in each case. |#
 		       files))))
       (load-option 'HASH-TABLE)
       (write-string "\n\n---- Loading compile-time files ----")
+      ;; New stuff
+      (sf-and-load '("midend/synutl") '(COMPILER MIDEND))
+      ;; End of New stuff
       (sf-and-load '("base/switch") '(COMPILER))
       (sf-and-load '("base/macros") '(COMPILER MACROS))
       ((access initialize-package! (->environment '(COMPILER MACROS))))
@@ -103,6 +106,11 @@ MIT in each case. |#
 
 ;; Resyntax any files that need it.
 ((access syntax-files! (->environment '(COMPILER))))
+
+;; New stuff
+(fluid-let ((syntaxer/default-environment (->environment '(COMPILER MIDEND))))
+  (sf-directory "midend"))
+;; End of new stuff
 
 ;; Rebuild the package constructors and cref.
 (cref/generate-constructors "compiler")
