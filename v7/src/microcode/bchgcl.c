@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcl.c,v 9.50.4.2 2000/11/30 04:38:27 cph Exp $
+$Id: bchgcl.c,v 9.50.4.3 2000/11/30 05:23:47 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -95,6 +95,8 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode),
       switch (OBJECT_TYPE (object))
 	{
 	case TC_BROKEN_HEART:
+	  if (gc_mode != NORMAL_GC)
+	    goto end_gc_loop;
 	  if (object == (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, scan)))
 	    /* Does this ever happen?  */
 	    goto end_gc_loop;
