@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/make.scm-68040,v 1.21.1.1 1987/06/25 10:34:41 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/make.scm-68040,v 1.21.1.2 1987/07/02 01:46:41 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -66,7 +66,7 @@ MIT in each case. |#
       (define :modification 21)
       (define :files)
 
-;      (parse-rcs-header "$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/make.scm-68040,v 1.21.1.1 1987/06/25 10:34:41 jinx Exp $"
+;      (parse-rcs-header "$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/make.scm-68040,v 1.21.1.2 1987/07/02 01:46:41 jinx Exp $"
 ;	(lambda (filename version date time author state)
 ;	  (set! :version (car version))
 ;	  (set! :modification (cadr version))))
@@ -151,6 +151,10 @@ MIT in each case. |#
 	       '("back-end/lapgen.bin"	;LAP generator.
 		 "back-end/regmap.bin"	;Hardware register allocator.
 		 "machines/bobcat/lapgen.bin" ;code generation rules.
+		 "machines/bobcat/rules1.bin"
+		 "machines/bobcat/rules2.bin"
+		 "machines/bobcat/rules3.bin"
+		 "machines/bobcat/rules4.bin"
 		 "back-end/syntax.bin"	;Generic syntax phase
 		 "machines/bobcat/coerce.bin" ;Coercions: integer -> bit string
 		 "back-end/asmmac.bin"	;Macros for hairy syntax
