@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/compiler.sf,v 1.7 1988/12/15 17:02:14 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/compiler.sf,v 1.7.1.1 1989/07/12 00:03:03 cph Rel $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -36,7 +36,7 @@ MIT in each case. |#
 
 ;; Guarantee that the package modeller is loaded.
 (if (not (name->package '(CROSS-REFERENCE)))
-    (with-working-directory-pathname "/scheme/cref" (lambda () (load "make"))))
+    (with-working-directory-pathname "../cref" (lambda () (load "make"))))
 
 ;; Guarantee that the compiler's package structure exists.
 (if (not (name->package '(COMPILER)))
