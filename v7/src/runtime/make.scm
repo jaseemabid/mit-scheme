@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: make.scm,v 14.83.2.2 2002/01/17 21:22:23 cph Exp $
+$Id: make.scm,v 14.83.2.3 2002/01/17 21:30:07 cph Exp $
 
 Copyright (c) 1988-2001 Massachusetts Institute of Technology
 
@@ -354,7 +354,8 @@ USA.
 	 ("random" . (RUNTIME RANDOM-NUMBER))
 	 ("gentag" . (RUNTIME GENERIC-PROCEDURE))
 	 ("poplat" . (RUNTIME POPULATION))
-	 ("record" . (RUNTIME RECORD))))
+	 ("record" . (RUNTIME RECORD))
+	 ("syntax-transforms" . (RUNTIME SYNTACTIC-CLOSURES))))
       (files2
        '(("prop1d" . (RUNTIME 1D-PROPERTY))
 	 ("events" . (RUNTIME EVENT-DISTRIBUTOR))

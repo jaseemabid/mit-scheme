@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: runtime.pkg,v 14.406.2.2 2002/01/16 23:07:33 cph Exp $
+$Id: runtime.pkg,v 14.406.2.3 2002/01/17 21:30:13 cph Exp $
 
 Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
@@ -3735,6 +3735,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 (define-package (runtime syntactic-closures)
   (files "syntactic-closures"
 	 "syntax-output"
+	 "syntax-transforms"
 	 "mit-syntax"
 	 "syntax-rules"
 	 "syntax-check")

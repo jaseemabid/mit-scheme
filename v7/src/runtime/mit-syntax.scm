@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: mit-syntax.scm,v 1.1.2.7 2002/01/17 20:56:10 cph Exp $
+;;; $Id: mit-syntax.scm,v 1.1.2.8 2002/01/17 21:30:10 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -24,43 +24,6 @@
 (declare (usual-integrations))
 
 ;;;; Macro transformers
-
-(define (sc-macro-transformer->expander transformer)
-  (lambda (form environment closing-environment)
-    (make-syntactic-closure closing-environment '()
-      (transformer form environment))))
-
-(define (rsc-macro-transformer->expander transformer)
-  (lambda (form environment closing-environment)
-    (make-syntactic-closure environment '()
-      (transformer form closing-environment))))
-
-(define (er-macro-transformer->expander transformer)
-  (lambda (form environment closing-environment)
-    (make-syntactic-closure environment '()
-      (transformer form
-		   (let ((renames '()))
-		     (lambda (identifier)
-		       (let ((association (assq identifier renames)))
-			 (if association
-			     (cdr association)
-			     (let ((rename
-				    (make-syntactic-closure closing-environment
-					'()
-				      identifier)))
-			       (set! renames
-				     (cons (cons identifier rename)
-					   renames))
-			       rename)))))
-		   (lambda (x y)
-		     (identifier=? environment x
-				   environment y))))))
-
-(define (non-hygienic-macro-transformer->expander transformer)
-  (lambda (form environment closing-environment)
-    closing-environment
-    (make-syntactic-closure environment '()
-      (apply transformer (cdr form)))))
 
 (define (define-er-macro-transformer keyword environment transformer)
   (define-expander keyword environment
