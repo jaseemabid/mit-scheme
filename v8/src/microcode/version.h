@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/microcode/version.h,v 10.70 1989/03/27 23:17:29 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/microcode/version.h,v 10.70.1.1 1989/04/06 22:15:27 arthur Exp $
 
 Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
