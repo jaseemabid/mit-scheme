@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: rules3.scm,v 4.41.1.1 1994/03/30 21:19:29 gjr Exp $
+$Id: rules3.scm,v 4.41.1.2 1994/11/26 19:26:14 gjr Exp $
 
 Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
@@ -1435,9 +1435,10 @@ MIT in each case. |#
 
 (define-rule statement
   (RETURN-ADDRESS (? label)
+		  (? debugging-info)
 		  (MACHINE-CONSTANT (? frame-size))
 		  (MACHINE-CONSTANT (? nregs)))
-  nregs					; ignored
+  nregs debugging-info				; ignored
   (begin
     (restore-registers!)
     (make-external-label
@@ -1445,25 +1446,26 @@ MIT in each case. |#
      label)))
 
 (define-rule statement
-  (PROCEDURE (? label) (MACHINE-CONSTANT (? frame-size)))
+  (PROCEDURE (? label) (? debugging-info) (MACHINE-CONSTANT (? frame-size)))
   (make-external-label (frame-size->code-word frame-size
 					      internal-continuation-code-word)
 		       label))
 
 (define-rule statement
   (TRIVIAL-CLOSURE (? label)
+		   (? debugging-info)
 		   (MACHINE-CONSTANT (? min))
 		   (MACHINE-CONSTANT (? max)))
   (make-external-label (make-procedure-code-word min max)
 		       label))
 
 (define-rule statement
-  (CLOSURE (? label) (MACHINE-CONSTANT (? frame-size)))
+  (CLOSURE (? label) (? debugging-info) (MACHINE-CONSTANT (? frame-size)))
   frame-size				; ignored
   (LAP ,@(make-external-label internal-closure-code-word label)))
 
 (define-rule statement
-  (EXPRESSION (? label))
+  (EXPRESSION (? label) (? debugging-info))
   #|
   ;; Prefix takes care of this
   (LAP ,@(make-external-label expression-code-word label))
