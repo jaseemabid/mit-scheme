@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: infnew.scm,v 4.11 1994/02/02 01:48:39 gjr Exp $
+$Id: infnew.scm,v 4.11.1.1 1994/11/26 19:23:08 gjr Exp $
 
 Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
@@ -258,9 +258,11 @@ MIT in each case. |#
 	       (rtl-procedure/%external-label procedure))
 	      info))
 	  procedures)
-     (map (lambda (continuation)
-	    (debug-info rtl-continuation/debugging-info continuation))
-	  continuations))))
+     (list-transform-negative
+	 (map (lambda (continuation)
+		(rtl-continuation/debugging-info continuation))
+	      continuations)
+       false?))))
 
 (define (info-generation-phase-3 expression procedures continuations
 				 label-bindings external-labels)
