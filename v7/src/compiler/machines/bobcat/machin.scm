@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/machin.scm,v 4.10 1988/06/14 08:48:01 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/machin.scm,v 4.10.1.1 1988/08/25 19:48:00 markf Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -151,6 +151,13 @@ MIT in each case. |#
        ((MINUS-ONE-PLUS-FIXNUM) 6)
        (else
 	(error "RTL:EXPRESSION-COST: unknown fixnum operator" expression))))
+    ;; The numbers for generic ops are crocks. Depending on the types
+    ;; of the operands we may do as little as two checks and a fixnum
+    ;; operation or as much as a call to the runtime generic
+    ;; procedure. All in all we will consider this to be very expensive.
+    ((GENERIC-BINARY) 500)
+    ((GENERIC-UNARY) 500)
+    ;; The following are preliminary. Check with Jinx (mhwu)
     ;; The following are preliminary. Check with Jinx (mhwu)
     ((CHAR->ASCII) 4)
     ((BYTE-OFFSET) 12)
