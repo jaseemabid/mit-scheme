@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/insmac.scm,v 1.118 1987/03/19 00:52:58 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/insmac.scm,v 1.118.1.1 1987/06/11 08:40:42 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -36,27 +36,30 @@ MIT in each case. |#
 
 (declare (usual-integrations))
 
-;;;; Instruction Definitions
+;;;; Effective addressing
 
-(syntax-table-define assembler-syntax-table 'MAKE-EA-DATABASE
+(define ea-database-name 'ea-database)
+
+(syntax-table-define assembler-syntax-table 'DEFINE-EA-DATABASE
   (macro rules
-    (compile-database rules
-      (lambda (pattern actions)
-	(let ((keyword (car pattern))
-	      (categories (car actions))
-	      (mode (cadr actions))
-	      (register (caddr actions))
-	      (extension (cdddr actions)))
-	  ;;(declare (integrate keyword categories mode register extension))
-	  `(MAKE-EFFECTIVE-ADDRESS
-	    ',keyword
-	    (LAMBDA () ,(integer-syntaxer mode 'UNSIGNED 3))
-	    (LAMBDA () ,(integer-syntaxer register 'UNSIGNED 3))
-	    (LAMBDA (IMMEDIATE-SIZE INSTRUCTION-TAIL)
-	      ,(if (null? extension)
-		   'INSTRUCTION-TAIL
-		   `(CONS-SYNTAX ,(car extension) INSTRUCTION-TAIL)))
-	    ',categories))))))
+    `(define ,ea-database-name
+       ,(compile-database rules
+	 (lambda (pattern actions)
+	   (let ((keyword (car pattern))
+		 (categories (car actions))
+		 (mode (cadr actions))
+		 (register (caddr actions))
+		 (extension (cdddr actions)))
+	     ;;(declare (integrate keyword categories mode register extension))
+	     `(MAKE-EFFECTIVE-ADDRESS
+	       ',keyword
+	       ,(integer-syntaxer mode 'UNSIGNED 3)
+	       ,(integer-syntaxer register 'UNSIGNED 3)
+	       (LAMBDA (IMMEDIATE-SIZE INSTRUCTION-TAIL)
+		 ,(if (null? extension)
+		      'INSTRUCTION-TAIL
+		      `(CONS-SYNTAX ,(car extension) INSTRUCTION-TAIL)))
+	       ',categories)))))))
 
 (syntax-table-define assembler-syntax-table 'EXTENSION-WORD
   (macro descriptors
@@ -69,6 +72,62 @@ MIT in each case. |#
 		(error "EXTENSION-WORD: Extensions must be 16 bit multiples"
 		       size)))))))
 
+;;;; Transformers
+
+(syntax-table-define assembler-syntax-table 'DEFINE-EA-TRANSFORMER
+  (macro (name #!optional categories keywords)
+    (define (filter special generator extraction)
+      (define (multiple rem)
+	(if (null? rem)
+	    `()
+	    `(,(generator (car rem) 'temp)
+	      ,@(multiple (cdr rem)))))
+
+      (cond ((null? special)
+	     `())
+	    ((null? (cdr special))
+	     `(,(generator (car special) extraction)))
+	    (else
+	     `((let ((temp ,extraction))
+		 (and ,@(multiple special)))))))
+
+    `(define (,name expression)
+       (let ((match-result (pattern-lookup ,ea-database-name expression)))
+	 (and match-result
+	      ,(if (unassigned? categories)
+		    `(match-result)
+		    `(let ((ea (match-result)))
+		       (and ,@(filter categories
+				      (lambda (cat exp) `(memq ',cat ,exp))
+				      `(ea-categories ea))
+			    ,@(if (unassigned? keywords)
+				  `()
+				  (filter keywords
+					  (lambda (key exp) `(not (eq? ',key ,exp)))
+					  `(ea-keyword ea)))
+			    ea))))))))
+
+(syntax-table-define assembler-syntax-table 'DEFINE-SYMBOL-TRANSFORMER
+  (macro (name . alist)
+    `(begin
+       (declare (integrate-operator ,name))
+       (define (,name symbol)
+	 (declare (integrate symbol))
+	 (let ((place (assq symbol ',alist)))
+	   (if (null? place)
+	       #F
+	       (cdr place)))))))
+
+(syntax-table-define assembler-syntax-table 'DEFINE-REG-LIST-TRANSFORMER
+  (macro (name . alist)
+    `(begin
+       (declare (integrate-operator ,name))
+       (define (,name reg-list)
+	 (declare (integrate reg-list))
+	 (encode-register-list reg-list ',alist)))))
+
+;;;; Utility procedures
+
 (define (parse-word expression tail)
   (expand-descriptors (cdr expression)
     (lambda (instruction size src dst)
@@ -127,22 +186,23 @@ MIT in each case. |#
 		     size))
 		 size false false))
       ((SOURCE-EA)
-       (receiver `(((EA-MODE ,expression))
-		   ((EA-REGISTER ,expression)))
+       (receiver `((EA-MODE ,expression)
+		   (EA-REGISTER ,expression))
 		 size
 		 `((EA-EXTENSION ,expression) ,(cadddr descriptor))
 		 false))
       ((DESTINATION-EA)
-       (receiver `(((EA-MODE ,expression))
-		   ((EA-REGISTER ,expression)))
+       (receiver `((EA-MODE ,expression)
+		   (EA-REGISTER ,expression))
 		 size
 		 false
 		 `((EA-EXTENSION ,expression) '())))
       ((DESTINATION-EA-REVERSED)
-       (receiver `(((EA-REGISTER ,expression))
-		   ((EA-MODE ,expression)))
+       (receiver `((EA-REGISTER ,expression)
+		   (EA-MODE ,expression))
 		 size
 		 false
 		 `((EA-EXTENSION ,expression) '())))
       (else
+       (error "EXPAND-DESCRIPTOR: Badly-formed descriptor" descriptor)))))
        (error "EXPAND-DESCRIPTOR: Badly-formed descriptor" descriptor)))))
