@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.8 1988/03/22 21:10:18 jrm Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.8.1.1 1988/12/20 16:23:49 cph Exp $
 
-Copyright (c) 1987 Massachusetts Institute of Technology
+Copyright (c) 1987, 1988 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -106,7 +106,7 @@ MIT in each case. |#
 
 ;;;; Lookup
 
-(define *eager-integration-switch #t)
+(define *eager-integration-switch #f)
 
 (define-method/integrate 'REFERENCE
   (lambda (operations environment expression)
