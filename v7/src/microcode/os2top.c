@@ -1,14 +1,15 @@
 /* -*-C-*-
 
-$Id: os2top.c,v 1.16 1995/10/15 00:39:03 cph Exp $
+$Id: os2top.c,v 1.16.1.1 1998/10/19 04:09:53 cph Exp $
 
-Copyright (c) 1994-95 Massachusetts Institute of Technology
+Copyright (c) 1994-98 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
-Computer Science.  Permission to copy this software, to redistribute
-it, and to use it for any purpose is granted, subject to the following
-restrictions and understandings.
+Computer Science.  Permission to copy and modify this software, to
+redistribute either the original software or a modified version, and
+to use this software for any purpose is granted, subject to the
+following restrictions and understandings.
 
 1. Any copy made of this software must include this copyright notice
 in full.
@@ -127,10 +128,10 @@ OS2_version_string (void)
   static char result [64];
   char sminor [16];
   char srev [2];
-  if ((major == 20) && (minor == 30))
+  if ((major == 20) && (minor >= 30))
     {
-      major = 30;
-      minor = 0;
+      major = (minor - (minor % 10));
+      minor = ((minor % 10) * 10);
     }
   if ((minor < 10) && (minor != 0))
     sprintf (sminor, "0%d", minor);
