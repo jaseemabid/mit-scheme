@@ -1,6 +1,0 @@
-#!/bin/sh
-get_release()
-{
-  fgrep Release /scheme/v7/src/runtime/version.scm | awk '{ print $3 "." $4 "." $5 }' | tr -d \(\)\'
-}
-echo "scheme-`get_release`"
