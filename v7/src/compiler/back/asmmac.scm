@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/asmmac.scm,v 1.2.1.1 1987/06/10 21:25:24 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/asmmac.scm,v 1.2.1.2 1987/07/01 20:49:29 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -94,12 +94,14 @@ MIT in each case. |#
     (define-integrable (make-constant bit-string)
       `',bit-string)
 
-    (lambda components
+    (lambda (components early?)
       (let ((components (find-constant components)))
 	(cond ((null? components)
 	       (error "OPTIMIZE-GROUP-SYNTAX: No components in group!"))
 	      ((null? (cdr components))
 	       (car components))
 	      (else
-	       `(OPTIMIZE-GROUP ,@components)))))))
-	       `(OPTIMIZE-GROUP ,@components)))))))
+	       `(,(if early?
+		      'OPTIMIZE-GROUP-EARLY
+		      'OPTIMIZE-GROUP)
+		 ,@components)))))))
