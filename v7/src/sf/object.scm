@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/object.scm,v 3.1.1.1 1987/06/30 06:49:25 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/object.scm,v 3.1.1.2 1987/06/30 07:20:48 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -164,7 +164,7 @@ MIT in each case. |#
 (define (block/make parent safe?)
   (let ((block
 	 (object/allocate block/enumerand parent '() safe?
-			  (declarations/make-null) '())))
+			  (declarations/make-null) '() '())))
     (if parent
 	(block/set-children! parent (cons block (block/children parent))))
     block))
