@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/pardec.scm,v 3.4.1.2 1987/06/30 21:22:51 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/pardec.scm,v 3.4.1.3 1987/06/30 21:28:49 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -325,15 +325,6 @@ MIT in each case. |#
 (define-declaration 'EXPAND-OPERATOR true
   (lambda (block table/cons table expanders)
     (bind/general table/cons table false 'EXPAND false
-		  (map car expanders)
-		  (map (lambda (expander)
-			 (eval (cadr expander)
-			       expander-evaluation-environment))
-		       expanders))))
-
-(define-declaration 'PROCESS-OPERATOR true
-  (lambda (block table/cons table expanders)
-    (bind/general table/cons table false 'PROCESS false
 		  (map car expanders)
 		  (map (lambda (expander)
 			 (eval (cadr expander)
