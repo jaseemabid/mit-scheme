@@ -1,9 +1,9 @@
 /* -*-C-*-
    System file for Linux
 
-$Id: linux.h,v 1.7 1996/03/04 20:38:54 cph Exp $
+$Id: linux.h,v 1.7.1.1 1997/01/13 18:43:47 cph Exp $
 
-Copyright (c) 1995-96 Massachusetts Institute of Technology
+Copyright (c) 1995-97 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -33,32 +33,18 @@ Technology nor of any adaptation thereof in any advertising,
 promotional, or sales literature without prior written consent from
 MIT in each case. */
 
-#define LIBX11_MACHINE -L/usr/X11/lib
+#define LIBX11_MACHINE -L/usr/X11R6/lib
 
 #define LIB_DEBUG
 
 #define ALTERNATE_M4 s/ultrix.m4
 
-/* The following change is necessary if ELF binaries are used.
-   Unfortunately, it is insufficient, because the Linux ELF
-   implementation also moves the text and data segments to 0x08000000,
-   which means that all of the pointer manipulation code must be
-   changed.  This is normal for some architectures, e.g. the MIPS and
-   HPPA, but it make the binaries for Linux ELF different for the
-   binaries for all other i386 machines.
-
-   Since I don't currently know any way to adjust the mapping of the
-   segments, if ELF is in use, I'll just force the switch that causes
-   GCC to generate a.out format instead of ELF.  This is a temporary
-   patch, because one of these days a.out won't be supported, but
-   hopefully by then we'll know how to fix this correctly.  */
-
 #ifdef __ELF__
 #define M4_SWITCH_SYSTEM -P "define(LINUX_ELF,1)"
-#define LD_SWITCH_SYSTEM -T s/linuxelf.lds
 #define LIBS_TERMCAP -lncurses
 #else
 #define M4_SWITCH_SYSTEM
-#define LD_SWITCH_SYSTEM
 #define LIBS_TERMCAP -ltermcap
 #endif
+
+#define LD_SWITCH_SYSTEM
