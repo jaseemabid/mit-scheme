@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/runtime/uenvir.scm,v 14.24 1991/07/21 07:02:17 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/runtime/uenvir.scm,v 14.24.1.1 1991/08/26 22:38:03 cph Exp $
 
 Copyright (c) 1988-91 Massachusetts Institute of Technology
 
@@ -155,7 +155,7 @@ MIT in each case. |#
 
 (define (guarantee-interpreter-environment object)
   (if (not (interpreter-environment? object))
-      (error:wrong-type-datum object "interpreter environment"))
+      (error:illegal-datum object))
   object)
 
 (define-integrable (system-global-environment? object)
