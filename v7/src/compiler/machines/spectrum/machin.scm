@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: machin.scm,v 4.29 1993/07/01 03:16:40 gjr Exp $
+$Id: machin.scm,v 4.29.1.1 1994/03/30 21:18:43 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -34,6 +34,8 @@ MIT in each case. |#
 
 ;;; Machine Model for Spectrum
 ;;; package: (compiler)
+
+;;! Changes for split fixnum tags makeed with ;;!
 
 (declare (usual-integrations))
 
@@ -76,15 +78,45 @@ MIT in each case. |#
 
 (define-integrable address-units-per-packed-char 1)
 
-(define-integrable signed-fixnum/upper-limit
-  ;; (expt 2 (-1+ scheme-datum-width)) ***
-  33554432)
+(define-integrable max-type-code
+  ;; (-1+ (expt 2 scheme-type-width))  ***
+  63)
+
+(define #|-integrable|# untagged-fixnums?
+  ;; true when fixnums have tags 000000... and 111111...
+  (and (= 0 (ucode-type positive-fixnum))
+       (= max-type-code (ucode-type negative-fixnum))))
+
+(if (and (not untagged-fixnums?)
+	 (not (= (ucode-type positive-fixnum) (ucode-type negative-fixnum))))
+    (error "machin.scm: split fixnum type-codes must be 000... and 111..."))
+
+(define #|-integrable|# signed-fixnum/upper-limit
+  (if untagged-fixnums?
+      ;; (expt 2 scheme-datum-width) ***
+      67108864
+      ;; (expt 2 (-1+ scheme-datum-width)) ***
+      33554432))
 
 (define-integrable signed-fixnum/lower-limit
   (- signed-fixnum/upper-limit))
 
-(define-integrable unsigned-fixnum/upper-limit
-  (* 2 signed-fixnum/upper-limit))
+(define #|-integrable|# unsigned-fixnum/upper-limit
+  (if untagged-fixnums?
+      signed-fixnum/upper-limit
+      (* 2 signed-fixnum/upper-limit)))
+
+(define #|-integrable|# quad-mask-value
+  (cond ((= scheme-type-width 5)  #b01000)
+	((= scheme-type-width 6)  #b010000)
+	((= scheme-type-width 8)  #b01000000)
+	(else (error "machin.scm: weird type width:" scheme-type-width))))
+
+(define #|-integrable|# untagged-entries?
+  ;; This is true if the value we have chosen for the compiled-entry
+  ;; type-code is equal to the bits in the type-code field of an
+  ;; address.
+  (= quad-mask-value (ucode-type compiled-entry)))
 
 (define-integrable (stack->memory-offset offset) offset)
 (define-integrable ic-block-first-parameter-offset 2)
@@ -230,6 +262,8 @@ MIT in each case. |#
 (define-integrable regnum:scheme-to-interface-ble g3)
 (define-integrable regnum:regs-pointer g4)
 (define-integrable regnum:quad-bitmask g5)
+(define-integrable regnum:false-value g5) ; Yes: same as quad-bitmask
+(define-integrable regnum:empty-list g18)
 (define-integrable regnum:dynamic-link g19)
 (define-integrable regnum:memtop-pointer g20)
 (define-integrable regnum:free-pointer g21)
@@ -249,7 +283,7 @@ MIT in each case. |#
 
 (define (machine-register-value-class register)
   (cond ((or (= register 0)
-	     (<= 6 register 18)
+	     (<= 6 register 17)
 	     (<= 23 register 26)
 	     (= register 29)
 	     (= register 31))
@@ -263,8 +297,8 @@ MIT in each case. |#
 	     (= register 27)
 	     (= register 30))
 	 value-class=address)
-	((= register 5)
-	 value-class=immediate)
+	((or (= register 5) (= register 18))
+	 value-class=object)
 	((<= 32 register 63)
 	 value-class=float)
 	(else
@@ -273,6 +307,14 @@ MIT in each case. |#
 (define-integrable (machine-register-known-value register)
   register				;ignore
   false)
+
+(define (machine-register-known-type register)
+  (cond ((and (machine-register? register)
+	      (eq? (machine-register-value-class register)
+		   value-class=address))
+	 quad-mask-value)
+	(else
+	 #F)))
 
 ;;;; Interpreter Registers
 
@@ -381,9 +423,12 @@ MIT in each case. |#
 
 (define (rtl:constant-cost expression)
   ;; Magic numbers.
+  ;; 0, #F and '() all live in registers.
+  ;; Is there any reason that all these costs were originally >0 ?
+  ;; Making 0 #F and '() all 0 cost prevents any spurious rtl cse.
   (let ((if-integer
 	 (lambda (value)
-	   (cond ((zero? value) 1)
+	   (cond ((zero? value) 0)
 		 ((fits-in-5-bits-signed? value) 2)
 		 (else 3)))))
     (let ((if-synthesized-constant
@@ -392,10 +437,12 @@ MIT in each case. |#
       (case (rtl:expression-type expression)
 	((CONSTANT)
 	 (let ((value (rtl:constant-value expression)))
-	   (if (non-pointer-object? value)
-	       (if-synthesized-constant (object-type value)
-					(object-datum value))
-	       3)))
+	   (cond ((eq? value #F)  0)
+		 ((eq? value '()) 0)
+		 ((non-pointer-object? value)
+		  (if-synthesized-constant (object-type value)
+					   (object-datum value)))
+		 (else 3))))
 	((MACHINE-CONSTANT)
 	 (if-integer (rtl:machine-constant-value expression)))
 	((ENTRY:PROCEDURE
@@ -413,6 +460,19 @@ MIT in each case. |#
 	       (rtl:machine-constant-value (rtl:cons-pointer-type expression))
 	       (rtl:machine-constant-value
 		(rtl:cons-pointer-datum expression)))))
+	;; This case causes OBJECT->FIXNUM to be combined with
+	;; FIXNUM-PRED-1-ARGs and FIXNUM-PRED-2-ARGS:
+	;((OBJECT->FIXNUM)
+	; (if (rtl:register? (rtl:object->fixnum-expression expression))
+	;     0
+	;     (rtl:expression-cost (rtl:object->fixnum-expression expression))))
+	;;((OBJECT->UNSIGNED-FIXNUM)
+	;; (- (rtl:expression-cost
+	;;     (rtl:object->unsigned-fixnum-expression expression))
+	;;    1))
+	;;((FIXNUM->OBJECT)
+	;; (+ (rtl:expression-cost (rtl:fixnum->object-expression expression))
+	;;    1))
 	(else false)))))
 
 (define compiler:open-code-floating-point-arithmetic?
@@ -420,3 +480,86 @@ MIT in each case. |#
 
 (define compiler:primitives-with-no-open-coding
   '(DIVIDE-FIXNUM GCD-FIXNUM &/))
+
+(define (generic->inline-data generic-op)
+  (define (generic-additive-test constant)
+    (and (exact-integer? constant)
+	 (< (abs constant) (/ unsigned-fixnum/upper-limit 2))))
+  (define (fixnum? x)
+    (fix:fixnum? x))
+  (define (make-rtl-fixnum-1-arg-coder name)
+    (lambda (operand)
+      (rtl:make-fixnum-1-arg
+       name (rtl:make-object->fixnum operand) true)))
+  (define (make-rtl-fixnum-pred-1-arg-coder name)
+    (lambda (operand)
+      (rtl:make-fixnum-pred-1-arg name (rtl:make-object->fixnum operand))))
+  (define (make-rtl-fixnum-2-arg-coder name)
+    (lambda (operand1 operand2)
+      (rtl:make-fixnum-2-args name
+			      (rtl:make-object->fixnum operand1)
+			      (rtl:make-object->fixnum operand2)
+			      true)))
+  (define (make-rtl-fixnum-pred-2-arg-coder name)
+    (lambda (operand1 operand2)
+      (if (eq? name 'EQUAL-FIXNUM?)
+	  ;; This produces better code.
+	  (rtl:make-eq-test operand1 operand2)
+	  (rtl:make-fixnum-pred-2-args name
+	   (rtl:make-object->fixnum operand1)
+	   (rtl:make-object->fixnum operand2)))))
+  (case generic-op
+    ;; Returns #<pre-test-code-name compile-test-code in-line-coder>
+    ((integer-add &+)
+     (values 'GENERIC-ADDITIVE-TEST generic-additive-test
+	     (make-rtl-fixnum-2-arg-coder 'PLUS-FIXNUM)))
+    ((integer-subtract &-)
+     (values 'GENERIC-ADDITIVE-TEST generic-additive-test
+	     (make-rtl-fixnum-2-arg-coder 'MINUS-FIXNUM)))
+    ((integer-multiply &*)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-2-arg-coder 'MULTIPLY-FIXNUM)))
+    ((integer-quotient quotient)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-2-arg-coder 'FIXNUM-QUOTIENT)))
+    ((integer-remainder remainder)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-2-arg-coder 'FIXNUM-REMAINDER)))
+    ((integer-add-1 1+)
+     (values 'GENERIC-ADDITIVE-TEST generic-additive-test
+	     (make-rtl-fixnum-1-arg-coder 'ONE-PLUS-FIXNUM)))
+    ((integer-subtract-1 -1+)
+     (values 'GENERIC-ADDITIVE-TEST generic-additive-test
+	     (make-rtl-fixnum-1-arg-coder 'MINUS-ONE-PLUS-FIXNUM)))
+    ((integer-negate)
+     (values 'GENERIC-ADDITIVE-TEST generic-additive-test
+	     (make-rtl-fixnum-1-arg-coder 'FIXNUM-NEGATE)))
+    ((integer-less? &<)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-pred-2-arg-coder 'LESS-THAN-FIXNUM?)))
+    ((integer-greater? &>)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-pred-2-arg-coder 'GREATER-THAN-FIXNUM?)))
+    ((integer-equal? &=)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-pred-2-arg-coder 'EQUAL-FIXNUM?)))
+    ((integer-zero? zero?)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-pred-1-arg-coder 'ZERO-FIXNUM?)))
+    ((integer-positive? positive?)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-pred-1-arg-coder 'POSITIVE-FIXNUM?)))
+    ((integer-negative? negative?)
+     (values 'FIXNUM? fixnum?
+	     (make-rtl-fixnum-pred-1-arg-coder 'NEGATIVE-FIXNUM?)))
+    (else (error "Can't find corresponding fixnum op:" generic-op))))
+
+;(define (target-object-type object)
+;  ;; This should be fixed for cross-compilation
+;  (if (and (fix:fixnum? object)
+;	   (negative? object))
+;      #x3F
+;      (object-type object)))
+
+(define (target-object-type object)
+  (object-type object))
