@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ux.h,v 1.73.2.1.2.2 2000/12/02 20:08:34 cph Exp $
+$Id: ux.h,v 1.73.2.1.2.3 2000/12/02 21:03:50 cph Exp $
 
 Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
@@ -183,6 +183,17 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #  endif
 #  ifdef HAVE_NDIR_H
 #    include <ndir.h>
+#  endif
+#endif
+
+#ifdef TIME_WITH_SYS_TIME
+#  include <sys/time.h>
+#  include <time.h>
+#else
+#  ifdef HAVE_SYS_TIME_H
+#    include <sys/time.h>
+#  else
+#    include <time.h>
 #  endif
 #endif
 
