@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: findprim.c,v 9.53.2.1.2.2 2000/12/02 06:07:43 cph Exp $
+$Id: findprim.c,v 9.53.2.1.2.3 2000/12/03 04:15:46 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -213,9 +213,8 @@ void EXFUN (initialize_data_buffer, (void));
 void EXFUN (initialize_default, (void));
 void EXFUN (initialize_external, (void));
 void EXFUN (initialize_token_buffer, (void));
-void EXFUN (mergesort, (int low, int high,
-			struct descriptor ** array,
-			struct descriptor ** temp_array));
+static void EXFUN
+  (fp_mergesort, (int, int, struct descriptor **, struct descriptor **));
 void EXFUN (print_procedure, (FILE * output,
 			      struct descriptor * primitive_descriptor,
 			      char * error_string));
@@ -1123,13 +1122,12 @@ DEFUN_VOID (sort)
      (xmalloc (buffer_index * (sizeof (struct descriptor *)))));
   for (count = 0; (count < buffer_index); count += 1)
     (temp_buffer [count]) = (result_buffer [count]);
-  mergesort (0, (buffer_index - 1), result_buffer, temp_buffer);
+  fp_mergesort (0, (buffer_index - 1), result_buffer, temp_buffer);
   free (temp_buffer);
-  return;
 }
 
-void
-DEFUN (mergesort, (low, high, array, temp_array),
+static void
+DEFUN (fp_mergesort, (low, high, array, temp_array),
        int low AND
        register int high AND
        register struct descriptor ** array AND
@@ -1141,7 +1139,7 @@ DEFUN (mergesort, (low, high, array, temp_array),
   int high1;
   int high2;
 
-  dprintf ("mergesort: low = %d", low);
+  dprintf ("fp_mergesort: low = %d", low);
   dprintf ("; high = %d", high);
 
   if (high <= low)
@@ -1157,10 +1155,10 @@ DEFUN (mergesort, (low, high, array, temp_array),
 
   dprintf ("; high1 = %d\n", high1);
 
-  mergesort (low, high1, temp_array, array);
-  mergesort (low2, high, temp_array, array);
+  fp_mergesort (low, high1, temp_array, array);
+  fp_mergesort (low2, high, temp_array, array);
 
-  dprintf ("mergesort: low1 = %d", low1);
+  dprintf ("fp_mergesort: low1 = %d", low1);
   dprintf ("; high1 = %d", high1);
   dprintf ("; low2 = %d", low2);
   dprintf ("; high2 = %d\n", high2);
@@ -1217,7 +1215,6 @@ DEFUN (mergesort, (low, high, array, temp_array),
 	    }
 	}
     }
-  return;
 }
 
 int
