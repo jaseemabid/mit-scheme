@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rules3.scm,v 1.34 1999/01/02 06:06:43 cph Exp $
+$Id: rules3.scm,v 1.34.4.1 2001/12/14 20:22:45 cph Exp $
 
-Copyright (c) 1992-1999 Massachusetts Institute of Technology
+Copyright (c) 1992-1999, 2001 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+USA.
 |#
 
 ;;;; LAP Generation Rules: Invocations and Entries
@@ -684,7 +685,17 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 			 ,mtarget
 			 ,(make-non-pointer-literal (ucode-type compiled-entry)
 						    0)))
-	 (MOV W (@RO B ,regnum:free-pointer -4) ,temp))))
+	 (MOV W (@RO B ,regnum:free-pointer -4) ,temp)
+	 ;; Synchronize the I/D caches.
+	 (PUSH (R ,eax))
+	 (PUSH (R ,ecx))
+	 (PUSH (R ,edx))
+	 (PUSH (R ,ebx))
+	 (CPUID)
+	 (POP (R ,ebx))
+	 (POP (R ,edx))
+	 (POP (R ,ecx))
+	 (POP (R ,eax)))))
 
 (define (generate/cons-multiclosure target nentries size entries)
   (let* ((mtarget (target-register target))
@@ -728,7 +739,17 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 		       ,mtarget
 		       ,(make-non-pointer-literal (ucode-type compiled-entry)
 						  0)))
-	     (MOV W (@RO B ,regnum:free-pointer -4) ,temp))))))
+	     (MOV W (@RO B ,regnum:free-pointer -4) ,temp)
+	     ;; Synchronize the I/D caches.
+	     (PUSH (R ,eax))
+	     (PUSH (R ,ecx))
+	     (PUSH (R ,edx))
+	     (PUSH (R ,ebx))
+	     (CPUID)
+	     (POP (R ,ebx))
+	     (POP (R ,edx))
+	     (POP (R ,ecx))
+	     (POP (R ,eax)))))))
 
 (define closure-share-names
   '#(closure-0-interrupt closure-1-interrupt closure-2-interrupt
