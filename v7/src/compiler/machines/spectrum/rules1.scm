@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rules1.scm,v 4.35 1993/07/01 03:22:47 gjr Exp $
+$Id: rules1.scm,v 4.35.1.1 1994/03/30 21:18:54 gjr Exp $
 
-Copyright (c) 1989-1993 Massachusetts Institute of Technology
+Copyright (c) 1989-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -46,10 +46,10 @@ MIT in each case. |#
 ;;; source expression containing dead registers might refer to aliases
 ;;; which have been reused.
 
-(define-rule statement
-  (ASSIGN (REGISTER (? target)) (REGISTER (? source)))
-  (standard-move-to-target! source target)
-  (LAP))
+;;(define-rule statement
+;;  (ASSIGN (REGISTER (? target)) (REGISTER (? source)))
+;;  (standard-move-to-target! source target)
+;;  (LAP))
 
 (define-rule statement
   ;; tag the contents of a register
@@ -71,7 +71,29 @@ MIT in each case. |#
   ;; generator.  Thus the qualifier is not checked, the RTL instruction
   ;; is compressed, and then the lap generator fails when the qualifier
   ;; fails.
-  (deposit-type type (standard-move-to-target! source target)))
+  (adjust-type (if (eq? value-class=address (register-value-class source))
+		   quad-mask-value
+		   #F)
+	       type
+	       (standard-move-to-target! source target)))
+
+(define-rule statement
+  ;; Tag the contents of a register.  This rule is here just to fix the
+  ;; poor targeting of the value register when returning an open coded
+  ;; allocator.  Usually target=r2 and base=free.
+  (ASSIGN (REGISTER (? target))
+	  (CONS-POINTER (MACHINE-CONSTANT (? type))
+			(OFFSET-ADDRESS (REGISTER (? base))
+					(MACHINE-CONSTANT (? offset)))))
+  (let ((base   (standard-source! base))
+	(target (standard-target! target)))
+    (LAP ,@(load-offset (* 4 offset) base target)
+	 ,@(adjust-type (if (eq? value-class=address
+				 (register-value-class base))
+			    quad-mask-value
+			    #F)
+			type
+			target))))
 
 (define-rule statement
   ;; extract the type part of a register's contents
@@ -82,6 +104,13 @@ MIT in each case. |#
   ;; extract the datum part of a register's contents
   (ASSIGN (REGISTER (? target)) (OBJECT->DATUM (REGISTER (? source))))
   (standard-unary-conversion source target object->datum))
+
+
+;(define-rule statement
+;  ;; extract the value of a scheme fixnum as an unsigned machine value
+;  (ASSIGN (REGISTER (? target)) (OBJECT->UNSIGNED-FIXNUM (REGISTER (? source))))
+;  (standard-move-to-target! source target)
+;  (LAP))
 
 (define-rule statement
   ;; convert the contents of a register to an address
@@ -94,6 +123,16 @@ MIT in each case. |#
   (QUALIFIER (= reg regnum:stack-pointer))
   (LAP
    (LDWM () (OFFSET 4 0 ,regnum:stack-pointer) ,(standard-target! target))))
+
+(define-rule statement
+  ;; pop an address off the stack: usually the dynamic link
+  (ASSIGN (REGISTER (? target))
+	  (OBJECT->ADDRESS (POST-INCREMENT (REGISTER (? reg)) 1)))
+  (QUALIFIER (= reg regnum:stack-pointer))
+  (let ((tgt  (standard-target! target)))
+    (LAP
+     (LDWM () (OFFSET 4 0 ,regnum:stack-pointer) ,tgt)
+     ,@(object->address tgt))))
 
 ;;;; Indexed modes
 
@@ -166,17 +205,17 @@ MIT in each case. |#
 
 ;;; Optimized address operations
 
-(define-rule statement
-  (ASSIGN (REGISTER (? target))
-	  (OFFSET-ADDRESS (OBJECT->ADDRESS (REGISTER (? base)))
-			  (OBJECT->DATUM (REGISTER (? index)))))
-  (indexed-object->address target base index 4))
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (OFFSET-ADDRESS (OBJECT->ADDRESS (REGISTER (? base)))
+;			  (OBJECT->UNSIGNED-FIXNUM (REGISTER (? index)))))
+;  (indexed-object->address target base index 4))
 
-(define-rule statement
-  (ASSIGN (REGISTER (? target))
-	  (BYTE-OFFSET-ADDRESS (OBJECT->ADDRESS (REGISTER (? base)))
-			       (OBJECT->DATUM (REGISTER (? index)))))
-  (indexed-object->address target base index 1))
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (BYTE-OFFSET-ADDRESS (OBJECT->ADDRESS (REGISTER (? base)))
+;			       (OBJECT->UNSIGNED-FIXNUM (REGISTER (? index)))))
+;  (indexed-object->address target base index 1))
 
 ;; These have to be here because the instruction combiner
 ;; operates by combining one piece at a time, and the intermediate
@@ -194,30 +233,31 @@ MIT in each case. |#
 			       (REGISTER (? index))))
   (indexed-object->address target base index 1))
 
-(define-rule statement
-  (ASSIGN (REGISTER (? target))
-	  (OFFSET-ADDRESS (REGISTER (? base))
-			  (OBJECT->DATUM (REGISTER (? index)))))
-  (indexed-object->datum target base index 4))
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (OFFSET-ADDRESS (REGISTER (? base))
+;			  (OBJECT->UNSIGNED-FIXNUM (REGISTER (? index)))))
+;  (indexed-object->datum target base index 4))
 
-(define-rule statement
-  (ASSIGN (REGISTER (? target))
-	  (BYTE-OFFSET-ADDRESS (REGISTER (? base))
-			       (OBJECT->DATUM (REGISTER (? index)))))
-  (indexed-object->datum target base index 1))
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (BYTE-OFFSET-ADDRESS (REGISTER (? base))
+;			       (OBJECT->UNSIGNED-FIXNUM (REGISTER (? index)))))
+;  (indexed-object->datum target base index 1))
 
 (define (indexed-load-address target base index scale)
   (let ((base (standard-source! base))
 	(index (standard-source! index)))
     (%indexed-load-address (standard-target! target) base index scale)))
 
-(define (indexed-object->datum target base index scale)
-  (let ((base (standard-source! base))
-	(index (standard-source! index))
-	(temp (standard-temporary!)))
-    (let ((target (standard-target! target)))
-      (LAP ,@(object->datum index temp)
-	   ,@(%indexed-load-address target base temp scale)))))
+;(define (indexed-object->datum target base index scale)
+;  (let ((base (standard-source! base))
+;	(index (standard-source! index))
+;        (temp (standard-temporary!)))
+;    (let ((target (standard-target! target)))
+;      ;;(LAP ,@(object->datum index temp)
+;      ;;     ,@(%indexed-load-address target base temp scale))
+;      (LAP ,@(%indexed-load-address target base index scale)))))
 
 (define (indexed-object->address target base index scale)
   (let ((base (standard-source! base))
@@ -250,6 +290,11 @@ MIT in each case. |#
   ;; load a Scheme constant
   (ASSIGN (REGISTER (? target)) (CONSTANT (? source)))
   (load-constant source (standard-target! target)))
+
+(define-rule statement
+  (ASSIGN (REGISTER (? target)) (? source register-expression))
+  (standard-move-to-target! source target)
+  (LAP))
 
 (define-rule statement
   ;; load the type part of a Scheme constant
@@ -353,22 +398,22 @@ MIT in each case. |#
 
 ;; Cheaper, common patterns.
 
-(define-rule statement
-  (ASSIGN (OFFSET (REGISTER (? base)) (MACHINE-CONSTANT (? offset)))
-	  (MACHINE-CONSTANT 0))
-  (store-word 0
-	      (* 4 offset)
-	      (standard-source! base)))
-
-(define-rule statement
-  (ASSIGN (POST-INCREMENT (REGISTER (? reg)) 1) (MACHINE-CONSTANT 0))
-  (QUALIFIER (= reg regnum:free-pointer))
-  (LAP (STWS (MA C) 0 (OFFSET 4 0 ,regnum:free-pointer))))
-
-(define-rule statement
-  (ASSIGN (PRE-INCREMENT (REGISTER (? reg)) -1) (MACHINE-CONSTANT 0))
-  (QUALIFIER (= reg regnum:stack-pointer))
-  (LAP (STWM () 0 (OFFSET -4 0 ,regnum:stack-pointer))))
+;(define-rule statement
+;  (ASSIGN (OFFSET (REGISTER (? base)) (MACHINE-CONSTANT (? offset)))
+;	  (MACHINE-CONSTANT 0))
+;  (store-word 0
+;	      (* 4 offset)
+;	      (standard-source! base)))
+;
+;(define-rule statement
+;  (ASSIGN (POST-INCREMENT (REGISTER (? reg)) 1) (MACHINE-CONSTANT 0))
+;  (QUALIFIER (= reg regnum:free-pointer))
+;  (LAP (STWS (MA C) 0 (OFFSET 4 0 ,regnum:free-pointer))))
+;
+;(define-rule statement
+;  (ASSIGN (PRE-INCREMENT (REGISTER (? reg)) -1) (MACHINE-CONSTANT 0))
+;  (QUALIFIER (= reg regnum:stack-pointer))
+;  (LAP (STWM () 0 (OFFSET -4 0 ,regnum:stack-pointer))))
 
 ;;;; CHAR->ASCII/BYTE-OFFSET
 
@@ -413,11 +458,13 @@ MIT in each case. |#
     (lambda (source target)
       (LAP (EXTRU () ,source 31 8 ,target)))))
 
-(define-rule statement
-  ;; store null byte in memory
-  (ASSIGN (BYTE-OFFSET (REGISTER (? base)) (MACHINE-CONSTANT (? offset)))
-	  (CHAR->ASCII (CONSTANT #\NUL)))
-  (store-byte 0 offset (standard-source! base)))
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (CHAR->ASCII (CONS-POINTER (? anything) (REGISTER (? source)))))
+;  anything ; ignore
+;  (standard-unary-conversion source target
+;    (lambda (source target)
+;      (LAP (EXTRU () ,source 31 8 ,target)))))
 
 (define-rule statement
   ;; store ASCII byte in memory
@@ -431,3 +478,18 @@ MIT in each case. |#
   (ASSIGN (BYTE-OFFSET (REGISTER (? base)) (MACHINE-CONSTANT (? offset)))
 	  (CHAR->ASCII (REGISTER (? source))))
   (store-byte (standard-source! source) offset (standard-source! base)))
+
+(define-rule statement
+  ;; store null byte in memory
+  (ASSIGN (BYTE-OFFSET (REGISTER (? base)) (MACHINE-CONSTANT (? offset)))
+	  (CHAR->ASCII (CONSTANT #\NUL)))
+  (store-byte 0 offset (standard-source! base)))
+
+;(define-rule statement
+;  ;; store a character without bothering to put a typecode on it
+;  (ASSIGN (BYTE-OFFSET (REGISTER (? base)) (MACHINE-CONSTANT (? offset)))
+;	  (CHAR->ASCII (CONS-POINTER (? anything)
+;				     (REGISTER (? source)))))
+;  anything ; ignore
+;  (store-byte (standard-source! source) offset (standard-source! base)))
+
