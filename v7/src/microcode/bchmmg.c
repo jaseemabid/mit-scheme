@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.95.2.3.2.1 2000/11/29 21:41:08 cph Exp $
+$Id: bchmmg.c,v 9.95.2.3.2.2 2000/12/01 20:59:25 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -2866,7 +2866,7 @@ static SCHEME_OBJECT
  */   
 
 static void
-DEFUN_VOID (pre_read_weak_pair_buffers)
+DEFUN (pre_read_weak_pair_buffers, (low_heap), SCHEME_OBJECT * low_heap)
 {
   SCHEME_OBJECT next, * pair_addr, * obj_addr;
   long position, last_position;
@@ -2877,7 +2877,7 @@ DEFUN_VOID (pre_read_weak_pair_buffers)
   {
     pair_addr = (OBJECT_ADDRESS (next));
     obj_addr = (OBJECT_ADDRESS (*pair_addr++));
-    if (! (obj_addr < Constant_Top))
+    if (! (obj_addr < low_heap))
     {
       position = (obj_addr - aligned_heap);
       position = (position >> gc_buffer_shift);
@@ -2987,7 +2987,9 @@ DEFUN (read_newspace_address, (addr), SCHEME_OBJECT * addr)
 }
 
 static void
-DEFUN (initialize_new_space_buffer, (chain), SCHEME_OBJECT chain)
+DEFUN (initialize_new_space_buffer, (chain, low_heap),
+       SCHEME_OBJECT chain AND
+       SCHEME_OBJECT * low_heap)
 {
   if (read_overlap == 0)
   {
@@ -3001,9 +3003,8 @@ DEFUN (initialize_new_space_buffer, (chain), SCHEME_OBJECT chain)
     weak_pair_buffer = ((struct buffer_info *) NULL);
     weak_pair_buffer_position = -1;
     weak_buffer_pre_read_count = 0;
-    pre_read_weak_pair_buffers ();
+    pre_read_weak_pair_buffers (low_heap);
   }
-  return;
 }
 
 static void
@@ -3019,11 +3020,13 @@ DEFUN_VOID (flush_new_space_buffer)
 }
 
 static SCHEME_OBJECT *
-DEFUN (guarantee_in_memory, (addr), SCHEME_OBJECT * addr)
+DEFUN (guarantee_in_memory, (addr, low_heap),
+       SCHEME_OBJECT * addr AND
+       SCHEME_OBJECT * low_heap)
 {
   long position, offset;
 
-  if (addr < Constant_Top)
+  if (addr < low_heap)
     return (addr);
 
   position = (addr - aligned_heap);
@@ -3041,7 +3044,7 @@ DEFUN (guarantee_in_memory, (addr), SCHEME_OBJECT * addr)
     if (weak_pair_break != EMPTY_WEAK_CHAIN)
     {
       weak_buffer_pre_read_count -= 1;
-      pre_read_weak_pair_buffers ();
+      pre_read_weak_pair_buffers (low_heap);
     }
   }
   return ((GC_BUFFER_BOTTOM (weak_pair_buffer)) + offset);
@@ -3054,7 +3057,9 @@ DEFUN (guarantee_in_memory, (addr), SCHEME_OBJECT * addr)
 */
 
 static SCHEME_OBJECT
-DEFUN (update_weak_pointer, (Temp), SCHEME_OBJECT Temp)
+DEFUN (update_weak_pointer, (Temp, low_heap),
+       SCHEME_OBJECT Temp AND
+       SCHEME_OBJECT * low_heap)
 {
   SCHEME_OBJECT * Old;
 
@@ -3083,7 +3088,7 @@ DEFUN (update_weak_pointer, (Temp), SCHEME_OBJECT Temp)
     case GC_Quadruple:
     case GC_Vector:
       Old = (OBJECT_ADDRESS (Temp));
-      if (Old < Constant_Top)
+      if (Old < low_heap)
 	return (Temp);
 
       if ((OBJECT_TYPE (*Old)) == TC_BROKEN_HEART)
@@ -3093,7 +3098,7 @@ DEFUN (update_weak_pointer, (Temp), SCHEME_OBJECT Temp)
 
     case GC_Compiled:
       Old = (OBJECT_ADDRESS (Temp));
-      if (Old < Constant_Top)
+      if (Old < low_heap)
 	return (Temp);
       Compiled_BH (false, { return Temp; });
       return (SHARP_F);
@@ -3122,24 +3127,26 @@ DEFUN (initialize_weak_pair_transport, (limit), SCHEME_OBJECT * limit)
 }
 
 void
-DEFUN_VOID (fix_weak_chain_1)
+DEFUN (fix_weak_chain_1, (low_heap), SCHEME_OBJECT * low_heap)
 {
   fast SCHEME_OBJECT chain, * old_weak_cell, * scan, * ptr, * limit;
 
   chain = Weak_Chain;
-  initialize_new_space_buffer (chain);
+  initialize_new_space_buffer (chain, low_heap);
 
   limit = Stack_Pointer;
   for (ptr = weak_pair_stack_ptr; ptr < limit ; ptr += 2)
-    *ptr = (update_weak_pointer (*ptr));
+    *ptr = (update_weak_pointer (*ptr, low_heap));
 
   while (chain != EMPTY_WEAK_CHAIN)
   {
     old_weak_cell = (OBJECT_ADDRESS (Weak_Chain));
-    scan = (guarantee_in_memory (OBJECT_ADDRESS (*old_weak_cell++)));
+    scan
+      = (guarantee_in_memory ((OBJECT_ADDRESS (*old_weak_cell++)), low_heap));
     Weak_Chain = (* old_weak_cell);
-    *scan = (update_weak_pointer
-	     (MAKE_OBJECT_FROM_OBJECTS (Weak_Chain, (* scan))));
+    *scan
+      = (update_weak_pointer
+	 ((MAKE_OBJECT_FROM_OBJECTS (Weak_Chain, (* scan))), low_heap));
     Weak_Chain = (OBJECT_NEW_TYPE (TC_NULL, Weak_Chain));
   }
   flush_new_space_buffer ();
@@ -3317,7 +3324,7 @@ DEFUN (GC, (weak_pair_transport_initialized_p),
     /*NOTREACHED*/
   }
   end_transport (NULL);
-  fix_weak_chain_1 ();
+  fix_weak_chain_1 (Constant_Top);
 
   /* Load new space into memory. */
 

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchpur.c,v 9.67.2.2.2.1 2000/11/29 21:41:12 cph Exp $
+$Id: bchpur.c,v 9.67.2.2.2.2 2000/12/01 20:59:28 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -229,7 +229,7 @@ DEFUN (purify, (object, pure_p),
     /*NOTREACHED*/
   }
   end_transport (NULL);
-  fix_weak_chain_1 ();
+  fix_weak_chain_1 (old_free_const);
 
   /* Load new space into memory carefully to prevent the shared
      buffer from losing any values.

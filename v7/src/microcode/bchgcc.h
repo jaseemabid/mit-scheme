@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcc.h,v 9.60.2.3.2.1 2000/11/29 21:40:52 cph Exp $
+$Id: bchgcc.h,v 9.60.2.3.2.2 2000/12/01 20:59:21 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -173,7 +173,7 @@ extern void
   EXFUN (gc_death, (long, char *, SCHEME_OBJECT *, SCHEME_OBJECT *)),
   EXFUN (restore_gc_file, (void)),
   EXFUN (initialize_weak_pair_transport, (SCHEME_OBJECT *)),
-  EXFUN (fix_weak_chain_1, (void)),
+  EXFUN (fix_weak_chain_1, (SCHEME_OBJECT *)),
   EXFUN (fix_weak_chain_2, (void)),
   EXFUN (GC_end_root_relocation, (SCHEME_OBJECT *, SCHEME_OBJECT *));
 
