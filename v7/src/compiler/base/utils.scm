@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.90 1987/07/08 21:54:59 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.90.1.1 1987/08/18 20:43:56 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -325,7 +325,7 @@ MIT in each case. |#
 				with-history-disabled
 				force
 				primitive-purify
-				complete-garbage-collect
+				#| complete-garbage-collect |#
 				dump-band
 				primitive-impurify
 				with-threaded-continuation
