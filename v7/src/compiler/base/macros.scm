@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 1.58.1.1 1987/06/10 19:36:10 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 1.58.1.2 1987/06/10 21:28:16 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -243,13 +243,13 @@ MIT in each case. |#
 (syntax-table-define lap-generator-syntax-table 'DEFINE-RULE
   (macro (type pattern . body)
     (parse-rule pattern body
-      (lambda (pattern names transformer qualifier actions)
+      (lambda (pattern variables qualifier actions)
 	`(,(case type
 	     ((STATEMENT) 'ADD-STATEMENT-RULE!)
 	     ((PREDICATE) 'ADD-STATEMENT-RULE!)
 	     (else (error "Unknown rule type" type)))
 	  ',pattern
-	  ,(rule-result-expression names transformer qualifier
+	  ,(rule-result-expression variables qualifier
 				   `(BEGIN ,@actions)))))))
 
 ;;;; Lap instruction sequences.  A NOP for now.
