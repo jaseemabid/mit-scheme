@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ntscreen.c,v 1.45 2000/05/01 02:57:14 cph Exp $
+$Id: ntscreen.c,v 1.45.4.1 2000/12/02 23:05:50 cph Exp $
 
 Copyright (c) 1993-2000 Massachusetts Institute of Technology
 
@@ -2204,8 +2204,6 @@ ProcessMouseButton (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
 {
   SCREEN screen = GETSCREEN (hWnd);
   SCREEN_EVENT * event;
-  unsigned int row;
-  unsigned int column;
   unsigned int control = 0;
   unsigned int button = 0;
 

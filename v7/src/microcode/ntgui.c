@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ntgui.c,v 1.27.2.1 2000/11/27 05:57:56 cph Exp $
+$Id: ntgui.c,v 1.27.2.1.2.1 2000/12/02 23:05:38 cph Exp $
 
 Copyright (c) 1993-2000 Massachusetts Institute of Technology
 
@@ -36,9 +36,6 @@ BOOL InitApplication(HANDLE);
 BOOL InitInstance(HANDLE, int);
 
 static SCHEME_OBJECT parse_event (SCREEN_EVENT *);
-
-void *xmalloc(int);
-void xfree(void*);
 
 int WINAPI
 WinMain (HANDLE hInst, HANDLE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
@@ -620,8 +617,7 @@ call_ff_really (void)
   long function_address;
   SCHEME_OBJECT * argument_scan;
   SCHEME_OBJECT * argument_limit;
-  long result;
-
+  long result = UNSPECIFIC;
   long nargs = (LEXPR_N_ARGUMENTS ());
   if (nargs < 1)
     signal_error_from_primitive (ERR_WRONG_NUMBER_OF_ARGUMENTS);
@@ -739,24 +735,6 @@ DEFINE_PRIMITIVE ("UINT32-OFFSET-SET!", Prim_uint32_offset_set, 3, 3,
       * (unsigned long*) (((char*)base)+offset)  =  value;
     }
     PRIMITIVE_RETURN (UNSPECIFIC);
-}
-
-static void *
-xmalloc (int size)
-{
-    void *result = malloc(size);
-    if (!result) {
-      outf_fatal ("ntgui: xmalloc failed");
-      outf_flush_fatal ();
-      abort ();
-    }
-    return  result;
-}
-
-static void
-xfree (void *p)
-{
-  free (p);
 }
 
 /* GUI utilities for debuggging .*/

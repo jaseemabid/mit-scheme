@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ntsig.c,v 1.21.2.1 2000/11/27 05:57:56 cph Exp $
+$Id: ntsig.c,v 1.21.2.1.2.1 2000/12/02 23:05:53 cph Exp $
 
 Copyright (c) 1992-2000 Massachusetts Institute of Technology
 
@@ -69,21 +69,6 @@ DEFUN_VOID (unblock_signals)
 #define INTERACTIVE_INTERRUPT_CHAR	'!'
 #define TERMINATE_INTERRUPT_CHAR	'@'
 #define NO_INTERRUPT_CHAR		'0'
-
-static void
-DEFUN (echo_keyboard_interrupt, (c, dc), cc_t c AND cc_t dc)
-{
-  c &= 0177;
-  if (c == ALERT_CHAR)
-    outf_console ("%c", c);
-  else if (c < '\040')
-    outf_console ("^%c", (c+'@'));
-  else if (c == '\177')
-    outf_console ("^?");
-  else
-    outf_console ("%c", c);
-  outf_flush_console ();
-}
 
 /* Keyboard interrupt */
 

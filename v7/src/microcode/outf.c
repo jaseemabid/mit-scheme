@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: outf.c,v 1.11.2.1.2.1 2000/12/02 05:52:53 cph Exp $
+$Id: outf.c,v 1.11.2.1.2.2 2000/12/02 23:06:01 cph Exp $
 
 Copyright (c) 1993-2000 Massachusetts Institute of Technology
 
@@ -106,8 +106,8 @@ DEFUN (outf_channel_to_FILE, (chan), outf_channel chan)
 #ifdef __WIN32__
 
 #define USE_WINDOWED_OUTPUT
-static int max_fatal_buf = 1000;
-static char fatal_buf[1000+1] = {0};
+#define MAX_FATAL_BUF 1000
+static char fatal_buf[MAX_FATAL_BUF + 1] = {0};
 
 #ifdef CL386
 #  define VSNPRINTF(buffer,length,format,args)				\
@@ -123,7 +123,7 @@ void
 DEFUN (voutf_fatal, (format, args), CONST char *format AND va_list args)
 {
     int end = strlen(fatal_buf);
-    VSNPRINTF (&fatal_buf[end], max_fatal_buf - end, format, args);
+    VSNPRINTF (&fatal_buf[end], MAX_FATAL_BUF - end, format, args);
 }
 
 void

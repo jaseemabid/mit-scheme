@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: nttrap.c,v 1.17.2.1.2.1 2000/12/02 20:08:03 cph Exp $
+$Id: nttrap.c,v 1.17.2.1.2.2 2000/12/02 23:05:58 cph Exp $
 
 Copyright (c) 1992-2000 Massachusetts Institute of Technology
 
@@ -774,8 +774,6 @@ pc_in_hyperspace:
     }
     else
     {
-      long primitive_address =
-	((long) (Primitive_Procedure_Table[OBJECT_DATUM (primitive)]));
       (trinfo . state) = STATE_PRIMITIVE;
       (trinfo . pc_info_1) = primitive;
       (trinfo . pc_info_2) =
