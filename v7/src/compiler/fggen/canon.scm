@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: canon.scm,v 1.16 1999/01/02 06:06:43 cph Exp $
+$Id: canon.scm,v 1.16.2.1 2001/12/11 05:48:23 cph Exp $
 
-Copyright (c) 1988-1999 Massachusetts Institute of Technology
+Copyright (c) 1988-1999, 2001 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+02111-1307, USA.
 |#
 
 ;;;; Scode canonicalization.
@@ -120,7 +121,7 @@ ARBITRARY:	The expression may be executed more than once.  It
 
 (define (canonicalize/trivial obj bound context)
   bound context ;; ignored
-  (make-canout obj true false true))
+  (make-canout obj #t #f #t))
 
 (define (canonicalize/combine-unary combiner a)
   (make-canout (combiner (canout-expr a))
@@ -182,7 +183,7 @@ ARBITRARY:	The expression may be executed more than once.  It
     (scode/make-directive
      (scode/make-combination
       (scode/make-lambda lambda-tag:let
-			 (list environment-variable) '() false '()
+			 (list environment-variable) '() #f '()
 			 '()
 			 body)
       (list exp))
@@ -232,7 +233,7 @@ ARBITRARY:	The expression may be executed more than once.  It
 
 (define (combine-list elements)
   (if (null? elements)
-      (make-canout '() true false true)
+      (make-canout '() #t #f #t)
       (canonicalize/combine-binary cons
        (car elements)
        (combine-list (cdr elements)))))
@@ -254,17 +255,17 @@ ARBITRARY:	The expression may be executed more than once.  It
 (define (canonicalize/variable var bound context)
   (let ((name (scode/variable-name var)))
     (cond ((eq? name environment-variable)
-	   (make-canout var true true false))
+	   (make-canout var #t #t #f))
 	  ((not (eq? context 'FIRST-CLASS))
-	   (make-canout var true false (if (memq name bound) true false)))
+	   (make-canout var #t #f (if (memq name bound) #t #f)))
 	  ((memq name bound)
-	   (make-canout var true false true))
+	   (make-canout var #t #f #t))
 	  (else
 	   (make-canout
 	    (scode/make-combination (ucode-primitive LEXICAL-REFERENCE)
 	     (list (scode/make-variable environment-variable)
 		   name))
-	    true true false)))))
+	    #t #t #f)))))
 
 (define (canonicalize/assignment expr bound context)
   (scode/assignment-components
@@ -273,11 +274,11 @@ ARBITRARY:	The expression may be executed more than once.  It
      (let ((value (canonicalize/expression old-value bound context)))
        (cond ((eq? context 'ARBITRARY)
 	      (canonicalize/combine-binary scode/make-assignment
-	       (make-canout name true false (if (memq name bound) true false))
+	       (make-canout name #t #f (if (memq name bound) #t #f))
 	       value))
 	     ((memq name bound)
 	      (canonicalize/combine-binary scode/make-assignment
-	       (make-canout name true false true)
+	       (make-canout name #t #f #t)
 	       value))
 	     (else
 	      (make-canout
@@ -286,7 +287,7 @@ ARBITRARY:	The expression may be executed more than once.  It
 		      name
 		      (canout-expr value)))
 	       (canout-safe? value)
-	       true false)))))))
+	       #t #f)))))))
 
 ;;;; Hairy expressions
 
@@ -302,7 +303,7 @@ ARBITRARY:	The expression may be executed more than once.  It
 (define (canonicalize/the-environment expr bound context)
   expr bound context ;; ignored
   (make-canout (scode/make-variable environment-variable)
-	       false true false))
+	       #f #t #f))
 
 (define (canonicalize/lambda expr bound context)
   (let ((canout
@@ -323,7 +324,7 @@ ARBITRARY:	The expression may be executed more than once.  It
 			       (canout-expr canout)))
 	  '(COMPILE-PROCEDURE)
 	  expr)
-	 true
+	 #t
 	 (canout-needs? canout)
 	 (canout-splice? canout)))))
 
@@ -368,8 +369,8 @@ ARBITRARY:	The expression may be executed more than once.  It
 (define (single-definition name value)
   (make-canout (%single-definition name value)
 	       (canout-safe? value)
-	       true
-	       false))
+	       #t
+	       #f))
 
 ;; To reduce code space, split into two blocks, one with constants,
 ;; the other with expressions to be evaluated.
@@ -417,8 +418,8 @@ ARBITRARY:	The expression may be executed more than once.  It
 			 (join (collect knames kvals directive-wrapper)
 			       (collect vnames vvals identity-procedure))))))
 	    (for-all? values canout-safe?)
-	    true
-	    false))
+	    #t
+	    #f))
 	  ((pseudo-constant? (car values))
 	   (loop (cdr names) (cdr values) 'CONSTANT
 		 (cons (car names) knames)
@@ -534,16 +535,16 @@ ARBITRARY:	The expression may be executed more than once.  It
 
 (define (canonicalize/unassigned? name expr bound context)
   (cond ((not (eq? context 'FIRST-CLASS))
-	 (make-canout expr true false (if (memq name bound) true false)))
+	 (make-canout expr #t #f (if (memq name bound) #t #f)))
 	((memq name bound)
-	 (make-canout expr true false true))
+	 (make-canout expr #t #f #t))
 	(else
 	 (make-canout
 	  (scode/make-combination
 	   (ucode-primitive LEXICAL-UNASSIGNED?)
 	   (list (scode/make-variable environment-variable)
 		 name))
-	  true true false))))
+	  #t #t #f))))
 
 (define (canonicalize/let operator operands bound context)
   (canonicalize/combine-binary scode/make-combination
@@ -559,7 +560,7 @@ ARBITRARY:	The expression may be executed more than once.  It
 		  operands)))))
      (if (and compiler:compile-by-procedures?
 	      (eq? context 'TOP-LEVEL))
-	 (fluid-let ((compiler:compile-by-procedures? false))
+	 (fluid-let ((compiler:compile-by-procedures? #f))
 	   (process-arguments))
 	 (process-arguments)))))
 
@@ -588,8 +589,8 @@ ARBITRARY:	The expression may be executed more than once.  It
 			 (scode/make-variable environment-variable)))
 		  (cadr text)
 		  (caddr text))
-		 false true false)
-		(make-canout expr true true false))))))))
+		 #f #t #f)
+		(make-canout expr #t #t #f))))))))
 
 ;;;; Utility for hairy expressions
 
@@ -701,7 +702,7 @@ ARBITRARY:	The expression may be executed more than once.  It
 		  (scode/make-variable environment-variable)))
 	  '(ENCLOSE)
 	  expr)
-	 false true false))
+	 #f #t #f))
       (let ((nbody
 	     (canonicalize/expression
 	      body
@@ -714,7 +715,7 @@ ARBITRARY:	The expression may be executed more than once.  It
 	     (scode/make-lambda name required optional rest auxiliary
 				decls
 				(canout-expr nbody))
-	     true
+	     #t
 	     (canout-needs? nbody)
 	     (canout-splice? nbody))
 	    (let* ((nbody
@@ -746,93 +747,56 @@ ARBITRARY:	The expression may be executed more than once.  It
 			    (if rest (list rest) '())
 			    auxiliary bound)
 		    context)))
-
-	(cond ((canout-safe? nbody)
-	       (make-canout
-		(scode/make-lambda name required optional rest auxiliary
-				   decls
-				   (canout-expr nbody))
-		true
-		(canout-needs? nbody)
-		(canout-splice? nbody)))
-	      ((not compiler:avoid-scode?)
-	       ;; Old way of handling 1st-class environments
-	       (make-canout
-		(scode/make-directive
-		 (scode/make-combination
-		  (ucode-primitive SCODE-EVAL)
-		  (list
-		   (scode/make-quotation
-		    (scode/make-lambda
-		     name required optional rest '()
-		     decls
-		     (let* ((env-code (scode/make-the-environment))
-			    (nbody
-			     (canonicalize/expression
-			      (unscan-defines auxiliary decls (canout-expr nbody))
-			      '()
-			      (if (canonicalize/optimization-low? context)
-				  'FIRST-CLASS
-				  'TOP-LEVEL)))
+	(if (canout-safe? nbody)
+	    (make-canout
+	     (scode/make-lambda name required optional rest auxiliary
+				decls
+				(canout-expr nbody))
+	     #t
+	     (canout-needs? nbody)
+	     (canout-splice? nbody))
+	    (make-canout
+	     (scode/make-directive
+	      (scode/make-lambda
+	       name required optional rest '()
+	       decls
+	       (let* ((names
+		       (append required optional (if rest (list rest) '())))
+		      (env-code
+		       (scode/make-combination
+			(scode/make-absolute-reference '*MAKE-ENVIRONMENT)
+			(cons* (scode/make-variable environment-variable)
+			       (list->vector (cons lambda-tag:unnamed names))
+			       (map scode/make-variable names)))))
+		 (if (and (scode/the-environment? body)
+			  (null? auxiliary))
+		     env-code
+		     (let* ((uexpr
+			     (unscan-defines auxiliary decls
+					     (canout-expr nbody)))
 			    (nexpr
-			     (canonicalize/bind-environment (canout-expr nbody)
-							    env-code
-							    body)))
-      
-		       (if (canonicalize/optimization-low? context)
-			   nexpr
-			   (scode/make-evaluation nexpr
-						  (scode/make-the-environment)
-						  (eq? context 'ARBITRARY)
-						  expr)))))
-		   (scode/make-variable environment-variable)))
-		 '(ENCLOSE)
-		 expr)
-		false true false))
-
-	      (else
-	       (make-canout
-		(scode/make-directive
-		 (scode/make-lambda
-		  name required optional rest '()
-		  decls
-		  (let* ((names
-			  (append required optional (if rest (list rest) '())))
-			 (env-code
-			  (scode/make-combination
-			   (scode/make-absolute-reference '*MAKE-ENVIRONMENT)
-			   (cons* (scode/make-variable environment-variable)
-				  (list->vector
-				   (cons lambda-tag:make-environment
-					 names))
-				  (map scode/make-variable names)))))
+			     (canout-expr
+			      (canonicalize/expression
+			       uexpr
+			       '()
+			       (if (canonicalize/optimization-low? context)
+				   'FIRST-CLASS
+				   'TOP-LEVEL)))))
 
-		    (if (and (scode/the-environment? body)
-			     (null? auxiliary))
-			env-code
-			(let* ((uexpr (unscan-defines auxiliary decls (canout-expr nbody)))
-			       (nexpr
-				(canout-expr
-				 (canonicalize/expression
-				  uexpr
-				  '()
-				  (if (canonicalize/optimization-low? context)
-				      'FIRST-CLASS
-				      'TOP-LEVEL)))))
-
-			   (if (canonicalize/optimization-low? context)
-			       (canonicalize/bind-environment nexpr env-code uexpr)
-			       (scode/make-evaluation
-				(canonicalize/bind-environment
-				 nexpr
-				 (scode/make-the-environment)
-				 uexpr)
-				env-code
-				(eq? context 'ARBITRARY)
-				expr))))))
-		 '(PROCESSED)
-		 expr)
-		false true false)))))))
+			(if (canonicalize/optimization-low? context)
+			    (canonicalize/bind-environment nexpr env-code
+							   uexpr)
+			    (scode/make-evaluation
+			     (canonicalize/bind-environment
+			      nexpr
+			      (scode/make-the-environment)
+			      uexpr)
+			     env-code
+			     (eq? context 'ARBITRARY)
+			     expr))))))
+	      '(PROCESSED)
+	      expr)
+	     #f #t #f))))))
 
 ;;;; Dispatch
 
