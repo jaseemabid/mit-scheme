@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/edwin/edwin.pkg,v 1.14.1.1 1990/09/11 19:09:17 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/edwin/edwin.pkg,v 1.14.1.2 1990/09/12 07:53:16 cph Exp $
 
 Copyright (c) 1989, 1990 Massachusetts Institute of Technology
 
@@ -577,12 +577,12 @@ MIT in each case. |#
 	  command/move-to-parent-environment
 	  command/print-environment-procedure
 	  command/print-expression
-	  command/print-reduction
 	  command/print-reductions
+	  command/print-subproblem-or-reduction
 	  command/return
 	  command/show-all-frames
 	  command/show-current-frame
-	  command/summarize-history
+	  command/summarize-subproblems
 	  dstate/environment-list
 	  make-initial-dstate
 	  show-error-info)
