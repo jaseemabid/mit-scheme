@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rulflo.scm,v 4.39 1993/12/08 17:50:21 gjr Exp $
+$Id: rulflo.scm,v 4.39.1.1 1994/03/30 21:20:06 gjr Exp $
 
-Copyright (c) 1989-1993 Massachusetts Institute of Technology
+Copyright (c) 1989-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -217,31 +217,31 @@ MIT in each case. |#
 	      ,@(object->address base*)
 	      (FLDDS () (OFFSET 0 0 ,base*) ,target)))))))
 
-(define-rule statement
-  (ASSIGN (REGISTER (? target))
-	  (FLOAT-OFFSET (OFFSET-ADDRESS (OBJECT->ADDRESS (REGISTER (? base)))
-					(MACHINE-CONSTANT (? offset)))
-			(OBJECT->DATUM (REGISTER (? index)))))
-  (let ((base (standard-source! base))
-	(index (standard-source! index))
-	(temp (standard-temporary!)))
-    (let ((target (flonum-target! target)))
-      (LAP (SH3ADDL () ,index ,base ,temp)
-	   ,@(object->address temp)
-	   ,@(%float-load/offset target temp (* 4 offset))))))
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (FLOAT-OFFSET (OFFSET-ADDRESS (OBJECT->ADDRESS (REGISTER (? base)))
+;					(MACHINE-CONSTANT (? offset)))
+;			(OBJECT->UNSIGNED-FIXNUM (REGISTER (? index)))))
+;  (let ((base (standard-source! base))
+;	(index (standard-source! index))
+;	(temp (standard-temporary!)))
+;    (let ((target (flonum-target! target)))
+;      (LAP (SH3ADDL () ,index ,base ,temp)
+;	   ,@(object->address temp)
+;	   ,@(%float-load/offset target temp (* 4 offset))))))
 
-(define-rule statement
-  (ASSIGN (FLOAT-OFFSET (OFFSET-ADDRESS (OBJECT->ADDRESS (REGISTER (? base)))
-					(MACHINE-CONSTANT (? offset)))
-			(OBJECT->DATUM (REGISTER (? index))))
-	  (REGISTER (? source)))
-  (let ((source (flonum-source! source))
-	(base (standard-source! base))
-	(index (standard-source! index))
-	(temp (standard-temporary!)))
-    (LAP (SH3ADDL () ,index ,base ,temp)
-	 ,@(object->address temp)
-	 ,@(%float-store/offset temp (* 4 offset) source))))
+;(define-rule statement
+;  (ASSIGN (FLOAT-OFFSET (OFFSET-ADDRESS (OBJECT->ADDRESS (REGISTER (? base)))
+;					(MACHINE-CONSTANT (? offset)))
+;			(OBJECT->UNSIGNED-FIXNUM (REGISTER (? index))))
+;	  (REGISTER (? source)))
+;  (let ((source (flonum-source! source))
+;	(base (standard-source! base))
+;	(index (standard-source! index))
+;	(temp (standard-temporary!)))
+;    (LAP (SH3ADDL () ,index ,base ,temp)
+;	 ,@(object->address temp)
+;	 ,@(%float-store/offset temp (* 4 offset) source))))
 
 ;;;; Intermediate rules needed to generate the above.
 
@@ -254,29 +254,40 @@ MIT in each case. |#
     (LAP (LDO () (OFFSET ,(* 4 offset) 0 ,base) ,target)
 	 ,@(object->address target))))	
 
-(define-rule statement
-  (ASSIGN (REGISTER (? target))
-	  (FLOAT-OFFSET (OFFSET-ADDRESS (REGISTER (? base))
-					(MACHINE-CONSTANT (? offset)))
-			(OBJECT->DATUM (REGISTER (? index)))))
-  (let ((base (standard-source! base))
-	(index (standard-source! index))
-	(temp (standard-temporary!)))
-    (let ((target (flonum-target! target)))
-      (LAP ,@(object->datum index temp)
-	   (SH3ADDL () ,temp ,base ,temp)
-	   ,@(%float-load/offset target temp (* 4 offset))))))
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (FLOAT-OFFSET (OFFSET-ADDRESS (REGISTER (? base))
+;					(MACHINE-CONSTANT (? offset)))
+;			(OBJECT->UNSIGNED-FIXNUM (REGISTER (? index)))))
+;  (let ((base (standard-source! base))
+;	(index (standard-source! index))
+;	(temp (standard-temporary!)))
+;    (let ((target (flonum-target! target)))
+;      (LAP ;; ,@(object->datum index temp)
+;	   ;; (SH3ADDL () ,temp ,base ,temp)
+;	   (SH3ADDL () ,index ,base ,temp)
+;	   ,@(%float-load/offset target temp (* 4 offset))))))
 
-(define-rule statement
-  (ASSIGN (REGISTER (? target))
-	  (FLOAT-OFFSET (REGISTER (? base))
-			(OBJECT->DATUM (REGISTER (? index)))))
-  (let ((base (standard-source! base))
-	(index (standard-source! index))
-	(temp (standard-temporary!)))
-    (let ((target (flonum-target! target)))
-      (LAP ,@(object->datum index temp)
-	   (FLDDX (S) (INDEX ,temp 0 ,base) ,target)))))
+
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (FLOAT-OFFSET (REGISTER (? base))
+;			(OBJECT->UNSIGNED-FIXNUM (REGISTER (? index)))))
+;  (let ((base (standard-source! base))
+;	(index (standard-source! index))
+;	(temp (standard-temporary!)))
+;    (let ((target (flonum-target! target)))
+;      (LAP ,@(object->datum index temp)
+;	   (FLDDX (S) (INDEX ,temp 0 ,base) ,target)))))
+
+;(define-rule statement
+;  (ASSIGN (REGISTER (? target))
+;	  (FLOAT-OFFSET (REGISTER (? base))
+;			(OBJECT->UNSIGNED-FIXNUM (REGISTER (? index)))))
+;  (let ((base (standard-source! base))
+;	(index (standard-source! index)))
+;    (let ((target (flonum-target! target)))
+;      (LAP (FLDDX (S) (INDEX ,index 0 ,base) ,target)))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target))
@@ -303,29 +314,39 @@ MIT in each case. |#
 	   ,@(object->address temp)
 	   ,@(%float-load/offset target temp (* 4 offset))))))
 
-(define-rule statement
-  (ASSIGN (FLOAT-OFFSET (OFFSET-ADDRESS (REGISTER (? base))
-					(MACHINE-CONSTANT (? offset)))
-			(OBJECT->DATUM (REGISTER (? index))))
-	  (REGISTER (? source)))
-  (let ((base (standard-source! base))
-	(index (standard-source! index))
-	(temp (standard-temporary!))
-	(source (flonum-source! source)))
-    (LAP ,@(object->datum index temp)
-	 (SH3ADDL () ,temp ,base ,temp)
-	 ,@(%float-store/offset temp (* 4 offset) source))))
+;(define-rule statement
+;  (ASSIGN (FLOAT-OFFSET (OFFSET-ADDRESS (REGISTER (? base))
+;					(MACHINE-CONSTANT (? offset)))
+;			(OBJECT->UNSIGNED-FIXNUM (REGISTER (? index))))
+;	  (REGISTER (? source)))
+;  (let ((base (standard-source! base))
+;	(index (standard-source! index))
+;	(temp (standard-temporary!))
+;	(source (flonum-source! source)))
+;    (LAP ;; ,@(object->datum index temp)
+;	 ;; (SH3ADDL () ,temp ,base ,temp)
+;	 (SH3ADDL () ,index ,base ,temp)
+;	 ,@(%float-store/offset temp (* 4 offset) source))))
 
-(define-rule statement
-  (ASSIGN (FLOAT-OFFSET (REGISTER (? base))
-			(OBJECT->DATUM (REGISTER (? index))))
-	  (REGISTER (? source)))
-  (let ((base (standard-source! base))
-	(index (standard-source! index))
-	(temp (standard-temporary!))
-	(source (flonum-source! source)))
-    (LAP ,@(object->datum index temp)
-	 (FSTDX (S) ,source (INDEX ,temp 0 ,base)))))
+;(define-rule statement
+;  (ASSIGN (FLOAT-OFFSET (REGISTER (? base))
+;			(OBJECT->UNSIGNED-FIXNUM (REGISTER (? index))))
+;	  (REGISTER (? source)))
+;  (let ((base (standard-source! base))
+;	(index (standard-source! index))
+;	(temp (standard-temporary!))
+;	(source (flonum-source! source)))
+;    (LAP ,@(object->datum index temp)
+;	 (FSTDX (S) ,source (INDEX ,temp 0 ,base)))))
+
+;(define-rule statement
+;  (ASSIGN (FLOAT-OFFSET (REGISTER (? base))
+;			(OBJECT->UNSIGNED-FIXNUM (REGISTER (? index))))
+;	  (REGISTER (? source)))
+;  (let ((base (standard-source! base))
+;	(index (standard-source! index))
+;	(source (flonum-source! source)))
+;    (LAP (FSTDX (S) ,source (INDEX ,index 0 ,base)))))
 
 (define-rule statement
   (ASSIGN (FLOAT-OFFSET (OFFSET-ADDRESS (REGISTER (? base))
@@ -422,7 +443,7 @@ MIT in each case. |#
    fp4 fp5 fp6 fp7 fp8 fp9 fp10 fp11))
 
 (define registers-to-preserve-around-special-calls
-  (append (list g15 g16 g17 g18)
+  (append (list g14 g15 g16 g17)
 	  caller-saves-registers))
 
 (define (flonum/1-arg/special hook target source)
@@ -509,7 +530,7 @@ MIT in each case. |#
     (delete-register! target)
     (delete-dead-registers!)
     (let ((clear-regs
-	   (apply clear-registers!
+	   (apply clean-registers!
 		  registers-to-preserve-around-special-calls)))
       (add-pseudo-register-alias! target fp4)
       (LAP ,@load-arg-1
