@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-output.scm,v 1.1.2.3 2002/01/17 20:56:15 cph Exp $
+;;; $Id: syntax-output.scm,v 1.1.2.4 2002/01/17 21:13:32 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -86,10 +86,11 @@
   (output/combination (output/named-lambda lambda-tag:let names body) values))
 
 (define (output/letrec names values body)
-  (output/body '()
-	       (make-sequence
-		(append! (map make-definition names values)
-			 (list body)))))
+  (output/let '() '()
+	      (output/body '()
+			   (make-sequence
+			    (append! (map make-definition names values)
+				     (list body))))))
 
 (define (output/body declarations body)
   (scan-defines (let ((declarations (apply append declarations)))
