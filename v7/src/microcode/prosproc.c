@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prosproc.c,v 1.18.2.1.2.1 2000/12/02 05:53:09 cph Exp $
+$Id: prosproc.c,v 1.18.2.1.2.2 2000/12/02 20:08:25 cph Exp $
 
 Copyright (c) 1990-2000 Massachusetts Institute of Technology
 
@@ -38,11 +38,6 @@ DEFUN (arg_process, (argument_number), int argument_number)
   return (process);
 }
 
-#if !defined(environ) && defined(__OS2__) && defined(__IBMC__)
-#  define environ _environ
-#endif
-extern char ** environ;
-
 DEFINE_PRIMITIVE ("SCHEME-ENVIRONMENT", Prim_scheme_environment, 0, 0, 0)
 {
   PRIMITIVE_HEADER (0);

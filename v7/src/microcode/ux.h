@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ux.h,v 1.73.2.1.2.1 2000/12/02 05:53:34 cph Exp $
+$Id: ux.h,v 1.73.2.1.2.2 2000/12/02 20:08:34 cph Exp $
 
 Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
@@ -93,8 +93,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/types.h>
-
-extern char ** environ;
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>

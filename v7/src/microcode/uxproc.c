@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxproc.c,v 1.25.2.1 2000/11/27 05:57:58 cph Exp $
+$Id: uxproc.c,v 1.25.2.1.2.1 2000/12/02 20:08:41 cph Exp $
 
 Copyright (c) 1990-2000 Massachusetts Institute of Technology
 
@@ -29,7 +29,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "error: can't hack subprocess I/O without dup2() or equivalent"
 #endif
 
-extern char ** environ;
 extern void EXFUN ((*subprocess_death_hook), (pid_t pid, int * status));
 extern void EXFUN ((*stop_signal_hook), (int signo));
 extern void EXFUN (stop_signal_default, (int signo));
