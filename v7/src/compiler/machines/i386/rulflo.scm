@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulflo.scm,v 1.16.1.3 1992/02/20 07:12:42 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulflo.scm,v 1.16.1.4 1992/08/20 15:30:28 jinx Exp $
 $MC68020-Header: /scheme/src/compiler/machines/bobcat/RCS/rules1.scm,v 4.36 1991/10/25 06:49:58 cph Exp $
 
 Copyright (c) 1992 Massachusetts Institute of Technology
@@ -240,7 +240,7 @@ MIT in each case. |#
      (LAP (FLD (ST ,source))
 	  (FMUL (ST 0) (ST 0))
 	  (FLD1)
-	  (FSUBP (ST 1) (ST 0))
+	  (F%SUBP (ST 1) (ST 0))
 	  (FSQRT)
 	  (FLD (ST ,(1+ source)))
 	  (FPATAN)
@@ -252,7 +252,7 @@ MIT in each case. |#
      (LAP (FLD (ST ,source))
 	  (FMUL (ST 0) (ST 0))
 	  (FLD1)
-	  (FSUBP (ST 1) (ST 0))
+	  (F%SUBP (ST 1) (ST 0))
 	  (FSQRT)
 	  (FLD (ST ,(1+ source)))
 	  (FXCH (ST 0) (ST 1))
@@ -374,9 +374,9 @@ MIT in each case. |#
 			  (FSTP (ST ,',(1+ target))))))))))))
 
   (define-flonum-operation flonum-add fadd faddp fadd faddp)
-  (define-flonum-operation flonum-subtract fsub fsubp fsubr fsubpr)
+  (define-flonum-operation flonum-subtract f%sub f%subp f%subr f%subpr)
   (define-flonum-operation flonum-multiply fmul fmulp fmul fmulp)
-  (define-flonum-operation flonum-divide fdiv fdivp fdivr fdivpr))
+  (define-flonum-operation flonum-divide f%div f%divp f%divr f%divpr))
 
 (define-arithmetic-method 'flonum-atan2 flonum-methods/2-args
   (lambda (target source1 source2)
@@ -534,14 +534,22 @@ MIT in each case. |#
   (case predicate
     ((FLONUM-EQUAL? FLONUM-ZERO?)
      (set-current-branches! (lambda (label)
-			      (LAP (JE (@PCR ,label))))
+			      (let ((unordered (generate-label 'UNORDERED)))
+				(LAP (JP (@PCR ,unordered))
+				     (JE (@PCR ,label))
+				     (LABEL ,unordered))))
 			    (lambda (label)
-			      (LAP (JNE (@PCR ,label))))))
+			      (LAP (JNE (@PCR ,label))
+				   (JP (@PCR ,label))))))
     ((FLONUM-LESS? FLONUM-NEGATIVE?)
      (set-current-branches! (lambda (label)
-			      (LAP (JB (@PCR ,label))))
+			      (let ((unordered (generate-label 'UNORDERED)))
+				(LAP (JP (@PCR ,unordered))
+				     (JB (@PCR ,label))
+				     (LABEL ,unordered))))
 			    (lambda (label)
-			      (LAP (JAE (@PCR ,label))))))
+			      (LAP (JAE (@PCR ,label))
+				   (JP (@PCR ,label))))))
     ((FLONUM-GREATER? FLONUM-POSITIVE?)
      (set-current-branches! (lambda (label)
 			      (LAP (JA (@PCR ,label))))
