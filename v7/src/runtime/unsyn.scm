@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: unsyn.scm,v 14.21 2001/03/21 19:15:29 cph Exp $
+$Id: unsyn.scm,v 14.21.2.1 2001/12/10 18:41:50 cph Exp $
 
 Copyright (c) 1988-2001 Massachusetts Institute of Technology
 
@@ -418,18 +418,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 						   operands
 						   body
 						   ordinary-combination))
-			      ((and (eq? name lambda-tag:make-environment)
-				    (the-environment?
-				     (car
-				      (last-pair (sequence-actions body)))))
-			       (with-bindings
-				required '() #F
-				(lambda (body)
-				  `(MAKE-ENVIRONMENT
-				     ,@(unsyntax-objects
-					(except-last-pair
-					 (sequence-actions body)))))
-				body))
 			      (else (ordinary-combination)))
 			(ordinary-combination)))))
 	       (else
