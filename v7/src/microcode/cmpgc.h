@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/cmpgc.h,v 1.13 1990/06/28 18:16:32 jinx Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/cmpgc.h,v 1.16 1991/05/05 00:40:42 jinx Exp $
 
-Copyright (c) 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1989-1991 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -43,6 +43,8 @@ See cmpint.txt, cmpint.c, cmpint-md.h, and cmpaux-md.m4 for more details.
 
 #ifndef CMPGC_H_INCLUDED
 #define CMPGC_H_INCLUDED
+
+#define NOP() do {} while (0) /* A useful macro */
 
 #ifdef HAS_COMPILER_SUPPORT
 
@@ -230,6 +232,7 @@ MAKE_POINTER_OBJECT((OBJECT_TYPE(object)),				\
 #define OPERATOR_LINKAGE_KIND			0x000000
 #define REFERENCE_LINKAGE_KIND			0x010000
 #define ASSIGNMENT_LINKAGE_KIND			0x020000
+#define GLOBAL_OPERATOR_LINKAGE_KIND		0x030000
 
 #define READ_LINKAGE_KIND(header)					\
   ((header) & 0xff0000)
@@ -243,8 +246,9 @@ MAKE_POINTER_OBJECT((OBJECT_TYPE(object)),				\
 #define MAKE_LINKAGE_SECTION_HEADER(kind, count)			\
   (MAKE_OBJECT(TC_LINKAGE_SECTION,					\
 	       ((kind) |						\
-		(((kind) == OPERATOR_LINKAGE_KIND) ?			\
-		 (EXECUTE_CACHE_ENTRIES_TO_COUNT(count)) :		\
+		((((kind) == OPERATOR_LINKAGE_KIND)			\
+		  || ((kind) == GLOBAL_OPERATOR_LINKAGE_KIND)) ?	\
+		 (EXECUTE_CACHE_ENTRIES_TO_COUNT (count)) :		\
 		 (count)))))
 
 /* This takes into account the 1 added by the main loop of the
@@ -366,11 +370,16 @@ typedef unsigned short format_word;
 #endif /* HAS_COMPILER_SUPPORT */
 
 #ifndef FLUSH_I_CACHE
-
-#define FLUSH_I_CACHE()							\
-do {									\
-} while (0)
-
+#define FLUSH_I_CACHE() do {} while (0)
 #endif /* FLUSH_I_CACHE */
+
+#ifndef COMPILER_TRANSPORT_END
+#define COMPILER_TRANSPORT_END() do					\
+{									\
+  Registers[REGBLOCK_CLOSURE_SPACE] = ((SCHEME_OBJECT) 0);		\
+  Registers[REGBLOCK_CLOSURE_FREE] = ((SCHEME_OBJECT) NULL);		\
+  FLUSH_I_CACHE ();							\
+} while (0)
+#endif /* COMPILER_TRANSPORT_END */
 
 #endif /* CMPGC_H_INCLUDED */
