@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/unxutl/Attic/ymkfile,v 1.39 1990/12/11 04:22:08 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/unxutl/Attic/ymkfile,v 1.39.1.1 1991/08/23 22:48:17 cph Exp $
 
-Copyright (c) 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1989-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -35,6 +35,7 @@ MIT in each case. */
 #include "cf.h"
 
 #undef unix
+#undef vax
 
 #ifndef SOURCES_SYSTEM
 #define SOURCES_SYSTEM
@@ -144,7 +145,7 @@ TERMCAP_SOURCES = tterm.c
 TERMCAP_LIBS = LIBS_TERMCAP
 
 #ifdef HAVE_X_WINDOWS
-X_SOURCES = x11base.c x11term.c x11graph.c 
+X_SOURCES = x11base.c x11term.c x11graph.c
 X_OBJECTS = x11base.o x11term.o x11graph.o
 X_LIB = LIBX11_MACHINE LIBX11_SYSTEM -lX11
 #endif /* HAVE_X_WINDOWS */
@@ -253,7 +254,7 @@ AS = as
 #define LIB_DEBUG
 #endif
 
-LDFLAGS = LD_SWITCH_SYSTEM LD_SWITCH_MACHINE
+LDFLAGS = LD_SWITCH_SYSTEM LD_SWITCH_MACHINE C_DEBUG_SWITCH
 
 CFLAGS = -DMIT_SCHEME C_OPTIMIZE_SWITCH C_DEBUG_SWITCH C_SWITCH_MACHINE C_SWITCH_SYSTEM C_SWITCH_FEATURES $(MACHINE_SWITCHES)
 
@@ -464,7 +465,7 @@ BCHOBJECTS = $(CORE_OBJECTS) $(BCH_GC_OBJECTS) $(UNIX_OBJECTS) $(OS_PRIM_OBJECTS
 
 /* Construction rules. */
 
-all: Psbtobin scheme $(XTRA_TARGETS)
+all: Bintopsb Psbtobin scheme bchscheme $(XTRA_TARGETS)
 
 scheme xscheme : $(OBJECTS) $(SCHEME_OBJECTS)
 	@ECHO "#** Re-linking" $@ because of $?
@@ -582,8 +583,11 @@ fasload.o : scheme.touch prims.h osscheme.h osfile.h osio.h $(GC_HEAD_FILES) \
 fasdump.o : scheme.touch prims.h osio.h osfile.h osfs.h $(GC_HEAD_FILES) \
 	trap.h lookup.h fasl.h dump.c
 
-memmag.o gcloop.o purify.o purutl.o comutl.o : scheme.touch prims.h \
-	$(GC_HEAD_FILES) zones.h
+memmag.o : scheme.touch prims.h $(GC_HEAD_FILES)
+gcloop.o : scheme.touch $(GC_HEAD_FILES)
+purify.o : scheme.touch prims.h $(GC_HEAD_FILES) zones.h
+purutl.o : scheme.touch prims.h $(GC_HEAD_FILES) zones.h
+comutl.o : scheme.touch prims.h
 
 artutl.o : scheme.touch
 bignum.o : scheme.touch bignumint.h limits.h
@@ -598,13 +602,16 @@ tterm.o : scheme.touch prims.h osterm.h
 boot.o : scheme.touch prims.h version.h option.h ostop.h
 option.o : ansidecl.h option.h
 term.o : scheme.touch
+missing.o : config.h
 
 compiler.o : config.h object.h sdata.h types.h errors.h const.h returns.h
 
-bchmmg.o bchgcl.o bchpur.o : scheme.touch prims.h bchgcc.h option.h \
-	$(GC_HEAD_FILES)
-bchdmp.o : scheme.touch prims.h osio.h osfile.h trap.h lookup.h bchgcc.h \
-	$(GC_HEAD_FILES) fasl.h dump.c
+BCHGCC_H = bchgcc.h oscond.h $(GC_HEAD_FILES)
+bchmmg.o : scheme.touch prims.h $(BCHGCC_H) option.h
+bchgcl.o : scheme.touch $(BCHGCC_H)
+bchpur.o : scheme.touch prims.h $(BCHGCC_H) zones.h
+bchdmp.o : scheme.touch prims.h uxio.h osio.h osfile.h trap.h lookup.h \
+	$(BCHGCC_H) fasl.h dump.c
 
 syntax.o : scheme.touch prims.h edwin.h syntax.h
 bitstr.o : scheme.touch prims.h bitstr.h
