@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/opncod.scm,v 4.7 1988/05/19 15:10:36 markf Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/opncod.scm,v 4.7.1.1 1988/06/09 17:41:57 markf Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -208,6 +208,61 @@ MIT in each case. |#
 			  (positive? value)))
 		   generator))
 
+;;;; constraint checkers
+(define (make-invocation operator operands)
+  `(,operator ,@operands))
+
+(define (generate-primitive name arg-list continuation-label)
+  (let loop ((args arg-list)
+	     (temps '() )
+	     (pushes '() ))
+    (if (null? args)
+	(scfg-append!
+	  temps
+	  (rtl:make-push-return continuation-label)
+	  pushes
+	  (rtl:make-invocation:primitive
+	    (1+ (length arg-list))
+	    continuation-label
+	    (make-primitive-procedure name true)))
+	(let ((temp (rtl:make-pseudo-register)))
+	  (loop (cdr args)
+		(scfg*scfg->scfg!
+		  (rtl:make-assignment
+		    temp
+		    (car args))
+		  temps)
+		(scfg*scfg->scfg!
+		  (rtl:make-push (rtl:make-fetch temp))
+		  pushes))))))
+		  
+(define (range-check checkee-locative limit-locative non-error-cfg
+		     error-finish prim-invocation)
+  (if compiler:generate-range-checks?
+      (let* ((continuation-label (generate-label))
+	     (error-continuation
+	      (scfg*scfg->scfg!
+	       (rtl:make-continuation-entry continuation-label)
+	       (error-finish (rtl:make-fetch register:value))))
+	     (error-cfg
+	      (scfg*scfg->scfg!
+	       (generate-primitive
+		(car prim-invocation)
+		(cdr prim-invocation)
+		continuation-label)
+	       error-continuation)))
+	(pcfg*scfg->scfg!
+	 (rtl:make-fixnum-pred-2-args 'LESS-THAN-FIXNUM?
+	  (rtl:make-object->fixnum checkee-locative)
+	  (rtl:make-object->fixnum limit-locative))
+	 (pcfg*scfg->scfg!
+	  (rtl:make-fixnum-pred-1-arg 'NEGATIVE-FIXNUM?
+	   (rtl:make-object->fixnum checkee-locative))
+	  error-cfg
+	  non-error-cfg)
+	 error-cfg))
+      non-error-cfg))
+
 ;;;; Open Coders
 
 (define-open-coder/predicate 'NULL?
@@ -295,50 +350,79 @@ MIT in each case. |#
     (define/length '(VECTOR-LENGTH SYSTEM-VECTOR-SIZE) 0)
     (define/length '(STRING-LENGTH BIT-STRING-LENGTH) 1)))
 
-(let ((open-code/memory-ref/constant
+(define generate-index-locative
+  (lambda (expressions non-error-finish error-finish prim-invocation)
+    (let* ((index (cadr expressions))
+	   (vector (car expressions))
+	   (temporary (rtl:make-pseudo-register))
+	   (element-address-code
+	    (rtl:make-assignment
+	      temporary
+	      (rtl:make-fixnum-2-args
+	       'PLUS-FIXNUM
+	       (rtl:make-object->address (car expressions))
+	       (rtl:make-fixnum-2-args
+		'MULTIPLY-FIXNUM
+		(rtl:make-object->fixnum
+		 (rtl:make-constant
+		  (quotient scheme-object-width
+			    addressing-granularity)))
+		(rtl:make-object->fixnum
+		 (cadr expressions))))))
+	   (index-locative (rtl:make-fetch temporary)))
+       (range-check
+        index
+	(rtl:make-fetch (rtl:locative-offset vector 0))
+	(scfg*scfg->scfg!
+	 element-address-code
+	 (non-error-finish index-locative))
+	error-finish
+	prim-invocation))))
+       
+(let* ((open-code/memory-ref
        (lambda (index)
 	 (lambda (expressions finish)
 	   (finish
-	    (rtl:make-fetch (rtl:locative-offset (car expressions) index))))))
-      (open-code/memory-ref/non-constant
+	    (rtl:make-fetch
+	     (rtl:locative-offset (car expressions) index))))))
+       (open-code/vector-ref
+	(lambda (name)
 	  (lambda (expressions finish)
-	    (let ((temporary (rtl:make-pseudo-register)))
-	      (scfg-append!
-	       (rtl:make-assignment
-		temporary
-		(rtl:make-fixnum-2-args
-		 'PLUS-FIXNUM
-		 (rtl:make-object->address (car expressions))
-		 (rtl:make-fixnum-2-args
-		  'MULTIPLY-FIXNUM
-		  (rtl:make-object->fixnum
-		   (rtl:make-constant (quotient scheme-object-width
-						addressing-granularity)))
-		  (rtl:make-object->fixnum
-		   (cadr expressions)))))
-	       (finish (rtl:make-fetch (rtl:locative-offset
-					(rtl:make-fetch temporary)
-					1))))))))
+	    (generate-index-locative
+	     expressions
+	     (lambda (memory-locative)
+	       ((open-code/memory-ref 1)
+		(list memory-locative)
+		finish))
+	     finish
+	     (make-invocation name expressions))))))
 
   (let ((define/ref
 	  (lambda (name index)
 	    (define-open-coder/value name
 	      (lambda (operands)
-		(return-2 (open-code/memory-ref/constant index) '(0)))))))
-    (define/ref '(CAR SYSTEM-PAIR-CAR CELL-CONTENTS SYSTEM-HUNK3-CXR0) 0)
-    (define/ref '(CDR SYSTEM-PAIR-CDR SYSTEM-HUNK3-CXR1) 1)
+		(return-2 (open-code/memory-ref index)
+			  '(0)))))))
+    (define/ref
+      '(CAR SYSTEM-PAIR-CAR CELL-CONTENTS SYSTEM-HUNK3-CXR0) 0)
+    (define/ref 
+      '(CDR SYSTEM-PAIR-CDR SYSTEM-HUNK3-CXR1) 1)
     (define/ref 'SYSTEM-HUNK3-CXR2 2))
 
-  (define-open-coder/value '(VECTOR-REF SYSTEM-VECTOR-REF)
-    (lambda (operands)
-      (let ((good-constant-index
-	     (filter/nonnegative-integer (cadr operands)
-	       (lambda (index)
-		 (return-2 (open-code/memory-ref/constant (1+ index)) '(0))))))
-	(if good-constant-index
-	    good-constant-index
-	    (return-2 open-code/memory-ref/non-constant
-		      '(0 1)))))))
+  (for-each
+   (lambda (name)
+     (define-open-coder/value name
+       (lambda (operands)
+	 (let ((good-constant-index
+		(filter/nonnegative-integer (cadr operands)
+	          (lambda (index)
+		    (return-2 (open-code/memory-ref (1+ index))
+			      '(0))))))
+	   (if good-constant-index
+	       good-constant-index
+	       (return-2 (open-code/vector-ref name)
+			 '(0 1)))))))
+   '(VECTOR-REF SYSTEM-VECTOR-REF)))
 
 (let ((open-code/general-car-cdr
        (lambda (pattern)
@@ -359,32 +443,40 @@ MIT in each case. |#
 	(lambda (pattern)
 	  (return-2 (open-code/general-car-cdr pattern) '(0)))))))
 
-(let ((open-code/memory-assignment
-       (lambda (index locative-generator)
-	 (lambda (expressions finish)
-	   (locative-generator
+(let* ((open-code/memory-assignment
+	(lambda (index)
+	  (lambda (expressions finish)
+	    (let* ((locative (rtl:locative-offset
+			      (car expressions)
+			      index))
+		   (assignment
+		    (rtl:make-assignment locative
+					 (car (last-pair expressions)))))
+	      (if finish
+		  (let ((temporary (rtl:make-pseudo-register)))
+		    (scfg-append!
+		     (rtl:make-assignment temporary
+					  (rtl:make-fetch locative))
+		     assignment
+		     (finish (rtl:make-fetch temporary))))
+		  assignment)))))
+       (open-code/vector-set
+	(lambda (name)
+	  (lambda (expressions finish)
+	    (generate-index-locative
 	     expressions
-	     (lambda (lvalue-locative)
-	       (let ((locative (rtl:locative-offset
-				lvalue-locative
-				index)))
-		 (let ((assignment
-			(rtl:make-assignment locative (car (last-pair expressions)))))
-		   (if finish
-		       (let ((temporary (rtl:make-pseudo-register)))
-			 (scfg-append!
-			  (rtl:make-assignment temporary (rtl:make-fetch locative))
-			  assignment
-			  (finish (rtl:make-fetch temporary))))
-		       assignment)))))))))
+	     (lambda (memory-locative)
+	       ((open-code/memory-assignment 1)
+		(cons memory-locative (cddr expressions))
+		finish))
+	     finish
+	     (make-invocation name expressions))))))
 
   (let ((define/set!
 	  (lambda (name index)
 	    (define-open-coder/effect name
 	      (lambda (operands)
-		(return-2 (open-code/memory-assignment index
-						       (lambda (exp finish)
-							 (finish (car exp))))
+		(return-2 (open-code/memory-assignment index)
 			  '(0 1)))))))
 ;;;  For now SYSTEM-XXXX procedures with side effects are considered
 ;;; dangerous to the garbage collectors health. Some day we will again
@@ -393,10 +485,10 @@ MIT in each case. |#
 ;;;                SET-CELL-CONTENTS!
 ;;; 	           SYSTEM-HUNK3-SET-CXR0!)
 ;;;   0)
-;;;   (define/set! '(SET-CDR! SYSTEM-PAIR-SET-CDR!
+;;; (define/set! '(SET-CDR! SYSTEM-PAIR-SET-CDR!
 ;;;                  SYSTEM-HUNK3-SET-CXR1!) 1)
-;;;                  (define/set! 'SYSTEM-HUNK3-SET-CXR2!
-;;;   2))
+;;; (define/set! 'SYSTEM-HUNK3-SET-CXR2!
+;;;   2)
     (define/set! '(SET-CAR! SET-CELL-CONTENTS!) 0)
     (define/set! '(SET-CDR!) 1))
 
@@ -404,41 +496,20 @@ MIT in each case. |#
 ;;;  For now SYSTEM-XXXX procedures with side effects are considered
 ;;; dangerous to the garbage collectors health. Some day we will again
 ;;; be able to do the following:
-;;; (define-open-coder-effect '(vECTOR-SET! SYSTEM-VECTOR-SET!)
+;;; (define-open-coder-effect '(VECTOR-SET! SYSTEM-VECTOR-SET!) ... )
 
   (define-open-coder/effect '(VECTOR-SET!)
     (lambda (operands)
       (let ((good-constant-index
 	     (filter/nonnegative-integer (cadr operands)
 	       (lambda (index)
-		 (return-2 (open-code/memory-assignment
-			    (1+ index)
-			    (lambda (exp finish)
-			      (finish (car exp))))
+		 (return-2 (open-code/memory-assignment (1+ index))
 			   '(0 2))))))
 	(if good-constant-index
 	    good-constant-index
-	    (return-2 (open-code/memory-assignment
-		       1
-		       (lambda (expressions finish)
-			 (let ((temporary (rtl:make-pseudo-register)))
-			   (scfg-append!
-			    (rtl:make-assignment
-			     temporary
-			     (rtl:make-fixnum-2-args
-			      'PLUS-FIXNUM
-			      (rtl:make-object->address (car expressions))
-			      (rtl:make-fixnum-2-args
-			       'MULTIPLY-FIXNUM
-			       (rtl:make-object->fixnum
-				(rtl:make-constant
-				 (quotient scheme-object-width
-					   addressing-granularity)))
-			       (rtl:make-object->fixnum
-				(cadr expressions)))))
-			    (finish (rtl:make-fetch temporary))))))
+	    (return-2 (open-code/vector-set 'VECTOR-SET!)
 		      '(0 1 2)))))))
-
+
 (let ((define-fixnum-2-args
 	(lambda (fixnum-operator)
 	  (define-open-coder/value fixnum-operator
