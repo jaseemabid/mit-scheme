@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlcfg.scm,v 4.8 1989/10/26 07:38:24 cph Rel $
+$Id: rtlcfg.scm,v 4.8.1.1 1994/03/30 21:20:19 gjr Exp $
 
-Copyright (c) 1987, 1988, 1989 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -168,12 +168,17 @@ MIT in each case. |#
 (define (pcfg/prefer-branch! branch pcfg)
   (let loop ((bblock (cfg-entry-node pcfg)))
     (cond ((pblock? bblock)
-	   (cfg-node-put! bblock cfg/prefer-branch/tag branch))
+	   (pnode/prefer-branch! bblock branch))
 	  ((sblock? bblock)
 	   (loop (snode-next bblock)))
 	  (else
 	   (error "PCFG/PREFER-BRANCH!: Unknown bblock type" bblock))))
   pcfg)
+
+(define (pnode/prefer-branch! pnode branch)
+  (if (not (eq? branch 'NEITHER))
+      (cfg-node-put! pnode cfg/prefer-branch/tag branch))
+  pnode)
 
 (define-integrable (pnode/preferred-branch pnode)
   (cfg-node-get pnode cfg/prefer-branch/tag))
@@ -188,8 +193,11 @@ MIT in each case. |#
   dead-registers
   next)
 
-(define (make-rtl-instruction rtl)
+(define-integrable (make-rtl-instruction rtl)
   (vector rtl '() false))
+
+(define-integrable (make-rtl-instruction* rtl next)
+  (vector rtl '() next))
 
 (define-integrable (rinst-dead-register? rinst register)
   (memq register (rinst-dead-registers rinst)))
