@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 4.6 1988/11/08 21:25:58 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 4.6.1.1 1988/11/29 22:05:10 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
