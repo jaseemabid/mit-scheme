@@ -1,8 +1,8 @@
 ;;; -*-Scheme-*-
 ;;;
-;;;	$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/rgxcmp.scm,v 1.103 1990/10/05 23:54:51 cph Rel $
+;;;	$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/rgxcmp.scm,v 1.103.1.1 1991/08/28 06:19:49 cph Exp $
 ;;;
-;;;	Copyright (c) 1986, 1989, 1990 Massachusetts Institute of Technology
+;;;	Copyright (c) 1986, 1989-91 Massachusetts Institute of Technology
 ;;;
 ;;;	This material was developed by the Scheme project at the
 ;;;	Massachusetts Institute of Technology, Department of
@@ -208,7 +208,7 @@
 			    (begin
 			      (let ((end (char->ascii (caddr pattern))))
 				(let loop ((index (char->ascii (car pattern))))
-				  (if (fix:< index end)
+				  (if (fix:<= index end)
 				      (begin
 					(vector-8b-set! char-set
 							index
