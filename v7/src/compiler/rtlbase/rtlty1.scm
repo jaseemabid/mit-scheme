@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlty1.scm,v 4.13 1988/11/08 08:21:03 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlty1.scm,v 4.13.1.1 1988/12/06 22:38:14 arthur Exp $
 
 Copyright (c) 1987, 1988 Massachusetts Institute of Technology
 
