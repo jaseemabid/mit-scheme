@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.80.1.1 1994/01/08 17:07:13 gjr Exp $
+$Id: cmpint.c,v 1.80.1.2 1994/01/10 21:32:39 gjr Exp $
 
-Copyright (c) 1989-1993 Massachusetts Institute of Technology
+Copyright (c) 1989-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -1126,7 +1126,7 @@ exit_proc:
   {
     SCHEME_OBJECT * ret_add_block;
     
-    Get_Compiled_Block (ret_add_block, ret_add);
+    Get_Compiled_Block (ret_add_block, ((SCHEME_OBJECT *) ret_add));
     if (ret_add_block == block_address)
       FLUSH_I_CACHE_REGION (block_address,
 			    (((unsigned long) (*block_address)) + 1));
