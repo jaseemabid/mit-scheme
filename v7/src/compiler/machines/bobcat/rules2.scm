@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/rules2.scm,v 4.4 1988/06/14 08:48:37 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/rules2.scm,v 4.4.1.1 1988/08/25 20:12:21 markf Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -347,3 +347,7 @@ MIT in each case. |#
   (FIXNUM-PRED-1-ARG (? predicate) (OFFSET (REGISTER (? register)) (? offset)))
   (set-standard-branches! (fixnum-pred->cc predicate))
   (test-fixnum (indirect-reference! offset register)))
+
+(define-rule predicate
+  (OVERFLOW-TEST)
+  (set-standard-branches! 'VS))
