@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ntfs.c,v 1.25.4.1 2000/12/04 22:01:01 cph Exp $
+$Id: ntfs.c,v 1.25.4.2 2000/12/04 22:05:04 cph Exp $
 
-Copyright (c) 1992-1999 Massachusetts Institute of Technology
+Copyright (c) 1992-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

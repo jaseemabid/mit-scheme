@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: osfs.h,v 1.8.4.1 2000/12/04 22:01:06 cph Exp $
+$Id: osfs.h,v 1.8.4.2 2000/12/04 22:05:26 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright (c) 1990-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
