@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/uerror.scm,v 14.16.1.1 1991/08/26 23:30:39 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/uerror.scm,v 14.16.1.2 1991/08/26 23:31:50 cph Exp $
 
 Copyright (c) 1988-91 Massachusetts Institute of Technology
 
@@ -608,7 +608,7 @@ MIT in each case. |#
       (lambda (return-address)
 	(define-error-handler 'EXTERNAL-RETURN return-address
 	  (internal-apply-frame/operator-filter
-	   (ucode-primitive file-length)
+	   (ucode-primitive file-length 1)
 	   ;; (ucode-primitive file-read-char) ; -gone.
 	   (ucode-primitive file-write-char 2)
 	   (ucode-primitive file-write-string 2)
