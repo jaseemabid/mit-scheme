@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.31.2.1 2000/11/27 05:58:00 cph Exp $
+$Id: i386.h,v 1.31.2.1.2.1 2000/12/02 03:45:35 cph Exp $
 
 Copyright (c) 1992-2000 Massachusetts Institute of Technology
 
@@ -28,8 +28,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  * Specialized for the Intel 386 (and successors) architecture.
  */
 
-#ifndef CMPINTMD_H_INCLUDED
-#define CMPINTMD_H_INCLUDED
+#ifndef SCM_CMPINTMD_H
+#define SCM_CMPINTMD_H
 
 #include "cmptype.h"
 
@@ -38,14 +38,14 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 /* Hack for OS/2 calling-convention type: */
 
-#if defined(_OS2) && (defined(__IBMC__) || defined(__WATCOMC__))
-#define ASM_ENTRY_POINT(name) (_System name)
+#if defined(__OS2__) && (defined(__IBMC__) || defined(__WATCOMC__))
+#  define ASM_ENTRY_POINT(name) (_System name)
 #else
-#if defined(WINNT) && defined(__WATCOMC__)
-#define ASM_ENTRY_POINT(name) (__cdecl name)
-#else
-#define ASM_ENTRY_POINT(name) name
-#endif
+#  if defined(__WIN32__) && defined(__WATCOMC__)
+#    define ASM_ENTRY_POINT(name) (__cdecl name)
+#  else
+#    define ASM_ENTRY_POINT(name) name
+#  endif
 #endif
 
 /*
@@ -482,20 +482,20 @@ extern long i386_pc_displacement_relocation;
 #ifdef _MACH_UNIX
 #  include <mach.h>
 #  define VM_PROT_SCHEME (VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE)
-#endif /* _MACH_UNIX */
+#endif
 
 long i386_pc_displacement_relocation = 0;
 
 #define ASM_RESET_HOOK i386_reset_hook
 
 #ifndef HOOK_TO_SCHEME_OFFSET
-#define HOOK_TO_SCHEME_OFFSET(hook) ((unsigned long) (hook))
+#  define HOOK_TO_SCHEME_OFFSET(hook) ((unsigned long) (hook))
 #endif
 
 #ifdef __STDC__
-#define STRINGIFY(x) #x
+#  define STRINGIFY(x) #x
 #else
-#define STRINGIFY(x) "x"
+#  define STRINGIFY(x) "x"
 #endif
 
 #define SETUP_REGISTER(hook) do						\
@@ -653,8 +653,6 @@ DEFUN_VOID (i386_reset_hook)
     }
   }
 #endif /* _MACH_UNIX */
-
-  return;
 }
 
 #endif /* IN_CMPINT_C */
@@ -773,4 +771,4 @@ DEFUN_VOID (i386_reset_hook)
 #define COMPILED_ENTRY_MAXIMUM_ARITY    COMPILED_ENTRY_FORMAT_LOW
 #define COMPILED_ENTRY_MINIMUM_ARITY    COMPILED_ENTRY_FORMAT_HIGH
 
-#endif /* CMPINTMD_H_INCLUDED */
+#endif /* not SCM_CMPINTMD_H */
