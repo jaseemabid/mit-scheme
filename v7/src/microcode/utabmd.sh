@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: utabmd.sh,v 1.1 2002/01/29 20:42:57 cph Exp $
+# $Id: utabmd.sh,v 1.1.2.1 2002/01/29 20:44:41 cph Exp $
 #
 # Copyright (c) 2002 Massachusetts Institute of Technology
 #
