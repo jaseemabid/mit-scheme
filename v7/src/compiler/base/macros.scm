@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 4.7.1.1 1988/12/07 01:15:56 arthur Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 4.7.1.2 1989/07/25 12:40:57 arthur Exp $
 
-Copyright (c) 1988 Massachusetts Institute of Technology
+Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -122,7 +122,8 @@ MIT in each case. |#
 			  (VECTOR-REF ,class ,n))
 			(DEFINE-INTEGRABLE (,(symbol-append 'SET- ref-name '!)
 					    ,class ,slot)
-			  (VECTOR-SET! ,class ,n ,slot))))))
+			  (VECTOR-SET! ,class ,n ,slot)
+			  ',unspecific)))))
 		(rest (loop (cdr slots) (1+ n))))
 	    (if (pair? (car slots))
 		(map* rest make-defs (car slots))
@@ -176,7 +177,7 @@ MIT in each case. |#
  (define-type-definition snode 5 false)
  (define-type-definition pnode 6 false)
  (define-type-definition rvalue 2 rvalue-types)
- (define-type-definition lvalue 11 false))
+ (define-type-definition lvalue 14 false))
 
 ;;; Kludge to make these compile efficiently.
 
@@ -200,9 +201,8 @@ MIT in each case. |#
     (let ((result (generate-uninterned-symbol)))
       `(let ((,result
 	      ((ACCESS VECTOR ,system-global-environment)
-	       ,tag '() '() '() 'NOT-CACHED FALSE '() FALSE FALSE '() '()
-	       ,@extra)))
-	 (SET! *LVALUES* (CONS ,result *LVALUES*))
+	       ,tag FALSE '() '() '() '() '() '() 'NOT-CACHED
+	       FALSE '() FALSE FALSE '() ,@extra)))	 (SET! *LVALUES* (CONS ,result *LVALUES*))
 	 ,result))))
 
 (define transform/define-rtl-expression)
