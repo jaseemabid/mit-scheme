@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: parse.scm,v 14.37 2002/02/09 06:09:51 cph Exp $
+$Id: parse.scm,v 14.37.2.1 2002/11/20 18:19:00 cph Exp $
 
 Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -27,14 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define (initialize-package!)
   (set! char-set/undefined-atom-delimiters (char-set #\[ #\] #\{ #\} #\|))
-  (set! char-set/whitespace
-	(char-set #\Tab #\Linefeed #\Page #\Return #\Space))
-  (set! char-set/non-whitespace (char-set-invert char-set/whitespace))
   (set! char-set/comment-delimiters (char-set #\Newline))
   (set! char-set/special-comment-leaders (char-set #\# #\|))
   (set! char-set/string-delimiters (char-set #\" #\\))
   (set! char-set/atom-delimiters
-	(char-set-union char-set/whitespace
+	(char-set-union char-set:whitespace
 			(char-set-union char-set/undefined-atom-delimiters
 					(char-set #\( #\) #\; #\" #\' #\`))))
   (set! char-set/atom-constituents (char-set-invert char-set/atom-delimiters))
@@ -44,33 +41,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 	(char-set-difference char-set/atom-constituents
 			     (char-set #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9
 				       #\+ #\- #\. #\#)))
-  (set! char-set/non-digit
-	(char-set-difference (char-set-invert (char-set))
-			     char-set:numeric))
 
   (set! lambda-optional-tag (object-new-type (microcode-type 'CONSTANT) 3))
   (set! lambda-rest-tag (object-new-type (microcode-type 'CONSTANT) 4))
   (set! lambda-auxiliary-tag (intern "#!aux"))
   (set! dot-symbol (intern "."))
-  (set! named-objects
-	`((NULL . ,(list))
-	  (FALSE . ,false)
-	  (TRUE . ,true)
-	  (OPTIONAL . ,lambda-optional-tag)
-	  (REST . ,lambda-rest-tag)
-	  (AUX . ',lambda-auxiliary-tag)))
+  (set! parser-constant:empty-list '())
 
   (set! *parser-radix* 10)
-  (set! *parser-associate-positions?* false)
+  (set! *parser-associate-positions?* #f)
   (set! *parser-associate-position* parser-associate-positions/default)
   (set! *parser-current-position* parser-current-position/default)
   (set! *parser-canonicalize-symbols?* #t)
+
   (set! system-global-parser-table (make-system-global-parser-table))
   (set-current-parser-table! system-global-parser-table))
 
 (define char-set/undefined-atom-delimiters)
-(define char-set/whitespace)
-(define char-set/non-whitespace)
 (define char-set/comment-delimiters)
 (define char-set/special-comment-leaders)
 (define char-set/string-delimiters)
@@ -78,11 +65,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 (define char-set/atom-constituents)
 (define char-set/char-delimiters)
 (define char-set/symbol-leaders)
-(define char-set/non-digit)
 
 (define lambda-optional-tag)
 (define lambda-rest-tag)
 (define lambda-auxiliary-tag)
+(define parser-constant:empty-list)
+
 (define *parser-radix*)
 (define system-global-parser-table)
 
@@ -109,7 +97,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 		("(" ,parse-object/list-open)
 		("#(" ,parse-object/vector-open)
 		(")" ,parse-object/list-close ,collect-list/list-close)
-		(,char-set/whitespace
+		(,char-set:whitespace
 		 ,parse-object/whitespace
 		 ,collect-list/whitespace)
 		(,char-set/undefined-atom-delimiters
@@ -163,23 +151,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 (define (within-parser port parser-table thunk)
   (if (not (parser-table? parser-table))
       (error:wrong-type-argument parser-table "parser table" 'WITHIN-PARSER))
-  (fluid-let
-      ((*parser-input-port* port)
-       (*parser-parse-object-table* (parser-table/parse-object parser-table))
-       (*parser-collect-list-table* (parser-table/collect-list parser-table))
-       (*parser-parse-object-special-table*
-	(parser-table/parse-object-special parser-table))
-       (*parser-collect-list-special-table*
-	(parser-table/collect-list-special parser-table))
-       (*parser-current-special-prefix* #f)
-       ;; Only create it on first entry:
-       (*parser-cyclic-context* (or *parser-cyclic-context* (make-context)))
-       (*parser-current-position*
-	(if (not *parser-associate-positions?*)
-	    parser-current-position/default
-	    (current-position-getter port))))
-    (cyclic-parser-post-edit (thunk))
-))
+  (fluid-let ((*parser-input-port* port)
+	      (*parser-parse-object-table*
+	       (parser-table/parse-object parser-table))
+	      (*parser-collect-list-table*
+	       (parser-table/collect-list parser-table))
+	      (*parser-parse-object-special-table*
+	       (parser-table/parse-object-special parser-table))
+	      (*parser-collect-list-special-table*
+	       (parser-table/collect-list-special parser-table))
+	      (*parser-current-special-prefix* #f)
+	      ;; Only create it on first entry:
+	      (*parser-cyclic-context*
+	       (or *parser-cyclic-context* (make-context)))
+	      (*parser-current-position*
+	       (if *parser-associate-positions?*
+		   (current-position-getter port)
+		   parser-current-position/default)))
+    (cyclic-parser-post-edit (thunk))))
 
 ;;;; Character Operations
 
@@ -316,7 +305,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define (parser-current-position/default offset)
   offset				; fnord
-  false)
+  #f)
 
 ;; Do not integrate this!!! -- GJR
 
@@ -404,27 +393,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define (collect-list/list-close)
   (discard-char)
-  (list))
+  parser-constant:empty-list)
 
 (define ignore-extra-list-closes
-  true)
+  #t)
 
 (define (collect-list/top-level)
   (let ((value (collect-list/dispatch)))
     (if (and (pair? value)
 	     (eq? dot-symbol (car value)))
-	(parse-error "Improperly formed dotted list" value)
-	value)))
+	(parse-error "Improperly formed dotted list" value))
+    value))
 
 (define ((collect-list-wrapper parse-object))
   (let ((first (parse-object)))			;forces order.
     (let ((rest (collect-list/dispatch)))
       (if (and (pair? rest)
 	       (eq? dot-symbol (car rest)))
-	  (if (and (pair? (cdr rest))
-		   (null? (cddr rest)))
-	      (cons first (cadr rest))
-	      (parse-error "Improperly formed dotted list" (cons first rest)))
+	  (begin
+	    (if (not (and (pair? (cdr rest))
+			  (eq? (cddr rest) parser-constant:empty-list)))
+		(parse-error "Improperly formed dotted list"
+			     (cons first rest)))
+	    (cons first (cadr rest)))
 	  (cons first rest)))))
 
 (define dot-symbol)
@@ -440,7 +431,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
   (collect-list/dispatch))
 
 (define (discard-whitespace)
-  (discard-chars char-set/non-whitespace))
+  (discard-chars char-set:not-whitespace))
 
 (define (parse-object/undefined-atom-delimiter)
   (parse-error "Undefined atom delimiter" (read-char))
@@ -490,21 +481,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define-accretor 0 (parse-object/quote)
   (discard-char)
-  (list 'QUOTE (parse-object/dispatch)))
+  (cons 'QUOTE
+	(cons (parse-object/dispatch)
+	      parser-constant:empty-list)))
 
 (define-accretor 0 (parse-object/quasiquote)
   (discard-char)
-  (list 'QUASIQUOTE (parse-object/dispatch)))
+  (cons 'QUASIQUOTE
+	(cons (parse-object/dispatch)
+	      parser-constant:empty-list)))
 
 (define-accretor 0 (parse-object/unquote)
   (discard-char)
   (if (char=? #\@ (peek-char))
       (begin
 	(discard-char)
-	(list 'UNQUOTE-SPLICING (parse-object/dispatch)))
-      (list 'UNQUOTE (parse-object/dispatch))))
-
-
+	(cons 'UNQUOTE-SPLICING
+	      (cons (parse-object/dispatch)
+		    parser-constant:empty-list)))
+      (cons 'UNQUOTE
+	    (cons (parse-object/dispatch)
+		  parser-constant:empty-list))))
+
 (define-accretor 0 (parse-object/string-quote)
   ;; This version uses a string output port to collect the string fragments
   ;; because string ports store the string efficiently and append the
@@ -576,26 +574,30 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define-accretor 0 (parse-object/false)
   (discard-char)
-  false)
+  #f)
 
 (define-accretor 0 (parse-object/true)
   (discard-char)
-  true)
+  #t)
 
 (define-accretor 1 (parse-object/named-constant)
   (discard-char)
   (let ((object-name (parse-object/dispatch)))
-    (cdr (or (assq object-name named-objects)
-	     (parse-error "No object by this name" object-name)))))
-
-(define named-objects)
+    (case object-name
+      ((NULL) parser-constant:empty-list)
+      ((FALSE) #f)
+      ((TRUE) #t)
+      ((OPTIONAL) lambda-optional-tag)
+      ((REST) lambda-rest-tag)
+      ((AUX) lambda-auxiliary-tag)
+      (else (parse-error "No object by this name" object-name)))))
 
 (define (parse-unhash number)
   (if (not (exact-nonnegative-integer? number))
       (parse-error "Invalid unhash syntax" number))
   (let ((object (object-unhash number)))
     ;; This knows that 0 is the hash of #f.
-    (if (and (false? object) (not (zero? number)))
+    (if (not (or object (= number 0)))
 	(parse-error "Invalid hash number" number))
     object))
 
@@ -646,7 +648,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define (parse-special-prefix table)
   (set! *parser-current-special-prefix*
-	(string->number (read-string char-set/non-digit) 10))
+	(string->number (read-string char-set:not-numeric) 10))
   ((vector-ref table (peek-ascii))))
 
 ;;;; #n= and #n#
@@ -707,9 +709,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 ;;;; Contexts and References
 
-(define-structure
-  (reference
-   (conc-name reference/))
+(define-structure (reference (conc-name reference/))
   index
   context
   text
@@ -723,29 +723,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
   (not (eqv? (reference/start-touch-count ref)
 	     (reference/end-touch-count ref))))
 
-(define-structure
-  (context
-   (conc-name context/)
-   (constructor %make-context))
+(define-structure (context (conc-name context/)
+			   (constructor %make-context))
   references        ; some kind of association number->reference
   touches           ; number of #n# or #n= things see so far
   )
 
-(define (make-context)   (%make-context '() 0))
+(define (make-context)
+  (%make-context '() 0))
 
 (define (context/touch! context)
-  (set-context/touches! context  (fix:1+ (context/touches context))))
+  (set-context/touches! context (fix:+ (context/touches context) 1)))
 
 (define (context/define-reference context index)
-  (let ((ref  (make-reference index
-			      context
-			      ()
-			      (context/touches context)
-			      #f)))
-    
-    (set-context/references!
-     context
-     (cons (cons index ref) (context/references context)))
+  (let ((ref (make-reference index context '() (context/touches context) #f)))
+    (set-context/references! context
+			     (cons (cons index ref)
+				   (context/references context)))
     ref))
 
 (define (context/close-reference ref text)
@@ -755,7 +749,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define (context/find-reference context index)
   (let ((index.ref (assq index (context/references context))))
-    (if index.ref (cdr index.ref) #f)))
+    (and index.ref
+	 (cdr index.ref))))
 
 ;;;  SUBSTITUTE! traverses a tree, replacing all references by their text
 ;;;
@@ -764,8 +759,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define (substitute! thing)
   ;(display "[substitute!]")
-  (cond ((pair? thing)    (substitute/pair! thing))
-	((vector? thing)  (substitute/vector! thing))
+  (cond ((pair? thing) (substitute/pair! thing))
+	((vector? thing) (substitute/vector! thing))
 	((%record? thing) (substitute/%record! thing))))
 
 (define (substitute/pair! pair)
@@ -784,7 +779,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 	    (if (reference? elt)
 		(vector-set! v i (reference/text elt))
 		(substitute! elt))
-	    (loop (fix:1+ i)))))))
+	    (loop (fix:+ i 1)))))))
 	
 (define (substitute/%record! r)
   ;; TEST THIS CODE
@@ -801,7 +796,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 		(if (reference/contains-references? ref)
 		    (substitute! (reference/text ref)))))
 	    (context/references context))
-  (cond ((null? (context/references context))	 datum)
-	((reference? datum)	                 (reference/text datum))
-	(else  (substitute! datum)
-	       datum)))
+  (cond ((null? (context/references context))
+	 datum)
+	((reference? datum)
+	 (reference/text datum))
+	(else
+	 (substitute! datum)
+	 datum)))
