@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ux.h,v 1.73.2.1.2.3 2000/12/02 21:03:50 cph Exp $
+$Id: ux.h,v 1.73.2.1.2.4 2000/12/03 04:10:28 cph Exp $
 
 Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
@@ -96,6 +96,11 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #ifdef HAVE_UNISTD_H
 #  include <unistd.h>
+#endif
+
+/* GNU C library defines environ if __USE_GNU is defined.  */
+#ifndef __USE_GNU
+  extern char ** environ;
 #endif
 
 #ifdef STDC_HEADERS
