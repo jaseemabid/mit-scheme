@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: version.h,v 11.181 2001/08/02 18:29:33 cph Exp $
+$Id: version.h,v 11.181.2.1 2002/01/14 16:56:07 cph Exp $
 
-Copyright (c) 1988-2001 Massachusetts Institute of Technology
+Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ USA.
 /* Scheme system release version */
 
 #ifndef SCHEME_RELEASE
-#define SCHEME_RELEASE		"7.5.18"
+#define SCHEME_RELEASE		"7.6.1"
 #endif
 
 /* Microcode release version */
@@ -34,5 +34,5 @@ USA.
 #define SCHEME_VERSION		14
 #endif
 #ifndef SCHEME_SUBVERSION
-#define SCHEME_SUBVERSION	5
+#define SCHEME_SUBVERSION	8
 #endif
