@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/emodel.scm,v 3.2.1.1 1987/07/01 16:51:03 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/emodel.scm,v 3.2.1.2 1987/07/01 16:53:38 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -55,7 +55,7 @@ MIT in each case. |#
 		 (variable/make&bind! block name))
 		(else #f))))))
 
-(define (block/lookup-names block names)
+(define (block/lookup-names block names intern?)
   (map (lambda (name)
-	 (block/lookup-name block name))
+	 (block/lookup-name block name intern?))
        names))
