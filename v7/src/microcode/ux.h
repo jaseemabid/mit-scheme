@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/ux.h,v 1.16 1991/01/07 23:56:58 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/ux.h,v 1.16.1.1 1991/08/24 01:12:36 cph Exp $
 
-Copyright (c) 1988, 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1988-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -66,6 +66,14 @@ extern void EXFUN (error_system_call, (int code, CONST char * name));
 
 #ifdef _POSIX
 
+#ifdef sonyrisc
+/* <limits.h> will redefine these. */
+#undef DBL_MAX
+#undef DBL_MIN
+#undef FLT_MAX
+#undef FLT_MIN
+#endif
+
 #include <limits.h>
 #include <unistd.h>
 #include <time.h>
@@ -116,7 +124,7 @@ extern void EXFUN (error_system_call, (int code, CONST char * name));
 /* #define HAVE_WAIT4 */
 #define UNION_WAIT_STATUS
 
-#if defined(_ULTRIX) || defined(_SUNOS4) || defined(sun4) || defined(NeXT)
+#if defined(_ULTRIX) || defined(_SUNOS4) || defined(sun4) || defined(_NEXTOS)
 #define VOID_SIGNAL_HANDLERS
 #endif
 
@@ -218,7 +226,7 @@ extern void EXFUN (error_system_call, (int code, CONST char * name));
 #define SYSTEM_VARIANT "Ultrix"
 #endif
 
-#ifdef NeXT
+#ifdef _NEXTOS
 #define SYSTEM_VARIANT "NeXT"
 #endif
 
@@ -287,6 +295,61 @@ extern void EXFUN (error_system_call, (int code, CONST char * name));
 #define HAVE_VFORK
 
 #else /* not _AIX */
+#ifdef _SYSV4
+
+#define SYSTEM_VARIANT "ATT (Vr4)"
+
+#define HAVE_FIONREAD
+#define HAVE_GETTIMEOFDAY
+#define HAVE_ITIMER
+#define HAVE_NICE
+#define HAVE_PTYS
+#define HAVE_SELECT
+#define HAVE_SIGCONTEXT
+#define HAVE_SOCKETS
+#define HAVE_SYMBOLIC_LINKS
+#define HAVE_TRUNCATE
+#define HAVE_UNIX_SOCKETS
+#define HAVE_VFORK
+
+#include <stropts.h>
+
+#define PTY_DECLARATIONS						\
+  extern int EXFUN (grantpt, (int));					\
+  extern int EXFUN (unlockpt, (int));					\
+  extern char * EXFUN (ptsname, (int))
+
+#undef PTY_ITERATION
+
+#define PTY_MASTER_NAME_SPRINTF(master_name)				\
+  sprintf ((master_name), "/dev/ptmx")
+
+#define PTY_SLAVE_NAME_SPRINTF(slave_name, fd)				\
+{									\
+  grantpt (fd);								\
+  unlockpt (fd);							\
+  sprintf ((slave_name), "%s", (ptsname (fd)));				\
+}
+
+/* Would be nice if HPUX and SYSV4 agreed on the name of this. */
+#define TIOCSIGSEND TIOCSIGNAL
+
+/* Must push various STREAMS modules onto the slave side of a PTY when
+   it is opened. */
+
+#define SLAVE_PTY_P(filename) ((strncmp ((filename), "/dev/pts/", 9)) == 0)
+
+#define SETUP_SLAVE_PTY(fd)						\
+  (((ioctl ((fd), I_PUSH, "ptem")) >= 0)				\
+   && ((ioctl ((fd), I_PUSH, "ldterm")) >= 0)				\
+   && ((ioctl ((fd), I_PUSH, "ttcompat")) >= 0))
+
+#else /* not _SYSV4 */
+#ifdef _SYSV3
+
+#define SYSTEM_VARIANT "ATT (Vr3)"
+
+#else /* not _SYSV3 */
 #ifdef _SYSV
 
 #define SYSTEM_VARIANT "ATT (V)"
@@ -303,11 +366,13 @@ extern void EXFUN (error_system_call, (int code, CONST char * name));
 
 #define SYSTEM_VARIANT "unknown"
 
-#endif /* _PIXEL */
-#endif /* _SYSV */
-#endif /* _AIX */
-#endif /* _HPUX */
-#endif /* _BSD */
+#endif /* not _PIXEL */
+#endif /* not _SYSV */
+#endif /* not _SYSV3 */
+#endif /* not _SYSV4 */
+#endif /* not _AIX */
+#endif /* not _HPUX */
+#endif /* not _BSD */
 
 #ifdef VOID_SIGNAL_HANDLERS
 typedef void Tsignal_handler_result;
@@ -386,6 +451,58 @@ typedef int wait_status_t;
 
 #endif /* UNION_WAIT_STATUS */
 
+/* Provide null defaults for all the signals we're likely to use so we
+   aren't continually testing to see if they're defined. */
+
+#ifndef SIGLOST
+#define SIGLOST 0
+#endif
+#ifndef SIGWINCH
+#define SIGWINCH 0
+#endif
+#ifndef SIGURG
+#define SIGURG 0
+#endif
+#ifndef SIGIO
+#define SIGIO 0
+#endif
+#ifndef SIGUSR1
+#define SIGUSR1 0
+#endif
+#ifndef SIGUSR2
+#define SIGUSR2 0
+#endif
+#ifndef SIGVTALRM
+#define SIGVTALRM 0
+#endif
+#ifndef SIGABRT
+#define SIGABRT 0
+#endif
+#ifndef SIGPWR
+#define SIGPWR 0
+#endif
+#ifndef SIGPROF
+#define SIGPROF 0
+#endif
+#ifndef SIGSTOP
+#define SIGSTOP 0
+#endif
+#ifndef SIGTSTP
+#define SIGTSTP 0
+#endif
+#ifndef SIGCONT
+#define SIGCONT 0
+#endif
+#ifndef SIGCHLD
+#define SIGCHLD 0
+#endif
+#ifndef SIGTTIN
+#define SIGTTIN 0
+#endif
+#ifndef SIGTTOU
+#define SIGTTOU 0
+#endif
+
 /* constants for access() */
 #ifndef R_OK
 #define R_OK 4
@@ -459,12 +576,14 @@ extern char * EXFUN (getlogin, (void));
 #define UX_chmod chmod
 #define UX_close close
 #define UX_ctime ctime
+#define UX_dup dup
 #define UX_free free
 #define UX_fstat fstat
 #define UX_getenv getenv
 #define UX_getegid getegid
 #define UX_geteuid geteuid
 #define UX_getgrgid getgrgid
+#define UX_gethostname gethostname
 #define UX_getlogin getlogin
 #define UX_getpid getpid
 #define UX_getpwnam getpwnam
@@ -475,10 +594,12 @@ extern char * EXFUN (getlogin, (void));
 #define UX_lseek lseek
 #define UX_malloc malloc
 #define UX_mknod mknod
+#define UX_pause pause
 #define UX_pipe pipe
 #define UX_read read
 #define UX_realloc realloc
 #define UX_signal signal
+#define UX_sleep sleep
 #define UX_stat stat
 #define UX_system system
 #define UX_time time
@@ -489,6 +610,7 @@ extern char * EXFUN (getlogin, (void));
 extern PTR EXFUN (malloc, (unsigned int size));
 extern PTR EXFUN (realloc, (PTR ptr, unsigned int size));
 extern CONST char * EXFUN (getenv, (CONST char * name));
+extern int EXFUN (gethostname, (char * name, unsigned int size));
 
 #ifdef HAVE_FCNTL
 #define UX_fcntl fcntl
@@ -526,14 +648,14 @@ extern void EXFUN (UX_prim_check_errno, (CONST char * name));
 {									\
   while (((result) = (expression)) < 0)					\
     if (errno != EINTR)							\
-      error_system_call (errno, name);					\
+      error_system_call (errno, (name));				\
 }
 
 #define STD_PTR_SYSTEM_CALL(name, result, expression)			\
 {									\
   while (((result) = (expression)) == 0)				\
     if (errno != EINTR)							\
-      error_system_call (errno, name);					\
+      error_system_call (errno, (name));				\
 }
 
 #ifdef HAVE_TERMIOS
@@ -735,16 +857,34 @@ extern int EXFUN (UX_kill, (pid_t pid, int sig));
 #define UX_sigprocmask sigprocmask
 
 #else /* not HAVE_POSIX_SIGNALS */
+
+typedef long sigset_t;
+extern int EXFUN (UX_sigemptyset, (sigset_t * set));
+extern int EXFUN (UX_sigfillset, (sigset_t * set));
+extern int EXFUN (UX_sigaddset, (sigset_t * set, int signo));
+extern int EXFUN (UX_sigdelset, (sigset_t * set, int signo));
+extern int EXFUN (UX_sigismember, (CONST sigset_t * set, int signo));
+
 #ifdef HAVE_BSD_SIGNALS
 
-#ifdef _HPUX
-#define UX_sigvec sigvector
-#else
-#define UX_sigvec sigvec
-#endif
-#define UX_sigblock sigblock
-#define UX_sigsetmask sigsetmask
-#define UX_sigpause sigpause
+struct sigaction
+{
+  Tsignal_handler sa_handler;
+  sigset_t sa_mask;
+  int sa_flags;
+};
+
+extern int EXFUN
+  (UX_sigaction,
+   (int signo, CONST struct sigaction * act, struct sigaction * oact));
+extern int EXFUN
+  (UX_sigprocmask, (int how, CONST sigset_t * set, sigset_t * oset));
+extern int EXFUN (UX_sigsuspend, (CONST sigset_t * set));
+#define SIG_BLOCK 0
+#define SIG_UNBLOCK 1
+#define SIG_SETMASK 2
+
+#define HAVE_POSIX_SIGNALS
 
 #else /* not HAVE_BSD_SIGNALS */
 #ifdef HAVE_SYSV3_SIGNALS
