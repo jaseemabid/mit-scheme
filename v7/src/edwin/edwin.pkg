@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: edwin.pkg,v 1.99 1992/09/10 02:44:17 cph Exp $
+$Id: edwin.pkg,v 1.99.1.1 1992/09/18 00:28:23 jinx Exp $
 
-Copyright (c) 1989-92 Massachusetts Institute of Technology
+Copyright (c) 1989-1992 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -706,30 +706,53 @@ MIT in each case. |#
 	  continuation-browser-buffer
 	  debug-scheme-error
 	  edwin-command$browse-continuation
-	  edwin-command$browse-environment
-	  edwin-command$browser-evaluator
-	  edwin-command$browser-next-line
-	  edwin-command$browser-previous-line
-	  edwin-command$browser-quit
-	  edwin-command$browser-select-line
-	  edwin-command$browser-where
 	  edwin-mode$continuation-browser
-	  edwin-mode$environment-browser
-	  edwin-variable$debugger-one-at-a-time?
-	  edwin-variable$debugger-start-on-error?
-	  edwin-variable$debugger-max-subproblems
 	  edwin-variable$debugger-confirm-return?
+	  edwin-variable$debugger-debug-evaluations?
+	  edwin-variable$debugger-expand-reductions?
+	  edwin-variable$debugger-hide-system-code?
+	  edwin-variable$debugger-max-subproblems
+	  edwin-variable$debugger-one-at-a-time?
+	  edwin-variable$debugger-open-markers?
 	  edwin-variable$debugger-quit-on-restart?
 	  edwin-variable$debugger-quit-on-return?
-	  edwin-variable$environment-browser-package-limit
-	  environment-browser-buffer)
+	  edwin-variable$debugger-show-help-message?
+	  edwin-variable$debugger-split-window?
+	  edwin-variable$debugger-start-on-error?
+	  edwin-variable$debugger-verbose-mode?)
+  (import (runtime continuation-parser)
+	  stack-frame/reductions)
   (import (runtime debugger)
+	  command/condition-restart
+	  command/frame
+	  command/print-environment-procedure
+	  command/print-expression
+	  command/show-all-frames
+	  command/show-current-frame
 	  debugger-pp
-	  expression-indentation
-	  invalid-expression?)
-  (import (runtime debugger-utilities)
-	  print-binding
-	  show-environment-name)
+	  dstate/environment-list
+	  dstate/expression
+	  dstate/number-of-reductions
+	  dstate/previous-subproblems
+	  dstate/reduction
+	  dstate/reduction-number
+	  dstate/subproblem
+	  dstate/subproblem-number
+	  dstate/using-history?
+	  improper-list-length
+	  invalid-expression?
+	  make-initial-dstate
+	  print-reduction-expression
+	  print-subproblem-environment
+	  print-subproblem-expression
+	  reduction-environment
+	  reduction-expression
+	  set-current-subproblem!
+	  set-dstate/environment-list!
+	  set-dstate/reduction-number!
+	  show-environment-name
+	  stack-frame/compiled-code?
+	  write-restarts)
   (import (runtime error-handler)
 	  hook/invoke-restart))
 
