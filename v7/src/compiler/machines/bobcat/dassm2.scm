@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/dassm2.scm,v 4.12 1988/12/30 07:05:13 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/dassm2.scm,v 4.12.2.1 1989/05/31 19:59:29 jinx Rel $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -75,7 +75,9 @@ MIT in each case. |#
 			      (variable-cache-name
 			       (system-vector-ref new-block 3))
 			      arity))
-		     ((#xfc)		; interpreted
+		     ((#xfc		; interpreted
+		       #x114		; fixed arity primitive
+		       #x11a)		; lexpr primitive
 		      (vector 'INTERPRETED
 			      (system-vector-ref new-block 3)
 			      arity))
