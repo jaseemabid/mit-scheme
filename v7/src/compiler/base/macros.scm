@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 1.58.1.3 1987/06/25 10:41:18 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 1.58.1.4 1987/07/01 20:50:07 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -77,6 +77,9 @@ MIT in each case. |#
   true)
 
 (define enable-expansion-declarations
+  true)
+
+(define enable-processor-declarations
   true)
 
 (let ()
@@ -260,32 +263,35 @@ MIT in each case. |#
 
 ;;;; Lap instruction sequences.
 
+;; The effect of unquote and unquote-splicing is the same since
+;; syntax-instruction actually returns a bit-level instruction sequence.
+;; Kept separate for clarity and because it does not have to be like that.
+
 (syntax-table-define compiler-syntax-table 'LAP
   (macro some-instructions
-    (define (handle remaining)
-      (cond ((null? remaining)
-	     `empty-lap-instructions)
-	    ((eq? (caar remaining) 'UNQUOTE)
-	     `(append-lap-instructions!
-	       ,(cadar remaining)
-	       ,(handle (cdr remaining))))
-	    ((eq? (caar remaining) 'UNQUOTE-SPLICING)
-	     `(append-lap-instructions!
-	       ,(cadar remaining)
-	       ,(handle (cdr remaining))))
-	    (else
-	     `(append-lap-instructions!
-	       (INST ,(car remaining))
-	       ,(handle (cdr remaining))))))
-    (handle some-instructions)))
+    (define (handle current remaining)
+      (let ((processed
+	     (cond ((eq? (car current) 'UNQUOTE)
+		    (cadr current))
+		   ((eq? (car current) 'UNQUOTE-SPLICING)
+		    (cadr current))
+		   (else `(INST ,current)))))
+	(if (null? remaining)
+	    processed
+	    `(APPEND-INSTRUCTION-SEQUENCES!
+	      ,processed
+	      ,(handle (car remaining) (cdr remaining))))))
+    (if (null? some-instructions)
+	`EMPTY-INSTRUCTION-SEQUENCE
+	(handle (car some-instructions) (cdr some-instructions)))))
 
 (syntax-table-define compiler-syntax-table 'INST
   (macro (the-instruction)
-    `(->lap-instructions
-      ,(list 'quasiquote the-instruction))))
+    `(LAP:SYNTAX-INSTRUCTION
+      ,(list 'QUASIQUOTE the-instruction))))
 
 ;; This is a NOP for now.
 
 (syntax-table-define compiler-syntax-table 'INST-EA
   (macro (ea)
-    (list 'quasiquote ea)))
+    (list 'QUASIQUOTE ea)))
