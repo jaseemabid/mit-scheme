@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/conect.scm,v 4.3 1988/08/18 03:28:41 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/conect.scm,v 4.3.1.1 1988/12/06 03:38:50 cph Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
