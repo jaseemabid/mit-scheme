@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/rules2.scm,v 4.7.1.1 1989/03/21 18:54:07 arthur Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/rules2.scm,v 4.7.1.2 1989/05/11 17:41:59 arthur Exp $
 
-Copyright (c) 1988 Massachusetts Institute of Technology
+Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -321,3 +321,20 @@ MIT in each case. |#
    (predicate/memory-operand-reference memory)
    constant
    (invert-cc-noncommutative (fixnum-predicate->cc predicate))))
+
+;;;; Flonum Predicates
+
+(define-rule predicate
+  (FLONUM-PRED-1-ARG (? predicate) (REGISTER (? register)))
+  (QUALIFIER (pseudo-float? register))
+  (set-flonum-branches! (flonum-predicate->cc predicate))
+  (LAP (FTST ,(float-register-reference register))))
+
+(define-rule predicate
+  (FLONUM-PRED-2-ARGS (? predicate)
+		      (REGISTER (? register1))
+		      (REGISTER (? register2)))
+  (QUALIFIER (and (pseudo-float? register1) (pseudo-float? register2)))
+  (set-flonum-branches! (flonum-predicate->cc predicate))
+  (LAP (FCMP ,(float-register-reference register2)
+	     ,(float-register-reference register1))))
