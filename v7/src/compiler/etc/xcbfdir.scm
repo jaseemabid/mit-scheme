@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/etc/xcbfdir.scm,v 1.7 1991/05/27 17:56:12 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/etc/xcbfdir.scm,v 1.7.1.1 1991/08/24 00:33:06 cph Exp $
 
 Copyright (c) 1989-91 Massachusetts Institute of Technology
 
@@ -43,7 +43,7 @@ MIT in each case. |#
 	   (two (pathname-new-type pathname "tch")))
        (call-with-current-continuation
 	(lambda (here)
-	  (bind-condition-handler (list condition-type:error)
+	  (bind-condition-handler '()
 	      (lambda (condition)
 		(let ((port (current-output-port)))
 		  (newline port)
