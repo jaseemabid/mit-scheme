@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.48 2001/08/07 01:26:14 cph Exp $
+$Id: gcloop.c,v 9.48.4.1 2001/12/14 21:25:03 cph Exp $
 
 Copyright (c) 1987-1999, 2001 Massachusetts Institute of Technology
 
@@ -238,7 +238,7 @@ DEFUN (GCLoop,
 	Scan += 1;
 	count = (MANIFEST_CLOSURE_COUNT (Scan));
 	word_ptr = (FIRST_MANIFEST_CLOSURE_ENTRY (Scan));
-	area_end = (MANIFEST_CLOSURE_END (Scan, count));
+	area_end = ((MANIFEST_CLOSURE_END (Scan, count)) - 1);
 
 	while ((--count) >= 0)
 	{

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.90 2001/08/07 01:26:05 cph Exp $
+$Id: fasload.c,v 9.90.4.1 2001/12/14 21:24:50 cph Exp $
 
 Copyright (c) 1987-2001 Massachusetts Institute of Technology
 
@@ -535,7 +535,7 @@ DEFUN (Relocate_Block, (Scan, Stop_At),
 	Scan += 1;
 	count = (MANIFEST_CLOSURE_COUNT (Scan));
 	word_ptr = (FIRST_MANIFEST_CLOSURE_ENTRY (Scan));
-	area_end = (MANIFEST_CLOSURE_END (Scan, count));
+	area_end = ((MANIFEST_CLOSURE_END (Scan, count)) - 1);
 
 	while ((--count) >= 0)
 	{

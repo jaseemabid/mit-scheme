@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.60 2001/08/07 01:27:03 cph Exp $
+$Id: purify.c,v 9.60.4.1 2001/12/14 21:27:40 cph Exp $
 
 Copyright (c) 1988-1999, 2001 Massachusetts Institute of Technology
 
@@ -218,7 +218,7 @@ DEFUN (purifyloop, (Scan, To_Pointer, GC_Mode),
 	Scan += 1;
 	count = (MANIFEST_CLOSURE_COUNT (Scan));
 	word_ptr = (FIRST_MANIFEST_CLOSURE_ENTRY (Scan));
-	area_end = (MANIFEST_CLOSURE_END (Scan, count));
+	area_end = ((MANIFEST_CLOSURE_END (Scan, count)) - 1);
 
 	while ((--count) >= 0)
 	{
