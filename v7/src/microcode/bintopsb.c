@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: bintopsb.c,v 9.63 1993/11/16 04:50:02 gjr Exp $
+$Id: bintopsb.c,v 9.63.1.1 1998/07/19 20:17:02 cph Exp $
 
-Copyright (c) 1987-1993 Massachusetts Institute of Technology
+Copyright (c) 1987-98 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -63,7 +63,9 @@ DEFUN (Load_Data, (Count, To_Where), long Count AND SCHEME_OBJECT *To_Where)
 
 /* Character macros and procedures */
 
+#ifndef _IRIX
 extern int strlen ();
+#endif
 
 #ifndef isalpha
 
