@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/runtime/runtime.pkg,v 14.66 1990/04/21 16:26:47 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/runtime/runtime.pkg,v 14.66.1.1 1990/06/14 00:04:45 jinx Exp $
 
 Copyright (c) 1988, 1989, 1990 Massachusetts Institute of Technology
 
@@ -1145,7 +1145,8 @@ MIT in each case. |#
   (export (runtime macros)
 	  lambda-optional-tag)
   (export (runtime unsyntaxer)
-	  lambda-optional-tag)
+	  lambda-optional-tag
+	  lambda-rest-tag)
   (export (runtime parser-table)
 	  collect-list-wrapper)
   (initialization (initialize-package!)))
@@ -1530,6 +1531,7 @@ MIT in each case. |#
 	  make-sequence
 	  make-unassigned?
 	  sequence-actions
+	  sequence-immediate-actions
 	  sequence-components
 	  sequence?
 	  unassigned?-components
