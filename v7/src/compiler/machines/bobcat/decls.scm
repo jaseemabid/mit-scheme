@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 1.9 1987/06/09 19:59:13 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 1.9.1.1 1987/06/25 10:50:39 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -55,6 +55,15 @@ MIT in each case. |#
 		   (pathname->absolute-pathname (->pathname dependency)))
 		 dependencies))))))
 
+(define (file-dependency/expansion/join filenames expansions)
+  (for-each (lambda (filename)
+	      (file-dependency/expansion/make filename expansions))
+	    filenames))			 
+
+(define (file-dependency/expansion/make filename expansions)
+  (if enable-expansion-declarations
+      (sf/add-file-declarations! filename `((EXPAND-OPERATOR ,@expansions)))))
+
 (define (filename/append directory . names)
   (map (lambda (name)
 	 (string-append directory "/" name))
@@ -65,6 +74,8 @@ MIT in each case. |#
 	      (sf/set-file-syntax-table! filename dependency))
 	    filenames))
 
+;;;; Integration and expansion dependencies
+
 (define filenames/dependency-chain/base
   (filename/append "base"
 		   "object" "cfg" "ctypes" "dtypes" "bblock" "dfg" "rtltyp"
@@ -91,15 +102,38 @@ MIT in each case. |#
 (file-dependency/integration/join filenames/dependency-group/base
 				  filenames/dependency-chain/base)
 
-(file-dependency/integration/join
- (filename/append "machines/bobcat" "instr2" "instr3")
- (filename/append "machines/bobcat" "instr1"))
+(define filenames/dependency-group/lap
+  (filename/append "machines/bobcat" "instr1" "instr2" "instr3"))
+
+(define filenames/dependency-group/lap-syn1
+  (append (filename/append "back-end" "lapgen" "regmap")
+	  (filename/append "base" "linear" "toplev")))
+
+(define filenames/dependency-group/lap-syn2
+  (filename/append "machines/bobcat" "lapgen"))
+
+(file-dependency/integration/join (append filenames/dependency-group/lap-syn1
+					  filenames/dependency-group/lap-syn2)
+				  (filename/append "back-end" "insseq"))
+
+(file-dependency/integration/join (append filenames/dependency-group/lap
+					  filenames/dependency-group/lap-syn2)
+				  (filename/append "machines/bobcat" "insutl"))
+
+(file-dependency/expansion/join filenames/dependency-group/lap-syn2
+				'((->LAP-INSTRUCTIONS
+				   (access ->lap-instructions-expander
+					   lap-syntax-package
+					   compiler-package))))
+
+;;;; Syntax dependencies
 
 (file-dependency/syntax/join
  (append (filename/append "base"
 			  "bblock" "cfg" "ctypes" "dfg" "dtypes" "emodel"
-			  "linear" "object" "queue" "rtlcfg" "rtlcon" "rtlexp"
-			  "rtlreg" "rtltyp" "rtypes" "sets" "toplev" "utils")
+			  "linear" "object" "pmerly" "queue" "rtlcfg"
+			  "rtlcon" "rtlexp" "rtlreg" "rtltyp"
+			  "rtypes" "sets" "toplev" "utils")
 	 (filename/append "alpha" "dflow1" "dflow2" "dflow3" "dflow4" "dflow5"
 			  "dflow6" "fggen1" "fggen2")
 	 (filename/append "front-end"
@@ -107,7 +141,8 @@ MIT in each case. |#
 			  "rcsesa" "rdeath" "rdebug" "rgcomb" "rgpcom" "rgpred"
 			  "rgproc" "rgrval" "rgstmt" "rlife" "rtlgen")
 	 (filename/append "back-end"
-			  "asmmac" "block" "lapgen" "laptop" "regmap" "symtab")
+			  "asmmac" "block" "insseq" "lapgen"
+			  "laptop" "regmap" "symtab")
 	 (filename/append "machines/bobcat" "insmac" "machin"))
  compiler-syntax-table)
 
@@ -117,6 +152,6 @@ MIT in each case. |#
  lap-generator-syntax-table)
 
 (file-dependency/syntax/join
- (append (filename/append "machines/bobcat" "instr1" "instr2" "instr3")
+ (append (filename/append "machines/bobcat" "insutl" "instr1" "instr2" "instr3")
 	 (filename/append "machines/spectrum" "instrs"))
  assembler-syntax-table)
