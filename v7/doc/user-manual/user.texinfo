@@ -2,7 +2,7 @@
 @iftex
 @finalout
 @end iftex
-@comment $Id: user.texinfo,v 1.91.2.1 2002/01/28 02:12:04 cph Exp $
+@comment $Id: user.texinfo,v 1.91.2.2 2002/01/29 01:33:24 cph Exp $
 @comment %**start of header (This is for running Texinfo on a region.)
 @setfilename user.info
 @settitle MIT Scheme User's Manual
@@ -4698,7 +4698,7 @@ The Algorithmic Language Scheme}.
 @node Recent Changes, Older Changes, Release Notes, Release Notes
 @appendixsec Recent Changes
 
-These are the changes since releae 7.6.0:
+These are the changes since release 7.6.0:
 
 @itemize @bullet
 @item
