@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/offset.scm,v 4.5 1988/11/01 04:51:59 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/offset.scm,v 4.5.1.1 1988/12/06 02:41:31 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
