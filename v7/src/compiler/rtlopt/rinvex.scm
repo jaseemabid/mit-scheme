@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rinvex.scm,v 1.7 1992/12/16 09:18:30 gjr Exp $
+$Id: rinvex.scm,v 1.7.1.1 1994/03/30 21:23:29 gjr Exp $
 
-Copyright (c) 1989-1992 Massachusetts Institute of Technology
+Copyright (c) 1989-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -163,16 +163,17 @@ MIT in each case. |#
   ;; operations whose composition is the identity for that value
   ;; class.  Each operation is described by the operator and the
   ;; selector for the relevant operand.
-  `((,value-class=value? (OBJECT->FIXNUM ,rtl:object->fixnum-expression)
-			 (FIXNUM->OBJECT ,rtl:fixnum->object-expression))
+  `(
+    (,value-class=value? (OBJECT->FIXNUM ,rtl:object->fixnum-expression)
+    			 (FIXNUM->OBJECT ,rtl:fixnum->object-expression))
     (,value-class=value? (FIXNUM->OBJECT ,rtl:fixnum->object-expression)
-			 (OBJECT->FIXNUM ,rtl:object->fixnum-expression))
+    			 (OBJECT->FIXNUM ,rtl:object->fixnum-expression))
     (,value-class=value? (OBJECT->UNSIGNED-FIXNUM
-			  ,rtl:object->unsigned-fixnum-expression)
-			 (FIXNUM->OBJECT ,rtl:fixnum->object-expression))
+    			  ,rtl:object->unsigned-fixnum-expression)
+    			 (FIXNUM->OBJECT ,rtl:fixnum->object-expression))
     (,value-class=value? (FIXNUM->OBJECT ,rtl:fixnum->object-expression)
-			 (OBJECT->UNSIGNED-FIXNUM
-			  ,rtl:object->unsigned-fixnum-expression))
+    			 (OBJECT->UNSIGNED-FIXNUM
+    			  ,rtl:object->unsigned-fixnum-expression))
     (,value-class=value? (FIXNUM->ADDRESS ,rtl:fixnum->address-expression)
 			 (ADDRESS->FIXNUM ,rtl:address->fixnum-expression))
     (,value-class=value? (ADDRESS->FIXNUM ,rtl:address->fixnum-expression)
@@ -187,6 +188,12 @@ MIT in each case. |#
     ;; because they are slightly more general.
     (,value-class=immediate? (OBJECT->DATUM ,rtl:object->datum-expression)
 			     (CONS-NON-POINTER ,rtl:cons-non-pointer-datum))
+
+    (,value-class=ascii? (CHAR->ASCII ,rtl:char->ascii-expression)
+    			     (CONS-POINTER ,rtl:cons-pointer-datum))
+    (,value-class=ascii? (CHAR->ASCII ,rtl:char->ascii-expression)
+    			     (CONS-NON-POINTER ,rtl:cons-non-pointer-datum))
+
     (,value-class=immediate? (OBJECT->TYPE ,rtl:object->type-expression)
 			     (CONS-POINTER ,rtl:cons-pointer-type))
     (,value-class=immediate? (OBJECT->TYPE ,rtl:object->type-expression)
@@ -257,7 +264,21 @@ MIT in each case. |#
 	    OPEN-PROCEDURE-HEADER
 	    OVERFLOW-TEST
 	    POP-RETURN
-	    PROCEDURE-HEADER))
+	    PROCEDURE-HEADER
+	    INVOCATION:PROCEDURE
+	    INVOCATION:REGISTER
+	    INVOCATION:NEW-APPLY
+	    RETURN-ADDRESS
+	    PROCEDURE
+	    TRIVIAL-CLOSURE
+	    CLOSURE
+	    EXPRESSION
+	    INTERRUPT-CHECK:PROCEDURE
+	    INTERRUPT-CHECK:CONTINUATION
+	    INTERRUPT-CHECK:CLOSURE
+	    INTERRUPT-CHECK:SIMPLE-LOOP
+	    PRESERVE
+	    RESTORE))
 
 (define (define-one-arg-method type get set)
   (define-method type
@@ -275,6 +296,10 @@ MIT in each case. |#
 (define-one-arg-method 'TYPE-TEST
   rtl:type-test-expression
   rtl:set-type-test-expression!)
+
+(define-one-arg-method 'PRED-1-ARG
+  rtl:pred-1-arg-operand
+  rtl:set-pred-1-arg-operand!)
 
 (define-one-arg-method 'INVOCATION:CACHE-REFERENCE
   rtl:invocation:cache-reference-name
@@ -323,6 +348,12 @@ MIT in each case. |#
   rtl:set-eq-test-expression-1!
   rtl:eq-test-expression-2
   rtl:set-eq-test-expression-2!)
+
+(define-two-arg-method 'PRED-2-ARGS
+  rtl:pred-2-args-operand-1
+  rtl:set-pred-2-args-operand-1!
+  rtl:pred-2-args-operand-2
+  rtl:set-pred-2-args-operand-2!)
 
 (define-two-arg-method 'FIXNUM-PRED-2-ARGS
   rtl:fixnum-pred-2-args-operand-1
