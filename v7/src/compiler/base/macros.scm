@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 1.58 1987/05/21 14:55:09 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 1.58.1.1 1987/06/10 19:36:10 cph Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -250,4 +250,46 @@ MIT in each case. |#
 	     (else (error "Unknown rule type" type)))
 	  ',pattern
 	  ,(rule-result-expression names transformer qualifier
+				   `(BEGIN ,@actions)))))))
+
+;;;; Lap instruction sequences.  A NOP for now.
+
+(syntax-table-define compiler-syntax-table 'INSTRUCTIONS
+  (macro some-instructions
+    (define (handle remaining)
+      (cond ((null? remaining)
+	     'lap:empty-instructions)
+	    ((eq? (caar remaining) 'EVALUATE)
+	     `(lap:cons-instruction
+	       ,(cadar remaining)
+	       ,(handle (cdr remaining))))
+	    ((eq? (caar remaining) 'EVALUATE-SPLICE)
+	     `(lap:append-instructions
+	       ,(cadar remaining)
+	       ,(handle (cdr remaining))))
+	    (else
+	     `(lap:cons-instruction
+	       (INSTRUCTION ,(car remaining))
+	       ,(handle (cdr remaining))))))
+    (handle some-instructions)))
+
+(syntax-table-define compiler-syntax-table 'INSTRUCTION
+  (macro (the-instruction)
+    (define (quoted? object)
+      (and (pair? object)
+	   (eq? (car object) 'QUOTE)))
+
+    (define (walk tree)
+      (cond ((not (pair? tree))
+	     `(quote ,tree))
+	    ((eq? (car tree) 'EVALUATE)
+	     (cadr tree))
+	    (else
+	     (let ((the-car (walk (car tree)))
+		   (the-cdr (walk (cdr tree))))
+	       (if (and (quoted? the-car)
+			(quoted? the-cdr))
+		   `(quote (,(cadr the-car) . ,(cadr the-cdr)))
+		   `(cons ,the-car ,the-cdr))))))
+    (walk the-instruction)))
 				   `(BEGIN ,@actions)))))))
