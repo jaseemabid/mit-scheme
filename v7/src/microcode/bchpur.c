@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: bchpur.c,v 9.67 1999/01/02 06:11:34 cph Exp $
+$Id: bchpur.c,v 9.67.2.1 2000/11/28 03:51:16 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -398,8 +398,8 @@ DEFUN (purify_header_overflow, (free_buffer), SCHEME_OBJECT * free_buffer)
 }
 
 static void
-DEFUN (purify, (object, purify_mode),
-       SCHEME_OBJECT object AND Boolean purify_mode)
+DEFUN (purify, (object, pure_p),
+       SCHEME_OBJECT object AND Boolean pure_p)
 {
   long length, pure_length, delta;
   SCHEME_OBJECT
@@ -432,7 +432,7 @@ DEFUN (purify, (object, purify_mode),
     free_buffer_ptr =
       (dump_and_reset_free_buffer ((free_buffer_ptr - free_buffer_top), NULL));
 
-  if (! purify_mode)
+  if (! pure_p)
     pure_length = 3;
   else
   {
@@ -448,7 +448,7 @@ DEFUN (purify, (object, purify_mode),
   }
 
   * free_buffer_ptr++ =
-    (purify_mode
+    (pure_p
      ? (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, new_free_const))
      : (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1)));
   * free_buffer_ptr++ = (MAKE_OBJECT (CONSTANT_PART, pure_length));
@@ -457,7 +457,7 @@ DEFUN (purify, (object, purify_mode),
     free_buffer_ptr = (purify_header_overflow (free_buffer_ptr));
 
   scan_start = ((initialize_scan_buffer (block_start)) + delta);
-  if (! purify_mode)
+  if (! pure_p)
     result = (GCLoop (scan_start, &free_buffer_ptr, &new_free_const));
   else
   {
@@ -622,7 +622,7 @@ DEFUN (purify, (object, purify_mode),
 
 DEFINE_PRIMITIVE ("PRIMITIVE-PURIFY", Prim_primitive_purify, 3, 3, 0)
 {
-  Boolean purify_mode;
+  Boolean pure_p;
   SCHEME_OBJECT object, result, daemon;
   PRIMITIVE_HEADER (3);
   PRIMITIVE_CANONICALIZE_CONTEXT ();
@@ -631,13 +631,13 @@ DEFINE_PRIMITIVE ("PRIMITIVE-PURIFY", Prim_primitive_purify, 3, 3, 0)
   Save_Time_Zone (Zone_Purify);
   TOUCH_IN_PRIMITIVE ((ARG_REF (1)), object);
   CHECK_ARG (2, BOOLEAN_P);
-  purify_mode = (BOOLEAN_ARG (2));
+  pure_p = (BOOLEAN_ARG (2));
   GC_Reserve = (arg_nonnegative_integer (3));
 
   POP_PRIMITIVE_FRAME (3);
 
   ENTER_CRITICAL_SECTION ("purify");
-  purify (object, purify_mode);
+  purify (object, pure_p);
   result = (MAKE_POINTER_OBJECT (TC_LIST, Free));
   Free += 2;
   Free[-2] = SHARP_T;
