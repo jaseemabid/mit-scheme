@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: rules3.scm,v 1.34.4.1 2001/12/14 20:22:45 cph Exp $
+$Id: rules3.scm,v 1.34.4.2 2001/12/16 02:45:16 cph Exp $
 
 Copyright (c) 1992-1999, 2001 Massachusetts Institute of Technology
 
@@ -686,16 +686,7 @@ USA.
 			 ,(make-non-pointer-literal (ucode-type compiled-entry)
 						    0)))
 	 (MOV W (@RO B ,regnum:free-pointer -4) ,temp)
-	 ;; Synchronize the I/D caches.
-	 (PUSH (R ,eax))
-	 (PUSH (R ,ecx))
-	 (PUSH (R ,edx))
-	 (PUSH (R ,ebx))
-	 (CPUID)
-	 (POP (R ,ebx))
-	 (POP (R ,edx))
-	 (POP (R ,ecx))
-	 (POP (R ,eax)))))
+	 ,@(issue-cpuid))))
 
 (define (generate/cons-multiclosure target nentries size entries)
   (let* ((mtarget (target-register target))
@@ -740,16 +731,39 @@ USA.
 		       ,(make-non-pointer-literal (ucode-type compiled-entry)
 						  0)))
 	     (MOV W (@RO B ,regnum:free-pointer -4) ,temp)
-	     ;; Synchronize the I/D caches.
-	     (PUSH (R ,eax))
-	     (PUSH (R ,ecx))
-	     (PUSH (R ,edx))
-	     (PUSH (R ,ebx))
-	     (CPUID)
-	     (POP (R ,ebx))
-	     (POP (R ,edx))
-	     (POP (R ,ecx))
-	     (POP (R ,eax)))))))
+	     ,@(issue-cpuid))))))
+
+(define (issue-cpuid)
+  #|
+  ;; For some reason this doesn't save/restore temporary registers.
+  ;; I'm obviously missing something about how the allocator works.
+  (let ((do-push
+	 (lambda (r)
+	   (if (or (memv r *needed-registers*)
+		   (map-entries:find-alias *register-map* r))
+	       (LAP (PUSH (R ,r)))
+	       (LAP))))
+	(do-pop
+	 (lambda (r)
+	   (if (or (memv r *needed-registers*)
+		   (map-entries:find-alias *register-map* r))
+	       (LAP (POP (R ,r)))
+	       (LAP)))))
+    (LAP ,@(do-push eax)
+	 ,@(do-push ecx)
+	 ,@(do-push edx)
+	 ,@(do-push ebx)
+	 (XOR W (R ,eax) (R ,eax))
+	 (CPUID)
+	 ,@(do-pop ebx)
+	 ,@(do-pop edx)
+	 ,@(do-pop ecx)
+	 ,@(do-pop eax)))
+  |#
+  (LAP (PUSHAD)
+       (XOR W (R ,eax) (R ,eax))
+       (CPUID)
+       (POPAD)))
 
 (define closure-share-names
   '#(closure-0-interrupt closure-1-interrupt closure-2-interrupt
