@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/compiler.pkg,v 1.6 1988/08/22 22:20:08 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/compiler.pkg,v 1.6.1.1 1988/09/07 06:27:51 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -228,12 +228,17 @@ MIT in each case. |#
 	 "rtlbase/rtline"		;linearizer
 	 )
   (parent (compiler))
+  (export (compiler)
+	  make-linearizer)
   (export (compiler top-level)
 	  generate/top-level
 	  linearize-rtl
-	  open-coding-analysis)
+	  open-coding-analysis
+	  setup-bblock-continuations!)
   (export (compiler debug)
-	  linearize-rtl))
+	  linearize-rtl)
+  (import (compiler top-level)
+	  label->object))
 
 (define-package (compiler rtl-cse)
   (files "rtlopt/rcse1"			;RTL common subexpression eliminator
