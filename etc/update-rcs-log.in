@@ -1,9 +1,0 @@
-;; -*- Scheme -*-
-;; $Id: update-rcs-log.in,v 1.10 1999/06/03 02:48:27 cph Exp $
-
-(begin
-  (load-option 'RCS)
-  (load "/scheme/v7/linux/rcs/mklogs")
-  (for-each rcs-directory-log
-	    '("/gunk/hlsim/SRC"
-	      "/gunk/hlsim/doc")))
