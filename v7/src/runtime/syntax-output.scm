@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-output.scm,v 1.1.2.5 2002/01/18 17:56:31 cph Exp $
+;;; $Id: syntax-output.scm,v 1.1.2.6 2002/01/19 05:38:50 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -105,14 +105,21 @@
   (make-definition name value))
 
 (define (output/top-level-sequence declarations expressions)
-  (let ((declarations (apply append declarations)))
-    (if (or (pair? declarations)
-	    (pair? expressions))
-	(scan-defines (make-sequence
-		       (cons (make-block-declaration declarations)
-			     expressions))
-		      make-open-block)
-	(output/unspecific))))
+  (let ((declarations (apply append declarations))
+	(make-open-block
+	 (lambda (expressions)
+	   (scan-defines (make-sequence expressions) make-open-block))))
+    (if (pair? declarations)
+	(if (pair? expressions)
+	    (make-open-block
+	     (cons (make-block-declaration declarations)
+		   expressions))
+	    (make-block-declaration declarations))
+	(if (pair? expressions)
+	    (if (pair? (cdr expressions))
+		(make-open-block expressions)
+		(car expressions))
+	    (output/unspecific)))))
 
 (define (output/the-environment)
   (make-the-environment))
