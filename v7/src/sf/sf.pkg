@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: sf.pkg,v 4.16.2.1 2002/01/15 20:48:13 cph Exp $
+$Id: sf.pkg,v 4.16.2.2 2002/02/01 19:53:55 cph Exp $
 
 Copyright (c) 1987-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -48,7 +48,6 @@ USA.
   (parent (scode-optimizer))
   (export ()
 	  sf
-	  sf/add-file-declarations!
 	  sf/default-declarations
 	  sf/default-syntax-table
 	  sf/pathname-defaulting

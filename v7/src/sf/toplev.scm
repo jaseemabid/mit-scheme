@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: toplev.scm,v 4.22.2.1 2002/01/15 20:48:15 cph Exp $
+$Id: toplev.scm,v 4.22.2.2 2002/02/01 19:53:45 cph Exp $
 
 Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
@@ -63,29 +63,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
   (if (not (list-of-symbols? del-list))
       (error "sf/set-usual-integrations-default-deletions!: Bad deletion list"
 	     del-list))
-  (set! sf/usual-integrations-default-deletions del-list))
-
-(define (sf/add-file-declarations! pathname declarations)
-  (let ((pathname (pathname/normalize pathname)))
-    (pathname-map/insert! file-info/declarations
-			  pathname
-			  (append! (file-info/get-declarations pathname)
-				   (list-copy declarations)))))
-
-(define (sf/file-declarations pathname)
-  (file-info/get-declarations (pathname/normalize pathname)))
-
-(define (file-info/get-declarations pathname)
-  (pathname-map/lookup file-info/declarations
-		       pathname
-		       identity-procedure
-		       (lambda () sf/default-declarations)))
+  (set! sf/usual-integrations-default-deletions del-list)
+  unspecific)
 
 (define (pathname/normalize pathname)
   (pathname-default-type (merge-pathnames pathname) "scm"))
-
-(define file-info/declarations
-  (pathname-map/make))
 
 (define sf/default-syntax-table
   system-global-environment)
@@ -123,7 +105,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 		(lambda (input-pathname bin-pathname spec-pathname)
 		  (sf/internal input-pathname bin-pathname spec-pathname
 			       sf/default-syntax-table
-			       (sf/file-declarations input-pathname)))))
+			       sf/default-declarations))))
 	    (if (pair? input-string)
 		input-string
 		(list input-string))))
