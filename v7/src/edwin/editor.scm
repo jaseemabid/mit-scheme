@@ -1,15 +1,16 @@
 ;;; -*-Scheme-*-
 ;;;
-;;;	$Id: editor.scm,v 1.240 1995/01/06 17:47:23 cph Exp $
+;;;	$Id: editor.scm,v 1.240.1.1 1998/10/19 01:23:10 cph Exp $
 ;;;
 ;;;	Copyright (c) 1986, 1989-95 Massachusetts Institute of Technology
 ;;;
 ;;;	This material was developed by the Scheme project at the
 ;;;	Massachusetts Institute of Technology, Department of
 ;;;	Electrical Engineering and Computer Science.  Permission to
-;;;	copy this software, to redistribute it, and to use it for any
-;;;	purpose is granted, subject to the following restrictions and
-;;;	understandings.
+;;;	copy and modify this software, to redistribute either the
+;;;	original software or a modified version, and to use this
+;;;	software for any purpose is granted, subject to the following
+;;;	restrictions and understandings.
 ;;;
 ;;;	1. Any copy made of this software must include this copyright
 ;;;	notice in full.
@@ -106,6 +107,7 @@
 	      message))))))))
 
 (define (edwin . args) (apply edit args))
+(simple-option-parser "-edit" edit)
 
 (define edwin-editor false)
 (define editor-abort)
