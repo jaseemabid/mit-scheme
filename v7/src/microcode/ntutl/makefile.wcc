@@ -1,6 +1,6 @@
 ### -*- Fundamental -*-
 ###
-###     $Id: makefile.wcc,v 1.13.2.1.2.2 2000/12/02 21:17:04 cph Exp $
+###     $Id: makefile.wcc,v 1.13.2.1.2.3 2000/12/03 05:27:43 cph Exp $
 ###
 ###     Copyright (c) 1992-2000 Massachusetts Institute of Technology
 ###
@@ -68,7 +68,10 @@ WRCFLAGS_SYSTEM = /i=$(%NT_INCLUDE)
 # /DMIT_SCHEME	required to specialize some code
 # /DGUI		configure a console window
 # omitted: /DNO_CONST /Di386
-UTIL_CFLAGS = /6r /d2 /ei /fpi /fp3 /op /s /w1 /zc /zp4 /zq
+#
+# For debugging, uncomment next line and comment one following.
+#UTIL_CFLAGS = /6r /d2 /ei /op /s /w1 /zc /zp4 /zq
+UTIL_CFLAGS = /6r /d1+ /ei /oe /op /ox /s /w1 /zc /zp4 /zq
 CFLAGS = $(UTIL_CFLAGS) /bm /DMIT_SCHEME /DGUI /i=.
 
 # Linker options.
