@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: toplev.scm,v 4.52 1993/11/29 19:11:24 gjr Exp $
+$Id: toplev.scm,v 4.52.1.1 1994/03/30 21:16:39 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -39,55 +39,79 @@ MIT in each case. |#
 
 ;;;; Usual Entry Point: File Compilation
 
-(define (cf input #!optional output)
-  (let ((kernel
-	 (lambda (source-file)
-	   (with-values
-	       (lambda () (sf/pathname-defaulting source-file false false))
-	     (lambda (source-pathname bin-pathname spec-pathname)
-	       ;; Maybe this should be done only if scode-file
-	       ;; does not exist or is older than source-file.
-	       (sf source-pathname bin-pathname spec-pathname)
-	       (if (default-object? output)
-		   (compile-bin-file bin-pathname)
-		   (compile-bin-file bin-pathname output)))))))
-    (if (pair? input)
-	(for-each kernel input)
-	(kernel input))))
+(define (make-cf compile-bin-file)
+  (lambda (input #!optional output)
+    (let ((kernel
+	   (lambda (source-file)
+	     (with-values
+		 (lambda () (sf/pathname-defaulting source-file false false))
+	       (lambda (source-pathname bin-pathname spec-pathname)
+		 ;; Maybe this should be done only if scode-file
+		 ;; does not exist or is older than source-file.
+		 (sf source-pathname bin-pathname spec-pathname)
+		 (if (default-object? output)
+		     (compile-bin-file bin-pathname)
+		     (compile-bin-file bin-pathname output)))))))
+      (if (pair? input)
+	  (for-each kernel input)
+	  (kernel input)))))
 
-(define (cbf input . rest)
-  (apply compile-bin-file input rest))
+(define (make-cbf compile-bin-file)
+  (lambda (input . rest)
+    (apply compile-bin-file input rest)))
 
-(define (compile-bin-file input-string #!optional output-string)
-  (if compiler:cross-compiling?
-      (apply cross-compile-bin-file
-	     (cons input-string (if (default-object? output-string)
-				    '()
-				    (list output-string))))
-      (begin
-	(compiler-pathnames
-	 input-string
-	 (and (not (default-object? output-string)) output-string)
-	 (make-pathname false false false false "bin" 'NEWEST)
-	 (lambda (input-pathname output-pathname)
-	   (maybe-open-file
-	    compiler:generate-rtl-files?
-	    (pathname-new-type output-pathname "rtl")
-	    (lambda (rtl-output-port)
-	      (maybe-open-file compiler:generate-lap-files?
-			       (pathname-new-type output-pathname "lap")
-			       (lambda (lap-output-port)
-				 (compile-scode/internal
-				  (compiler-fasload input-pathname)
-				  (pathname-new-type output-pathname "inf")
-				  rtl-output-port
-				  lap-output-port)))))))
-	unspecific)))
+(define (make-compile-bin-file compile-scode/internal)
+  (lambda (input-string #!optional output-string)
+    (perhaps-issue-compatibility-warning)
+    (if compiler:cross-compiling?
+	(apply cross-compile-bin-file
+	       (cons input-string (if (default-object? output-string)
+				      '()
+				      (list output-string))))
+	(begin
+	  (compiler-pathnames
+	   input-string
+	   (and (not (default-object? output-string)) output-string)
+	   (make-pathname false false false false "bin" 'NEWEST)
+	   (lambda (input-pathname output-pathname)
+	     (maybe-open-file
+	      compiler:generate-rtl-files?
+	      (pathname-new-type output-pathname "rtl")
+	      (lambda (rtl-output-port)
+		(maybe-open-file compiler:generate-lap-files?
+				 (pathname-new-type output-pathname "lap")
+				 (lambda (lap-output-port)
+				   (compile-scode/internal
+				    (compiler-fasload input-pathname)
+				    (pathname-new-type output-pathname "inf")
+				    rtl-output-port
+				    lap-output-port)))))))
+	  unspecific))))
 
 (define (maybe-open-file open? pathname receiver)
   (if open?
       (call-with-output-file pathname receiver)
       (receiver false)))
+
+(define (make-compile-expression compile-scode)
+  (perhaps-issue-compatibility-warning)
+  (lambda (expression #!optional declarations)
+    (let ((declarations (if (default-object? declarations)
+			    '((usual-integrations))
+			    declarations)))
+      (compile-scode (syntax&integrate expression declarations)
+		     'KEEP))))
+
+(define (make-compile-procedure compile-scode)
+  (lambda (procedure #!optional keep-debugging-info?)
+    (perhaps-issue-compatibility-warning)
+    (compiler-output->procedure
+     (compile-scode
+      (procedure-lambda procedure)
+      (and (or (default-object? keep-debugging-info?)
+	       keep-debugging-info?)
+	   'KEEP))
+     (procedure-environment procedure))))
 
 (define (compiler-pathnames input-string output-string default transform)
   (let* ((core
@@ -139,21 +163,13 @@ MIT in each case. |#
 ;;;; Alternate Entry Points
 
 (define (compile-scode scode #!optional keep-debugging-info?)
+  (perhaps-issue-compatibility-warning)
   (compiler-output->compiled-expression
    (compile-scode/no-file
     scode
     (and (or (default-object? keep-debugging-info?)
 	     keep-debugging-info?)
 	 'KEEP))))
-
-(define (compile-procedure procedure #!optional keep-debugging-info?)
-  (compiler-output->procedure
-   (compile-scode/no-file
-    (procedure-lambda procedure)
-    (and (or (default-object? keep-debugging-info?)
-	     keep-debugging-info?)
-	 'KEEP))
-   (procedure-environment procedure)))
 
 (define (compile-scode/no-file scode keep-debugging-info?)
   (fluid-let ((compiler:noisy? false)
@@ -163,6 +179,324 @@ MIT in each case. |#
        (compile-scode/internal scode
 			       *info-output-filename*)))))
 
+(define compatibility-detection-frob (vector #F '()))
+
+(define (perhaps-issue-compatibility-warning)
+  (if (eq? (vector-ref compatibility-detection-frob 0)
+	   (vector-ref compatibility-detection-frob 1))
+      (begin
+	(warn "!! You are compiling while in compatibility mode,")
+	(warn "!! where #F is the !! same as '().")
+	(warn "!! The compiled code will be incorrect for the")
+	(warn "!! standard environment."))))
+
+;;;; New stuff
+
+(define (compile-scode/new scode #!optional keep-debugging-info?)
+  keep-debugging-info?			; ignored
+  (perhaps-issue-compatibility-warning)
+  (compile-scode/%new scode))
+
+(define (compile-scode/%new scode #!optional keep-debugging-info?)
+  keep-debugging-info?			; ignored
+  (compiler-output->compiled-expression
+   (let* ((kmp-file-name (temporary-file-pathname))
+	  (rtl-file-name (temporary-file-pathname))
+	  (lap-file-name (temporary-file-pathname))
+	  (info-output-pathname false))
+     (warn "RTL Output to temporary file" (->namestring rtl-file-name))
+     (warn "LAP Output to temporary file" (->namestring lap-file-name))
+     (let ((win? false))
+       (dynamic-wind
+	(lambda () unspecific)
+	(lambda ()
+	  (call-with-output-file kmp-file-name
+	    (lambda (kmp-output-port)
+	      (call-with-output-file rtl-file-name
+		(lambda (rtl-output-port)
+		  (call-with-output-file lap-file-name
+		    (lambda (lap-output-port)
+		      (let ((result
+			     (%compile/new scode
+					   false
+					   info-output-pathname
+					   kmp-output-port
+					   rtl-output-port
+					   lap-output-port)))
+			(set! win? true)
+			result))))))))
+	(lambda ()
+	  (if (not win?)
+	      (begin
+		(warn "Deleting KMP, RTL and LAP output files")
+		(delete-file kmp-file-name)
+		(delete-file rtl-file-name)
+		(delete-file lap-file-name)))))))))
+
+;; New parameters
+
+(define *kmp-output-port* false)
+
+;; First set: phase/scode->kmp
+;; Last used: phase/optimize-kmp
+(define *kmp-program*)
+
+;; First set: phase/optimize-kmp
+;; Last used: phase/kmp->rtl
+(define *optimized-kmp-program*)
+
+;; First set: phase/kmp->rtl
+;; Last used: phase/rtl-program->rtl-graph
+(define *rtl-program*)
+(define *rtl-entry-label*)
+
+(define *argument-registers* '())
+(define *use-debugging-info?* true)
+
+(define (%compile/new program
+		      recursive?
+		      info-output-pathname
+		      kmp-output-port
+		      rtl-output-port
+		      lap-output-port)
+  (fluid-let ((*info-output-filename* info-output-pathname)
+	      (*rtl-output-port* rtl-output-port)
+	      (*lap-output-port* lap-output-port)
+	      (*kmp-output-port* kmp-output-port)
+	      (compiler:generate-lap-files? true)
+	      (*use-debugging-info?* false)
+	      (*argument-registers* (rtlgen/argument-registers))
+	      (available-machine-registers
+	       ;; Order is important!
+	       (rtlgen/available-registers available-machine-registers))
+	      (*strongly-heed-branch-preferences?* true)
+	      (compiler:show-phases? true)
+	      (compiler:show-subphases? true)
+	      (*envconv/compile-by-procedures?*
+	       compiler:compile-by-procedures?))
+
+    ((if recursive?
+	 bind-compiler-variables
+	 in-compiler)
+     (lambda ()
+       (set! *current-label-number* 0)
+       (within-midend
+	 recursive?
+	 (lambda ()
+	   (if (not recursive?)
+	       (begin
+		 (set! *input-scode* program)
+		 (phase/scode->kmp))
+	       (begin
+		 (set! *kmp-program* program)))
+	   (phase/optimize-kmp)
+	   (phase/kmp->rtl)))
+       (if rtl-output-port
+	   (phase/rtl-file-output "Original"
+				  false
+				  false
+				  program
+				  rtl-output-port
+				  *rtl-program*))
+       (phase/rtl-program->rtl-graph)
+       (if rtl-output-port
+	   (phase/rtl-file-output "Unoptimized"
+				  false
+				  false
+				  program
+				  rtl-output-port
+				  false))
+       (phase/rtl-optimization)
+       (if rtl-output-port
+	   (phase/rtl-file-output "Optimized"
+				  true
+				  true
+				  program
+				  rtl-output-port
+				  false))
+       (phase/lap-generation)
+       (phase/lap-linearization)
+       (if lap-output-port
+	   (phase/lap-file-output program lap-output-port))
+       (assemble&link info-output-pathname)))))
+
+(define (phase/scode->kmp)
+  (compiler-phase
+   "Scode->KMP"
+   (lambda ()
+     (let ((kmp-output-port *kmp-output-port*))
+       (if kmp-output-port
+	   (begin
+	     (write-string "Input" kmp-output-port)
+	     (pp *input-scode* kmp-output-port)))
+       (set! *kmp-program*
+	     (scode->kmp (last-reference *input-scode*)))
+       (if kmp-output-port
+	   (begin
+	     (newline kmp-output-port)
+	     (write-char #\Page kmp-output-port)
+	     (newline kmp-output-port)
+	     (write-string "Initial KMP program" kmp-output-port)
+	     (fluid-let (;; (*pp-uninterned-symbols-by-name* false)
+			 (*pp-primitives-by-name* false))
+	       (pp *kmp-program* kmp-output-port true))
+	     (output-port/flush-output kmp-output-port)))
+       unspecific))))
+
+(define (phase/optimize-kmp)
+  (compiler-phase
+   "Optimize KMP"
+   (lambda ()
+     (set! *optimized-kmp-program*
+	   (optimize-kmp (last-reference *kmp-program*)))
+     (let ((kmp-output-port *kmp-output-port*))
+       (if kmp-output-port
+	   (begin
+	     (newline kmp-output-port)
+	     (write-char #\Page kmp-output-port)
+	     (newline kmp-output-port)
+	     (write-string "Final KMP program " kmp-output-port)
+	     (write *recursive-compilation-number* kmp-output-port)
+	     (fluid-let (;; (*pp-uninterned-symbols-by-name* false)
+			 (*pp-primitives-by-name* false))
+	       (pp *optimized-kmp-program* kmp-output-port true))
+	     (output-port/flush-output kmp-output-port))))
+     unspecific)))
+
+(define (phase/kmp->rtl)
+  (compiler-phase "KMP->RTL"
+   (lambda ()
+     (call-with-values
+      (lambda ()
+	(kmp->rtl (last-reference *optimized-kmp-program*)))
+      (lambda (program entry-label)
+	(set! *rtl-program* program)
+	(set! *rtl-entry-label* entry-label)
+	unspecific)))))
+
+(define (phase/rtl-program->rtl-graph)
+  (compiler-phase
+   "RTL->RTL graph"
+   (lambda ()
+     (set! *ic-procedure-headers* '())
+     (initialize-machine-register-map!)
+     (call-with-values
+      (lambda ()
+	(rtl->rtl-graph (last-reference *rtl-program*)))
+      (lambda (expression procedures continuations rgraphs)
+	(set! label->object
+	      (make/label->object expression
+				  procedures
+				  continuations))
+	(set! *rtl-expression* expression)
+	(set! *rtl-procedures* procedures)
+	(set! *rtl-continuations* continuations)
+	(set! *rtl-graphs* rgraphs)
+	(set! *rtl-root*
+	      (or expression
+		  (label->object *rtl-entry-label*)))
+	unspecific)))))
+
+(define compile-bin-file/new
+  (make-compile-bin-file
+   (lambda (scode info-pathname rtl-port lap-port)
+     (let* ((use-name?
+	     (and info-pathname
+		  (or (pathname? info-pathname)
+		      (string? info-pathname))))
+	    (kmp-pathname
+	     (if (not use-name?)
+		 (temporary-file-pathname)
+		 (pathname-new-type info-pathname "kmp"))))
+       (let ((win? false))
+	 (dynamic-wind
+	  (lambda () false)
+	  (lambda ()
+	    (let ((result
+		   (call-with-output-file kmp-pathname
+		     (lambda (kmp-port)
+		       (%compile/new scode
+				     false
+				     info-pathname
+				     kmp-port
+				     rtl-port
+				     lap-port)))))
+	      (set! win? true)
+	      result))
+	  (lambda ()
+	    (if (and (not win?)
+		     (not use-name?)
+		     (file-exists? kmp-pathname))
+		(delete-file kmp-pathname)))))))))
+     
+(define cbf/new (make-cbf compile-bin-file/new))
+(define cf/new (make-cf compile-bin-file/new))
+(define compile-expression/new (make-compile-expression compile-scode/%new))
+(define compile-procedure/new (make-compile-procedure compile-scode/%new))
+
+(define (compile-recursively/new kmp-program procedure-result? procedure-name)
+  ;; Used by the compiler when it wants to compile subexpressions as
+  ;; separate code-blocks.
+  (let ((my-number *recursive-compilation-count*)
+	(output? (and compiler:show-phases?
+		      (not (and procedure-result?
+				compiler:show-procedures?)))))
+    (set! *recursive-compilation-count* (1+ my-number))
+    (if output?
+	(begin
+	  (newline)
+	  (newline)
+	  (write-string *output-prefix*)
+	  (write-string "*** Recursive compilation ")
+	  (write my-number)
+	  (write-string " ***")))
+        (let ((value
+	   ((let ((do-it
+		   (lambda ()
+		     (fluid-let ((*recursive-compilation-number* my-number)
+				 (*procedure-result?* procedure-result?)
+				 (*envconv/procedure-result?*
+				  procedure-result?))
+		       (%compile/new
+			kmp-program
+			true
+			(and *info-output-filename*
+			     (if (eq? *info-output-filename* 'KEEP)
+				 'KEEP
+				 'RECURSIVE))
+			*kmp-output-port*
+			*rtl-output-port*
+			*lap-output-port*)))))
+	      (if procedure-result?
+		  (let ((do-it
+			 (lambda ()
+			   (let ((result (do-it)))
+			     (set! *remote-links*
+				   (cons (cdr result) *remote-links*))
+			     (car result)))))
+		    (if compiler:show-procedures?
+			(lambda ()
+			  (compiler-phase/visible
+			   (string-append
+			    "Compiling procedure: "
+			    (write-to-string procedure-name))
+			   do-it))
+			do-it))
+		  (lambda ()
+		    (fluid-let ((*remote-links* '()))
+		      (do-it))))))))
+      (if output?
+	  (begin
+	    (newline)
+	    (write-string *output-prefix*)
+	    (write-string "*** Done with recursive compilation ")
+	    (write my-number)
+	    (write-string " ***")
+	    (newline)))
+      value)))
+
+;; End of New stuff
+
 (define (compiler:batch-compile input #!optional output)
   (fluid-let ((compiler:batch-mode? true))
     (bind-condition-handler (list condition-type:error)
@@ -380,6 +714,10 @@ MIT in each case. |#
 		(*parallels*)
 		(*input-scode*)
 		(*scode*)
+		(*kmp-program*)
+		(*optimized-kmp-program*)
+		(*rtl-program*)
+		(*rtl-entry-label*)
 		(*root-expression*)
 		(*root-procedure*)
 		(*root-block*)
@@ -417,6 +755,10 @@ MIT in each case. |#
   (set! *parallels*)
   (set! *input-scode*)
   (set! *scode*)
+  (set! *kmp-program*)
+  (set! *optimized-kmp-program*)
+  (set! *rtl-program*)
+  (set! *rtl-entry-label*)
   (set! *root-expression*)
   (set! *root-procedure*)
   (set! *root-block*)
@@ -474,13 +816,25 @@ MIT in each case. |#
 	 (if info-output-pathname
 	     (phase/info-generation-1 info-output-pathname))
 	 |#
+	 (if rtl-output-port
+	     (phase/rtl-file-output "Unoptimized"
+				    false
+				    false
+				    scode
+				    rtl-output-port
+				    false))
 	 (phase/rtl-optimization)
 	 (if rtl-output-port
-	     (phase/rtl-file-output rtl-output-port))
+	     (phase/rtl-file-output "Optimized"
+				    true
+				    true
+				    scode
+				    rtl-output-port
+				    false))
 	 (phase/lap-generation)
 	 (phase/lap-linearization)
 	 (if lap-output-port
-	     (phase/lap-file-output lap-output-port))
+	     (phase/lap-file-output scode lap-output-port))
 	 (assemble&link info-output-pathname))))))
 
 (define (compiler-phase name thunk)
@@ -797,13 +1151,20 @@ MIT in each case. |#
       (phase/rtl-rewriting rtl-rewriting:pre-cse)
       (if compiler:cse?
 	  (phase/common-subexpression-elimination))
+      (if *rtl-output-port*
+	  (phase/rtl-file-output "Post CSE"
+				 false
+				 false
+				 false
+				 *rtl-output-port*
+				 false))
       (phase/invertible-expression-elimination)
       (phase/rtl-rewriting rtl-rewriting:post-cse)
       (phase/common-suffix-merging)
+      (phase/linearization-analysis)
       (phase/lifetime-analysis)
       (if compiler:code-compression?
 	  (phase/code-compression))
-      (phase/linearization-analysis)
       (phase/register-allocation)
       (phase/rtl-optimization-cleanup))))
 
@@ -862,20 +1223,30 @@ MIT in each case. |#
 		  (set-rgraph-register-n-deaths! rgraph false)
 		  (set-rgraph-register-live-length! rgraph false)
 		  (set-rgraph-register-n-refs! rgraph false)
-		  (set-rgraph-register-known-values! rgraph false))
+		  (set-rgraph-register-known-values! rgraph false)
+		  (set-rgraph-register-known-expressions! rgraph false))
 		*rtl-graphs*)))
 
-(define (phase/rtl-file-output port)
+(define (phase/rtl-file-output class continuations-linked?
+			       last-for-this-scode? scode port code)
   (compiler-phase "RTL File Output"
     (lambda ()
-      (write-string "RTL for object " port)
+      (write-string class port)
+      (write-string " RTL for object " port)
       (write *recursive-compilation-number* port)
       (newline port)
-      (write-rtl-instructions (linearize-rtl *rtl-root*
-					     *rtl-procedures*
-					     *rtl-continuations*)
+      (if scode
+	  (begin (pp scode port #t 4)
+		 (newline port)
+		 (newline port)))
+      (write-rtl-instructions (or code
+				  (linearize-rtl *rtl-root*
+						 *rtl-procedures*
+						 *rtl-continuations*
+						 continuations-linked?))
 			      port)
-      (if (not (zero? *recursive-compilation-number*))
+      (if (or (not (zero? *recursive-compilation-number*))
+	      (not last-for-this-scode?))
 	  (begin
 	    (write-char #\page port)
 	    (newline port)))
@@ -910,17 +1281,19 @@ MIT in each case. |#
 	     (wrap-lap *entry-label*
 		       (linearize-lap *rtl-root*
 				      *rtl-procedures*
-				      *rtl-continuations*))))
-      (with-values
-	  (lambda ()
-	    (info-generation-phase-2 *rtl-expression*
-				     *rtl-procedures*
-				     *rtl-continuations*))
-	(lambda (expression procedures continuations)
-	  (set! *dbg-expression* expression)
-	  (set! *dbg-procedures* procedures)
-	  (set! *dbg-continuations* continuations)
-	  unspecific))
+				      *rtl-continuations*
+				      true))))
+      (if *use-debugging-info?*
+	  (with-values
+	      (lambda ()
+		(info-generation-phase-2 *rtl-expression*
+					 *rtl-procedures*
+					 *rtl-continuations*))
+	    (lambda (expression procedures continuations)
+	      (set! *dbg-expression* expression)
+	      (set! *dbg-procedures* procedures)
+	      (set! *dbg-continuations* continuations)
+	      unspecific)))
       (if (not compiler:preserve-data-structures?)
 	  (begin
 	    (set! *rtl-expression*)
@@ -931,26 +1304,48 @@ MIT in each case. |#
 	    (set! *rtl-root*)
 	    unspecific)))))
 
-(define (phase/lap-file-output port)
+(define (phase/lap-file-output scode port)
   (compiler-phase "LAP File Output"
     (lambda ()
       (fluid-let ((*unparser-radix* 16)
 		  (*unparse-uninterned-symbols-by-name?* true))
 	(with-output-to-port port
 	  (lambda ()
+	    (define (hack-rtl rtl)
+	      (if (pair? rtl)
+		  (cond ((eq? (car rtl) 'REGISTER)
+			 (string->uninterned-symbol
+			  (with-output-to-string
+			    (lambda () (display "r") (display (cadr rtl))))))
+			((eq? (car rtl) 'CONSTANT)
+			 rtl)
+			(else
+			 (map hack-rtl rtl)))
+		  rtl))
+		  
 	    (write-string "LAP for object ")
 	    (write *recursive-compilation-number*)
 	    (newline)
+	    (pp scode (current-output-port) #T 4)
+	    (newline)
+	    (newline)
 	    (newline)
 	    (for-each (lambda (instruction)
-			(if (and (pair? instruction)
-				 (eq? (car instruction) 'LABEL))
-			    (begin
-			      (write (cadr instruction))
-			      (write-char #\:))
-			    (begin
-			      (write-char #\tab)
-			      (write instruction)))
+			(cond ((and (pair? instruction)
+				    (eq? (car instruction) 'LABEL))
+			       (write (cadr instruction))
+			       (write-char #\:))
+			      ((and (pair? instruction)
+				    (eq? (car instruction) 'COMMENT))
+			       (write-char #\tab)
+			       (write-string ";; ")
+			       (write (if (and (pair? (cadr instruction))
+					       (eq? (caadr instruction) 'RTL))
+					  (hack-rtl (cadadr instruction))
+					  (cadr instruction))))
+			      (else
+			       (write-char #\tab)
+			       (write instruction)))
 			(newline))
 		      *lap*)
 	    (if (not (zero? *recursive-compilation-number*))
@@ -958,3 +1353,9 @@ MIT in each case. |#
 		  (write-char #\page)
 		  (newline)))
 	    (output-port/flush-output port)))))))
+
+(define compile-bin-file (make-compile-bin-file compile-scode/internal))
+(define cbf (make-cbf compile-bin-file))
+(define cf (make-cf compile-bin-file))
+(define compile-expression (make-compile-expression compile-scode/no-file))
+(define compile-procedure (make-compile-procedure compile-scode/no-file))
