@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlexp.scm,v 4.10.1.1 1988/12/06 22:39:32 arthur Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlexp.scm,v 4.10.1.2 1989/05/11 17:45:07 arthur Exp $
 
-Copyright (c) 1987, 1988 Massachusetts Institute of Technology
+Copyright (c) 1987, 1988, 1989 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -49,6 +49,11 @@ MIT in each case. |#
 	  INVOCATION:CACHE-REFERENCE
 	  INVOCATION:LOOKUP)))
 
+(define-integrable (rtl:invocation-prefix? rtl)
+  (memq (rtl:expression-type rtl)
+	'(INVOCATION-PREFIX:DYNAMIC-LINK
+	  INVOCATION-PREFIX:MOVE-FRAME-UP)))
+
 (define-integrable (rtl:trivial-expression? expression)
   (memq (rtl:expression-type expression)
 	'(ASSIGNMENT-CACHE
@@ -68,14 +73,23 @@ MIT in each case. |#
 	      CONS-CLOSURE
 	      FIXNUM-1-ARG
 	      FIXNUM-2-ARGS
+	      FLONUM-1-ARG
+	      FLONUM-2-ARGS
 	      OBJECT->ADDRESS
 	      OBJECT->DATUM
 	      OBJECT->FIXNUM
+	      OBJECT->ADDRESS
+	      @ADDRESS->FLOAT
 	      ADDRESS->FIXNUM
 	      FIXNUM->ADDRESS
 	      OBJECT->TYPE
 	      OFFSET-ADDRESS
 	      VARIABLE-CACHE))))
+
+(define-integrable (rtl:volatile-expression? expression)
+  (memq (rtl:expression-type expression)
+	'(POST-INCREMENT
+	  PRE-INCREMENT)))
 
 (define (rtl:machine-register-expression? expression)
   (and (rtl:register? expression)
@@ -85,6 +99,10 @@ MIT in each case. |#
   (and (rtl:register? expression)
        (pseudo-register? (rtl:register-number expression))))
 
+(define (rtl:stack-reference-expression? expression)
+  (and (rtl:offset? expression)
+       (interpreter-stack-pointer? (rtl:offset-register expression))))
+
 (define (rtl:map-subexpressions expression procedure)
   (if (rtl:constant? expression)
       (map identity-procedure expression)
@@ -108,6 +126,11 @@ MIT in each case. |#
 	 (lambda (x)
 	   (and (pair? x)
 		(predicate x))))))
+
+(define (rtl:expression-contains? expression predicate)
+  (let loop ((expression expression))
+    (or (predicate expression)
+	(rtl:any-subexpression? expression loop))))
 
 (define (rtl:all-subexpressions? expression predicate)
   (or (rtl:constant? expression)
@@ -232,6 +255,13 @@ MIT in each case. |#
 	 (and (rtl:constant-expression?
 	       (rtl:fixnum-2-args-operand-1 expression))
 	      (rtl:constant-expression?
-	       (rtl:fixnum-2-args-operand-2 expression))))	(else
+	       (rtl:fixnum-2-args-operand-2 expression))))	((FLONUM-1-ARG)
+	 (rtl:constant-expression? (rtl:flonum-1-arg-operand expression)))
+	((FLONUM-2-ARGS)
+	 (and (rtl:constant-expression?
+	       (rtl:flonum-2-args-operand-1 expression))
+	      (rtl:constant-expression?
+	       (rtl:flonum-2-args-operand-2 expression))))
+	(else
 	 false))
       true))
