@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/dassm2.scm,v 4.12.1.1 1989/04/06 21:49:33 arthur Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/dassm2.scm,v 4.12.1.2 1989/05/11 17:33:24 arthur Exp $
 
-Copyright (c) 1988 Massachusetts Institute of Technology
+Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -329,11 +329,13 @@ MIT in each case. |#
       (8  . (REGISTER VALUE))
       (12 . (REGISTER ENVIRONMENT))
       (16 . (REGISTER TEMPORARY))
-      ;; Compiler temporaries
+      ;; Old compiled code temporaries
+      ;; Retained for compatibility with old compiled code and should
+      ;; eventually be flushed.
       ,@(let loop ((index 40) (i 0))
 	  (if (= i 50)
 	      '()
-	      (cons `(,index . (TEMPORARY ,i))
+	      (cons `(,index . (OLD TEMPORARY ,i))
 		    (loop (+ index 4) (1+ i)))))
       ;; Interpreter entry points
       ,@(make-entries
@@ -346,7 +348,14 @@ MIT in each case. |#
 		lookup safe-lookup set! access unassigned? unbound? define
 		reference-trap safe-reference-trap assignment-trap
 		unassigned?-trap
-		&+ &- &* &/ &= &< &> 1+ -1+ zero? positive? negative?))))))
+		&+ &- &* &/ &= &< &> 1+ -1+ zero? positive? negative?))
+      ;; Compiled code temporaries
+      ,@(let loop ((index 720) (i 0))
+	  (if (= i 300)
+	      '()
+	      (cons `(,index . (TEMPORARY ,i))
+		    (loop (+ index 12) (1+ i))))))))
+)
 
 (define (make-pc-relative thunk)
   (let ((reference-offset *current-offset))
