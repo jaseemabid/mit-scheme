@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/cmpgc.h,v 1.16 1991/05/05 00:40:42 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/cmpgc.h,v 1.16.1.1 1992/05/13 19:33:53 cph Exp $
 
-Copyright (c) 1989-1991 Massachusetts Institute of Technology
+Copyright (c) 1989-92 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -345,6 +345,9 @@ typedef unsigned short format_word;
   (GC_NO_COMPILER_EXPR ((int)))
 
 #define OPERATOR_LINKAGE_KIND 0
+#define REFERENCE_LINKAGE_KIND 1
+#define ASSIGNMENT_LINKAGE_KIND 2
+#define GLOBAL_OPERATOR_LINKAGE_KIND 3
 
 #define READ_CACHE_LINKAGE_COUNT(header)				\
   (GC_NO_COMPILER_EXPR ((int)))
