@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.2 2002/01/16 23:07:48 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.3 2002/01/17 01:47:42 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -887,7 +887,9 @@
   (item-predicate declaration-item-rtd))
 
 (define declaration-item/text
-  (item-accessor declaration-item-rtd 'TEXT))
+  (let ((accessor (item-accessor declaration-item-rtd 'TEXT)))
+    (lambda (item)
+      ((accessor item)))))
 
 ;;; Body items represent sequences (e.g. BEGIN).
 

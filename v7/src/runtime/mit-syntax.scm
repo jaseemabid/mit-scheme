@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: mit-syntax.scm,v 1.1.2.2 2002/01/16 23:07:12 cph Exp $
+;;; $Id: mit-syntax.scm,v 1.1.2.3 2002/01/17 01:48:17 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -827,10 +827,11 @@
     definition-environment
     (syntax-check '(KEYWORD * (SYMBOL * DATUM)) form history)
     (make-declaration-item history
-			   (map-declaration-references (cdr form)
-						       environment
-						       history
-						       select-cdr))))
+			   (lambda ()
+			     (map-declaration-references (cdr form)
+							 environment
+							 history
+							 select-cdr)))))
 
 (define-compiler 'LOCAL-DECLARE system-global-environment
   (lambda (form environment history)
