@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: runtime.pkg,v 14.266 1996/04/05 22:46:49 cph Exp $
+$Id: runtime.pkg,v 14.266.1.1 1998/10/18 08:47:41 cph Exp $
 
 Copyright (c) 1988-96 Massachusetts Institute of Technology
 
@@ -2808,15 +2808,21 @@ MIT in each case. |#
   (files "stream")
   (parent ())
   (export ()
+	  condition-type:illegal-stream-element
 	  empty-stream?
 	  head
 	  list->stream
+	  make-prime-numbers-stream
 	  prime-numbers-stream
 	  stream
 	  stream->list
+	  stream-accumulate
+	  stream-append
 	  stream-car
 	  stream-cdr
+	  stream-filter
 	  stream-first
+	  stream-for-each
 	  stream-head
 	  stream-length
 	  stream-map
@@ -2825,6 +2831,7 @@ MIT in each case. |#
 	  stream-ref
 	  stream-rest
 	  stream-tail
+	  stream-write
 	  tail
 	  the-empty-stream)
   (initialization (initialize-package!)))
