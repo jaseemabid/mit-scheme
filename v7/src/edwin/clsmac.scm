@@ -1,8 +1,8 @@
 ;;; -*-Scheme-*-
 ;;;
-;;;$Id: clsmac.scm,v 1.7 2001/12/23 17:20:58 cph Exp $
+;;; $Id: clsmac.scm,v 1.7.2.1 2002/01/18 20:01:22 cph Exp $
 ;;;
-;;; Copyright (c) 1986, 1989, 1999, 2001 Massachusetts Institute of Technology
+;;; Copyright (c) 1986, 1989, 1999, 2001, 2002 Massachusetts Institute of Technology
 ;;;
 ;;; This program is free software; you can redistribute it and/or
 ;;; modify it under the terms of the GNU General Public License as
@@ -30,28 +30,56 @@
 ;;; ******************************************************************
 
 (define-syntax define-class
-  (non-hygienic-macro-transformer
-   (lambda (name superclass variables)
-     (guarantee-symbol "Class name" name)
-     (if (not (null? superclass))
-	 (guarantee-symbol "Class name" superclass))
-     ;; Compile-time definition.
-     (make-class name
-		 (if (null? superclass) false (name->class superclass))
-		 variables)
-     ;; Load-time definition.
-     `(DEFINE ,name
-	(MAKE-CLASS ',name
-		    ,(if (null? superclass) false superclass)
-		    ',variables)))))
+  (rsc-macro-transformer
+   (lambda (form environment)
+     (if (not (and (syntax-match? '(IDENTIFIER DATUM (* SYMBOL))
+				  (cdr form))
+		   (or (identifier? (caddr form))
+		       (null? (caddr form)))))
+	 (error "Ill-formed special form:" form))
+     (let ((name (cadr form))
+	   (superclass (if (null? (caddr form)) #f (caddr form)))
+	   (variables (cadddr form)))
+       ;; Compile-time definition.
+       (make-class (identifier->symbol name)
+		   (and superclass
+			(name->class (identifier->symbol superclass)))
+		   variables)
+       ;; Load-time definition.
+       `(,(make-syntactic-closure environment '() 'DEFINE)
+	 ,name
+	 ((make-syntactic-closure environment '() 'MAKE-CLASS)
+	  ',(identifier->symbol name)
+	  ,superclass
+	  ',variables))))))
 
 (define-syntax define-method
-  (non-hygienic-macro-transformer
-   (lambda (class bvl . body)
-     (syntax-class-definition class bvl body
-       (lambda (name expression)
-	 (make-syntax-closure
-	  (make-method-definition class name expression)))))))
+  (rsc-macro-transformer
+   (lambda (form environment)
+     (let ((finish
+	    (lambda (name operation expression)
+	      `(,(make-syntactic-closure environment '() 'CLASS-METHOD-DEFINE)
+		,name
+		',operation
+		,expression))))
+       (cond ((syntax-match? '(IDENTIFIER SYMBOL EXPRESSION) (cdr form))
+	      (finish (cadr form) (caddr form) (cadddr form)))
+	     ((and (syntax-match? '(IDENTIFIER (SYMBOL . MIT-BVL) + EXPRESSION)
+				  (cdr form))
+		   (pair? (cdr (caddr form)))
+		   (identifier? (cadr (caddr form))))
+	      (finish (cadr form)
+		      (car (caddr form))
+		      `(,(make-syntactic-closure environment '() 'NAMED-LAMBDA)
+			,(caddr form)
+			(,(make-syntactic-closure environment '()
+			    'WITH-INSTANCE-VARIABLES)
+			 ,(cadr form)
+			 ,(cadr (caddr form))
+			 ()
+			 ,@(cdddr form)))))
+	     (else
+	      (error "Ill-formed special form:" form)))))))
 
 (define-syntax with-instance-variables
   (non-hygienic-macro-transformer
@@ -60,74 +88,22 @@
      (make-syntax-closure
       (syntax-class-expression class self free-names body)))))
 
-(define-syntax =>
-  (non-hygienic-macro-transformer
-   (lambda (object operation . arguments)
-     (guarantee-symbol "Operation name" operation)
-     (let ((obname (string->uninterned-symbol "object")))
-       `(LET ((,obname ,object))
-	  ((CLASS-METHODS/REF (OBJECT-METHODS ,obname) ',operation)
-	   ,obname
-	   ,@arguments))))))
-
-(define-syntax usual=>
-  (non-hygienic-macro-transformer
-   (lambda (object operation . arguments)
-     (guarantee-symbol "Operation name" operation)
-     (if (not *class-name*)
-	 (error "Not inside class expression: USUAL=>" operation))
-     `((CLASS-METHODS/REF (CLASS-METHODS (CLASS-SUPERCLASS ,*class-name*))
-			  ',operation)
-       ,object
-       ,@arguments))))
-
-(define (syntax-class-definition class bvl body receiver)
-  (parse-definition bvl body
-    (lambda (name expression)
-      (receiver name (syntax expression)))
-    (lambda (bvl body)
-      (let ((operation (car bvl))
-	    (self (cadr bvl)))
-	(guarantee-symbol "Operation name" operation)
-	(guarantee-symbol "Self name" self)
-	(receiver operation
-		  (syntax-class-expression class
-					   self
-					   '()
-					   `((NAMED-LAMBDA ,bvl ,@body))))))))
-
-(define (parse-definition bvl body simple compound)
-  (define (loop bvl body)
-    (if (pair? (car bvl))
-	(loop (car bvl)
-	      `((LAMBDA ,(cdr bvl) ,@body)))
-	(compound bvl body)))
-  (if (symbol? bvl)
-      (begin (if (not (null? (cdr body)))
-		 (error "Multiple forms in definition body" body))
-	     (simple bvl (car body)))
-      (loop bvl body)))
-
-(define *class-name* false)
-
 (define (syntax-class-expression class-name self free-names expression)
   (guarantee-symbol "Class name" class-name)
-  (fluid-let ((*class-name* class-name))
-    (transform-instance-variables
-     (class-instance-transforms (name->class class-name))
-     self
-     free-names
-     (syntax* expression))))
+  (transform-instance-variables
+   (class-instance-transforms (name->class class-name))
+   self
+   free-names
+   (syntax* expression)))
 
-(define (make-method-definition class operation expression)
-  (make-comb (make-scode-variable 'CLASS-METHOD-DEFINE)
-	     (make-scode-variable class)
-	     operation
-	     expression))
+(define-syntax =>
+  (syntax-rules ()
+    ((=> object operation argument ...)
+     (let ((temp object))
+       ((object-method temp 'operation) temp argument ...)))))
 
-(define (make-comb operator . operands)
-  (make-combination operator operands))
-
-(define (guarantee-symbol s x)
-  (if (not (symbol? x))
-      (error (string-append s " must be a symbol") x)))
+(define-syntax usual=>
+  (syntax-rules ()
+    ((usual=> object operation argument ...)
+     (let ((temp object))
+       ((usual-method (object-class temp) 'operation) temp argument ...)))))
