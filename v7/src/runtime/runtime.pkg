@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: runtime.pkg,v 14.406.2.1 2002/01/15 20:46:01 cph Exp $
+$Id: runtime.pkg,v 14.406.2.2 2002/01/16 23:07:33 cph Exp $
 
 Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
@@ -3754,6 +3754,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 	  non-hygienic-macro-transformer->expander
 	  r4rs-lambda-list?
 	  sc-macro-transformer->expander
+	  rsc-macro-transformer->expander
 	  strip-syntactic-closures
 	  syntactic-closure-rtd
 	  syntactic-closure/environment

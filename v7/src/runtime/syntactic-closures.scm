@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.1 2002/01/15 20:46:02 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.2 2002/01/16 23:07:48 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -51,7 +51,9 @@
 	       (history (make-top-level-history forms environment)))
 	  (call-with-values
 	      (lambda ()
-		(classify/body-forms forms environment history select-object))
+		(extract-definitions-from-body
+		 (classify/body-forms forms environment history
+				      select-object)))
 	    (lambda (declaration-items body-items)
 	      (output/top-level-sequence
 	       (map declaration-item/text declaration-items)
@@ -209,14 +211,14 @@
   (classify/subforms expressions environment null-syntactic-environment
 		     history selector))
 
+(define (classify/body forms environment history selector)
+  (make-body-item history
+		  (classify/body-forms forms environment history selector)))
+
 (define (classify/body-forms forms environment history selector)
   ;; Top-level syntactic definitions affect all forms that appear
   ;; after them, so classify FORMS in order.
-  (let forms-loop
-      ((forms forms)
-       (selector selector)
-       (declaration-items '())
-       (body-items '()))
+  (let forms-loop ((forms forms) (selector selector) (body-items '()))
     (if (pair? forms)
 	(let items-loop
 	    ((items
@@ -226,25 +228,28 @@
 				 environment
 				 history
 				 (selector/add-car selector))))
-	     (declaration-items declaration-items)
 	     (body-items body-items))
-	  (cond ((not (pair? items))
-		 (forms-loop (cdr forms)
-			     (selector/add-cdr selector)
-			     declaration-items
-			     body-items))
-		((declaration-item? (car items))
-		 (items-loop (cdr items)
-			     (cons (car items) declaration-items)
-			     body-items))
-		(else
-		 (items-loop (cdr items)
-			     declaration-items
-			     (if (null-binding-item? (car items))
-				 body-items
-				 (cons (car items) body-items))))))
-	(values (reverse! declaration-items)
-		(reverse! body-items)))))
+	  (if (pair? items)
+	      (items-loop (cdr items)
+			  (if (null-binding-item? (car items))
+			      body-items
+			      (cons (car items) body-items)))
+	      (forms-loop (cdr forms)
+			  (selector/add-cdr selector)
+			  body-items)))
+	(reverse! body-items))))
+
+(define (extract-definitions-from-body items)
+  (let loop ((items items) (declarations '()) (items* '()))
+    (if (pair? items)
+	(if (declaration-item? (car items))
+	    (loop (cdr items)
+		  (cons (car items) declarations)
+		  items*)
+	    (loop (cdr items)
+		  declarations
+		  (cons (car items) items*)))
+	(values (reverse! declarations) (reverse! items*)))))
 
 ;;;; Syntactic Closures
  
@@ -459,7 +464,16 @@
 
 (define (environment/lookup environment name)
   (and (environment-bound? environment name)
-       (environment-lookup-macro environment name)))
+       (let ((item (environment-lookup-macro environment name)))
+	 (cond ((or (item? item) (not item))
+		item)
+	       ;; **** Kludge to support bootstrapping.
+	       ((procedure? item)
+		(make-expander-item
+		 (non-hygienic-macro-transformer->expander item)
+		 environment))
+	       (else
+		(error:wrong-type-datum item "syntactic keyword"))))))
 
 (define (environment/define environment name item)
   (environment-define-macro environment name item))
@@ -880,10 +894,13 @@
 (define body-item-rtd
   (make-item-type "body-item" '(COMPONENTS)
     (lambda (item)
-      (let ((items (flatten-body-items (body-item/components item))))
-	(if (not (pair? items))
-	    (illegal-expression-item item "Empty sequence"))
-	(output/sequence (map compile-item/expression items))))))
+      (compile-body-items item (body-item/components item)))))
+
+(define (compile-body-items item items)
+  (let ((items (flatten-body-items items)))
+    (if (not (pair? items))
+	(illegal-expression-item item "Empty sequence"))
+    (output/sequence (map compile-item/expression items))))
 
 (define make-body-item
   (item-constructor body-item-rtd '(COMPONENTS)))
