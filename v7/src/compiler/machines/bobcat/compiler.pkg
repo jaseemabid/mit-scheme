@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/compiler.pkg,v 1.22 1989/04/26 05:11:52 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/compiler.pkg,v 1.22.1.1 1989/05/21 14:45:10 jinx Rel $
 
 Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
@@ -137,18 +137,20 @@ MIT in each case. |#
 	  sc
 	  syntax-files!)
   (import (scode-optimizer top-level)
-	  sf/internal
-	  sf/pathname-defaulting)
+	  sf/internal)
   (initialization (initialize-package!)))
 
 (define-package (compiler top-level)
-  (files "base/toplev")
+  (files "base/toplev"
+	 "base/crstop")
   (parent (compiler))
   (export ()
 	  cf
 	  compile-bin-file
 	  compile-procedure
-	  compiler:reset!)
+	  compiler:reset!
+	  cross-compile-bin-file
+	  cross-compile-bin-file-end)
   (export (compiler fg-generator)
 	  compile-recursively)
   (export (compiler rtl-generator)
