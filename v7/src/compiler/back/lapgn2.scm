@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: lapgn2.scm,v 1.20 1993/07/01 03:06:27 gjr Exp $
+$Id: lapgn2.scm,v 1.20.1.1 1994/03/30 21:11:21 gjr Exp $
 
-Copyright (c) 1987-1993 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -42,6 +42,8 @@ MIT in each case. |#
 ;; writer of LAP generator rules need not pass it around.
 
 (define *register-map*)
+(define *preserved-registers*)
+(define *restored-registers*)
 
 ;; `*needed-registers*' contains a set of machine registers that is
 ;; in use during the LAP generation of a single RTL instruction.  The
@@ -194,18 +196,27 @@ MIT in each case. |#
   ;; assuming that it is about to be assigned.  It first deletes any
   ;; other aliases for register, then allocates and returns an alias
   ;; for `register', of the given `type'.
-  (delete-register! register)
-  (if (machine-register? register)
-      (if (register-type? register type)
-	  register
-	  (let ((temp (allocate-temporary-register! type)))
-	    (suffix-instructions! (register->register-transfer temp register))
-	    temp))
-      (store-allocator-values!
-       (allocate-alias-register *register-map*
-				type
-				*needed-registers*
-				register))))
+  (cond ((not (machine-register? register))
+	 (delete-register! register)
+	 (store-allocator-values!
+	  (allocate-alias-register *register-map*
+				   type
+				   *needed-registers*
+				   register)))
+	((not (register-type? register type))
+	 (delete-register! register)
+	 (let ((temp (allocate-temporary-register! type)))
+	   (suffix-instructions!
+	    (register->register-transfer temp register))
+	   temp))
+	;; *** Lose ***
+	((not (memq register available-machine-registers))
+	 (delete-register! register)
+	 register)
+	(else
+	 (prefix-instructions! (clean-registers! register))
+	 (lock-register! register)
+	 register)))
 
 (define (reference-target-alias! register type)
   (register-reference (allocate-alias-register! register type)))
@@ -252,22 +263,150 @@ MIT in each case. |#
 	  (set! *register-map* map)
 	  (dont-need-registers! aliases)))))
 
-(define (save-register! register)
-  ;; Deletes `register' from the register map, saving it to its home
-  ;; if it is a live pseudo register.
-  (let ((save-pseudo
-	 (lambda (register)
-	   (if (not (dead-register? register))
-	       (save-pseudo-register *register-map* register
-		 (lambda (map instructions)
-		   (set! *register-map* map)
-		   (prefix-instructions! instructions)))))))
-    (if (machine-register? register)
-	(let ((contents (machine-register-contents *register-map* register)))
-	  (if contents
-	      (save-pseudo contents)))
-	(save-pseudo register))))
+(define (lock-register! register)
+  ;; Makes register unavailable for allocation.
+  ;; No instructions are generated.
+  (set! *register-map* (lock-machine-register *register-map* register))
+  unspecific)
 
+(define (release-register! register)
+  ;; Makes register unavailable for allocation.
+  ;; No instructions are generated.
+  (set! *register-map* (release-machine-register *register-map* register))
+  unspecific)
+
+(define (preserve-register! register how)
+  (set! *preserved-registers*
+	(cons (list register how)
+	      *preserved-registers*))
+  unspecific)
+
+(define (clear-map!/preserving)
+  ;; (values machine-regs pseudo-regs)
+  ;; where machine-regs are the machine registers to preserve,
+  ;; and pseudo-regs are the pseudo registers whose homes
+  ;; must be preserved.
+  ;; It also modifies the register map to reflect the registers
+  ;; needed and available when restoring.
+
+  (define (survive entries)
+    (error "Non-preserved registers survive clear-map!/preserving"
+	   entries))
+
+  (delete-dead-registers!)
+  (let ((pairs (map (lambda (entry)
+		      (cons (map-entry-home entry)
+			    entry))
+		    (list-transform-positive (map-entries *register-map*)
+		      map-entry-home)))
+	(preserved *preserved-registers*))
+    
+    (let ((bad (list-transform-negative pairs
+		 (lambda (pair)
+		   (assv (car pair) preserved)))))
+      (if (not (null? bad))
+	  (survive (map car bad))))
+	    
+    (let ((entries '())
+	  (regs-needed '())
+	  (reqs-home '())
+	  (regs-reserved '()))
+
+      (define (save-aliases entry)
+	(let ((aliases (map-entry-aliases entry)))
+	  (set! regs-needed (eqv-set-union aliases regs-needed))
+	  (set! entries
+		(cons (if (map-entry-saved-into-home? entry)
+			  (make-map-entry (map-entry-home entry)
+					  false
+					  aliases
+					  false)
+			  entry)
+		      entries))
+	  unspecific))
+
+      (define (remember-an-alias entry)
+	(let ((reserved (car (map-entry-aliases entry))))
+	  (set! regs-reserved (eqv-set-adjoin reserved regs-reserved))
+	  (set! entries
+		(cons (make-map-entry (map-entry-home entry)
+				      reserved
+				      '()
+				      false)
+		      entries))
+	  unspecific))
+
+      (let loop ((preserved preserved))
+	(if (null? preserved)
+	    (begin
+	      (set! *needed-registers* regs-needed)
+	      (set! *register-map*
+		    (make-register-map
+		     entries
+		     (eqv-set-difference
+		      (eqv-set-difference available-machine-registers
+					  regs-needed)
+		      regs-reserved)))
+	      (values regs-needed reqs-home))
+	    (let* ((how (cadr (car preserved)))
+		   (reg (car (car preserved)))
+		   (entry (let ((pair (assv reg pairs)))
+			    (and pair (cdr pair))))
+		   (has-alias?
+		    (and entry
+			 (not (null? (map-entry-aliases entry))))))
+	      (case how
+		((SAVE)
+		 (if has-alias?
+		     (save-aliases entry)
+		     (begin
+		       (set! reqs-home (cons reg reqs-home))
+		       (set! entries
+			     (cons (or entry
+				       (make-map-entry reg
+						       true
+						       '()
+						       false))
+				   entries)))))
+		((IF-AVAILABLE)
+		 (if has-alias?
+		     (save-aliases entry)))
+		((RECOMPUTE)
+		 (if has-alias?
+		     (remember-an-alias entry)))
+		(else
+		 (error "Unknown preservation kind" how)))
+	      (loop (cdr preserved))))))))
+
+(define (restore-registers!)
+  (call-with-values
+   (lambda ()
+     (list-split (map-entries *register-map*)
+		 (lambda (entry)
+		   (boolean? (map-entry-saved-into-home? entry)))))
+   (lambda (normal alias-remembered)
+     (if (not (null? alias-remembered))
+	 (begin
+	   (set! *restored-registers*
+		 (map (lambda (entry)
+			(list (map-entry-home entry)
+			      (map-entry-saved-into-home? entry)))
+		      alias-remembered))
+	   (set! *register-map*
+		 (make-register-map normal
+				    (map-registers *register-map*)))
+	   unspecific)))))
+
+(define (restored-register-home register)
+  ;; (values available? reg-where-desired)
+  (if (or (register-has-alias? register false)
+	  (register-saved-into-home? register))
+      (values true false)
+      (values false
+	      (let ((info (assq register *restored-registers*)))
+		(and info
+		     (cadr info))))))
+
 (define (clear-map!)
   ;; Deletes all registers from the register map.  Generates and
   ;; returns instructions to save pseudo registers into their homes,
@@ -275,10 +414,15 @@ MIT in each case. |#
   ;; transfer to somewhere that can potentially flush the contents of
   ;; the machine registers.
   (delete-dead-registers!)
-  (let ((instructions (clear-map)))
-    (set! *register-map* (empty-register-map))
-    (set! *needed-registers* '())
-    instructions))
+  (if (not (null? *preserved-registers*))
+      (error "clear-map! called with registers preserved"
+	     *preserved-registers*))
+  (clear-map!/finish (clear-map)))
+
+(define (clear-map!/finish instructions)
+  (set! *register-map* (empty-register-map))
+  (set! *needed-registers* '())
+  instructions)
 
 (define (clear-map)
   (clear-map-instructions *register-map*))
@@ -288,6 +432,19 @@ MIT in each case. |#
       '()
       (let loop ((map *register-map*) (registers registers))
 	(save-machine-register map (car registers)
+	  (lambda (map instructions)
+	    (let ((map (delete-machine-register map (car registers))))
+	      (if (null? (cdr registers))
+		  (begin
+		    (set! *register-map* map)
+		    instructions)
+		  (append! instructions (loop map (cdr registers))))))))))
+
+(define (clean-registers! . aregisters)
+  (if (null? aregisters)
+      '()
+      (let loop ((map *register-map*) (registers aregisters))
+	(preserve-machine-register map (car registers) aregisters
 	  (lambda (map instructions)
 	    (let ((map (delete-machine-register map (car registers))))
 	      (if (null? (cdr registers))
@@ -336,26 +493,36 @@ MIT in each case. |#
 		      (else (no-reuse-possible))))
 	      (no-preference))))))
 
+(define (%load-machine-register! source-register machine-register
+				 clean-register-map!)
+  ;; Copy the contents of `source-register' to `machine-register'.
+  (cond ((machine-register? source-register)
+	 (clean-register-map!)
+	 (LAP ,@(clean-registers! machine-register)
+	      ,@(if (eqv? source-register machine-register)
+		    (LAP)
+		    (register->register-transfer source-register
+						 machine-register))))
+	((is-alias-for-register? machine-register source-register)
+	 (clean-register-map!)
+	 (clean-registers! machine-register))
+	(else
+	 (let ((source-reference
+		(if (register-value-class=word? source-register)
+		    (standard-register-reference source-register false true)
+		    (standard-register-reference
+		     source-register
+		     (register-type source-register)
+		     false))))
+	   (clean-register-map!)
+	   (LAP ,@(clean-registers! machine-register)
+		,@(reference->register-transfer source-reference
+						machine-register))))))
+
 (define (load-machine-register! source-register machine-register)
   ;; Copy the contents of `source-register' to `machine-register'.
-  (if (machine-register? source-register)
-      (LAP ,@(clear-registers! machine-register)
-	   ,@(if (eqv? source-register machine-register)
-		 (LAP)
-		 (register->register-transfer source-register
-					      machine-register)))
-      (if (is-alias-for-register? machine-register source-register)
-	  (clear-registers! machine-register)
-	  (let ((source-reference
-		 (if (register-value-class=word? source-register)
-		     (standard-register-reference source-register false true)
-		     (standard-register-reference
-		      source-register
-		      (register-type source-register)
-		      false))))
-	    (LAP ,@(clear-registers! machine-register)
-		 ,@(reference->register-transfer source-reference
-						 machine-register))))))
+  (%load-machine-register! source-register machine-register
+			   (lambda () unspecific)))
 
 (define (move-to-alias-register! source type target)
   ;; Performs an assignment from register `source' to register
@@ -363,29 +530,59 @@ MIT in each case. |#
   ;; returns that alias.  If `source' has a reusable alias of the
   ;; appropriate type, that is used, in which case no instructions are
   ;; generated.
-  (if (and (machine-register? target)
-	   (register-type? target type))
-      (begin
-	(prefix-instructions!
-	 (reference->register-transfer
-	  (standard-register-reference source type true)
-	  target))
-	target)
-      (reuse-pseudo-register-alias! source type
-	(lambda (alias)
-	  (delete-dead-registers!)
-	  (if (machine-register? target)
-	      (suffix-instructions! (register->register-transfer alias target))
-	      (add-pseudo-register-alias! target alias))
-	  alias)
-	(lambda ()
-	  (let ((source (standard-register-reference source type true)))
+  (cond ((and (machine-register? target)
+	      (register-type? target type))
+	 ;; *** Lose ***
+	 ;; The following is done wrong on several counts:
+	 ;; 1: memq should not be used, a vector of all machine registers
+	 ;; containing booleans can be used instead.
+	 ;; 2: lock-register! should wire down the register as being
+	 ;; a "permanent" alias for source, since the pseudo register
+	 ;; may still be referenced.  The register map abstraction
+	 ;; needs to be extended for this.
+	 (cond ((not (memq target available-machine-registers))
+		(prefix-instructions!
+		 (reference->register-transfer
+		  (standard-register-reference source type true)
+		  target)))
+	       ((not (is-alias-for-register? target source))
+		(prefix-instructions!
+		 (%load-machine-register! source target
+					  delete-dead-registers!))
+		(lock-register! target))
+	       (else
+		;; *** The following may cause a cascade of copies
+		;; since the following machine register assignment
+		;; may assign to the register just picked. ***
+		(delete-dead-registers!)
+		(prefix-instructions! (clean-registers! target))
+		(lock-register! target)))
+	 target)
+	((and (machine-register? source)
+	      (register-type? source type)
+	      ;; *** Lose ***
+	      (memq source available-machine-registers))
+	 (delete-register! target)
+	 (add-pseudo-register-alias! target source)
+	 source)
+	(else
+	 (reuse-pseudo-register-alias!
+	  source type
+	  (lambda (alias)
 	    (delete-dead-registers!)
-	    (let ((target (allocate-alias-register! target type)))
-	      (prefix-instructions!
-	       (reference->register-transfer source target))
-	      target))))))
-
+	    (if (machine-register? target)
+		(suffix-instructions!
+		 (register->register-transfer alias target))
+		(add-pseudo-register-alias! target alias))
+	    alias)
+	  (lambda ()
+	    (let ((source (standard-register-reference source type true)))
+	      (delete-dead-registers!)
+	      (let ((target (allocate-alias-register! target type)))
+		(prefix-instructions!
+		 (reference->register-transfer source target))
+		target)))))))
+
 (define (move-to-temporary-register! source type)
   ;; Allocates a temporary register, of the given `type', and loads
   ;; the contents of the register `source' into it.  Returns a
