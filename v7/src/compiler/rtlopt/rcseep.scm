@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rcseep.scm,v 4.6 1990/01/18 22:47:53 cph Rel $
+$Id: rcseep.scm,v 4.6.1.1 1994/03/30 21:22:14 gjr Exp $
 
-Copyright (c) 1987, 1988, 1990 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
