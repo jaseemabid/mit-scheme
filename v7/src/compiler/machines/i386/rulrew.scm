@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulrew.scm,v 1.9 1992/02/18 22:57:48 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulrew.scm,v 1.9.1.1 1992/02/20 16:44:48 jinx Exp $
 $MC68020-Header: /scheme/src/compiler/machines/bobcat/RCS/rulrew.scm,v 1.4 1991/10/25 06:50:06 cph Exp $
 
 Copyright (c) 1992 Massachusetts Institute of Technology
@@ -41,10 +41,10 @@ MIT in each case. |#
 ;;;; Synthesized Data
 
 (define-rule rewriting
-  (CONS-NON-POINTER (? type) (? datum))
-  ;; On i386, there's no difference between an address and a datum,
-  ;; so the rules for constructing non-pointer objects are the same as
-  ;; those for pointer objects.
+  (CONS-POINTER (REGISTER (? type register-known-value))
+		(REGISTER (? datum register-known-value)))
+  (QUALIFIER (and (rtl:machine-constant? type)
+		  (rtl:machine-constant? datum)))
   (rtl:make-cons-pointer type datum))
 
 (define-rule rewriting
@@ -209,12 +209,12 @@ MIT in each case. |#
 		     (predicate n)))))))
 
 (define-rule rewriting
-  (OBJECT->FLOAT (REGISTER (? operand register-known-value)))
+  (@ADDRESS->FLOAT (REGISTER (? operand register-known-value)))
   (QUALIFIER
-   (rtl:constant-flonum-test operand
+   (rtl:constant-flonum-test operand 
 			     (lambda (v)
 			       (or (flo:zero? v) (flo:one? v)))))
-  (rtl:make-object->float operand))
+  (rtl:constant-flonum->operand operand))
 
 (define-rule rewriting
   (FLONUM-2-ARGS FLONUM-SUBTRACT
@@ -222,7 +222,10 @@ MIT in each case. |#
 		 (? operand-2)
 		 (? overflow?))
   (QUALIFIER (rtl:constant-flonum-test operand-1 flo:zero?))
-  (rtl:make-flonum-2-args 'FLONUM-SUBTRACT operand-1 operand-2 overflow?))
+  (rtl:make-flonum-2-args 'FLONUM-SUBTRACT
+			  (rtl:constant-flonum->operand operand-1)
+			  operand-2
+			  overflow?))
 
 (define-rule rewriting
   (FLONUM-2-ARGS (? operation)
@@ -233,7 +236,10 @@ MIT in each case. |#
    (and (memq operation
 	      '(FLONUM-ADD FLONUM-SUBTRACT FLONUM-MULTIPLY FLONUM-DIVIDE))
 	(rtl:constant-flonum-test operand-1 flo:one?)))
-  (rtl:make-flonum-2-args operation operand-1 operand-2 overflow?))
+  (rtl:make-flonum-2-args operation
+			  (rtl:constant-flonum->operand operand-1)
+			  operand-2
+			  overflow?))
 
 (define-rule rewriting
   (FLONUM-2-ARGS (? operation)
@@ -244,14 +250,20 @@ MIT in each case. |#
    (and (memq operation
 	      '(FLONUM-ADD FLONUM-SUBTRACT FLONUM-MULTIPLY FLONUM-DIVIDE))
 	(rtl:constant-flonum-test operand-2 flo:one?)))
-  (rtl:make-flonum-2-args operation operand-1 operand-2 overflow?))
+  (rtl:make-flonum-2-args operation
+			  operand-1
+			  (rtl:constant-flonum->operand operand-2)
+			  overflow?))
 
 (define-rule rewriting
   (FLONUM-PRED-2-ARGS (? predicate)
 		      (? operand-1)
 		      (REGISTER (? operand-2 register-known-value)))
   (QUALIFIER (rtl:constant-flonum-test operand-2 flo:zero?))
-  (list 'FLONUM-PRED-2-ARGS predicate operand-1 operand-2))
+  (list 'FLONUM-PRED-2-ARGS
+	predicate
+	operand-1
+	(rtl:constant-flonum->operand operand-2)))
 
 (define-rule rewriting
   (FLONUM-PRED-2-ARGS (? predicate)
@@ -260,54 +272,26 @@ MIT in each case. |#
   (QUALIFIER (rtl:constant-flonum-test operand-1 flo:zero?))
   (list 'FLONUM-PRED-2-ARGS predicate operand-1 operand-2))
 
-#|
-;; These don't work as written.  They are not simplified and are
-;; therefore passed whole to the back end, and there is no way to
-;; construct the graph at this level.
-
-;; acos (x) = atan ((sqrt (1 - x^2)) / x)
-
-(define-rule add-pre-cse-rewriting-rule!
-  (FLONUM-1-ARG FLONUM-ACOS (? operand) #f)
-  (rtl:make-flonum-2-args
-   'FLONUM-ATAN2
-   (rtl:make-flonum-1-arg
-    'FLONUM-SQRT
-    (rtl:make-flonum-2-args
-     'FLONUM-SUBTRACT
-     (rtl:make-object->float (rtl:make-constant 1.))
-     (rtl:make-flonum-2-args 'FLONUM-MULTIPLY operand operand false)
-     false)
-    false)
-   operand
-   false))
-
-;; asin (x) = atan (x / (sqrt (1 - x^2)))
-
-(define-rule add-pre-cse-rewriting-rule!
-  (FLONUM-1-ARG FLONUM-ASIN (? operand) #f)
-  (rtl:make-flonum-2-args
-   'FLONUM-ATAN2
-   operand
-   (rtl:make-flonum-1-arg
-    'FLONUM-SQRT
-    (rtl:make-flonum-2-args
-     'FLONUM-SUBTRACT
-     (rtl:make-object->float (rtl:make-constant 1.))
-     (rtl:make-flonum-2-args 'FLONUM-MULTIPLY operand operand false)
-     false)
-    false)
-   false))
-
-|#
-
-(define (rtl:constant-flonum-test expression predicate)
-  (and (rtl:object->float? expression)
-       (let ((expression (rtl:object->float-expression expression)))
-	 (and (rtl:constant? expression)
-	      (let ((n (rtl:constant-value expression)))
+(define (rtl:constant-flonum-test operand predicate)
+  (and (rtl:object->address? operand)
+       (let ((value (let ((value (rtl:object->address-expression operand)))
+		      (if (rtl:register? value)
+			  (register-known-value (rtl:register-number value))
+			  value))))
+	 (and value
+	      (rtl:constant? value)
+	      (let ((n (rtl:constant-value value)))
 		(and (flo:flonum? n)
 		     (predicate n)))))))
+
+(define (rtl:constant-flonum->operand operand)
+  ;; This is only valid on rtl expressions that respond true to
+  ;; rtl:constant-flonum-test
+  (let ((value (let ((value (rtl:object->address-expression operand)))
+		 (if (rtl:register? value)
+		     (register-known-value (rtl:register-number value))
+		     value))))
+    (rtl:make-@address->float (rtl:make-object->address value))))
 
 (define (flo:one? value)
   (flo:= value 1.))
