@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.78 1993/11/09 08:34:16 gjr Exp $
+$Id: fasload.c,v 9.78.1.1 1994/01/08 17:06:28 gjr Exp $
 
 Copyright (c) 1987-1993 Massachusetts Institute of Technology
 
@@ -267,8 +267,6 @@ DEFUN (read_file_end, (mode, prim_table_ptr, c_code_table_ptr),
     (checksum_area (((unsigned long *) Free),
 		    Heap_Count,
 		    computed_checksum));
-  if ((dumped_interface_version != 0) && (Heap_Count != 0))
-    PUSH_D_CACHE_REGION (Free, Heap_Count);
   NORMALIZE_REGION(((char *) Free), Heap_Count);
   Free += Heap_Count;
 
@@ -283,8 +281,6 @@ DEFUN (read_file_end, (mode, prim_table_ptr, c_code_table_ptr),
     (checksum_area (((unsigned long *) Free_Constant),
 		    Const_Count,
 		    computed_checksum));
-  if ((dumped_interface_version != 0) && (Const_Count != 0))
-    PUSH_D_CACHE_REGION (Free_Constant, Const_Count);
   NORMALIZE_REGION (((char *) Free_Constant), Const_Count);
   Free_Constant += Const_Count;
   SET_CONSTANT_TOP ();
@@ -779,6 +775,14 @@ DEFUN (load_file, (mode), int mode)
 
     Intern_Block (Orig_Heap, primitive_table);
     Intern_Block (Orig_Constant, Constant_End);
+  }
+
+  if (dumped_interface_version != 0)
+  {
+    if (primitive_table != Orig_Heap)
+      PUSH_D_CACHE_REGION (Orig_Heap, (primitive_table - Orig_Heap));
+    if (Constant_End != Orig_Constant)
+      PUSH_D_CACHE_REGION (Orig_Constant, (Constant_End - Orig_Constant));
   }
 
   FASLOAD_RELOCATE_HOOK (Orig_Heap, primitive_table,
