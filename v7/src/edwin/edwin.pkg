@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: edwin.pkg,v 1.107 1992/11/24 22:27:15 cph Exp $
+$Id: edwin.pkg,v 1.107.1.1 1992/11/25 06:57:40 gjr Exp $
 
 Copyright (c) 1989-1992 Massachusetts Institute of Technology
 
@@ -104,6 +104,7 @@ MIT in each case. |#
 	 "sort"
 
 	 ;; These are only available under Unix/X
+#|
 
 	 "comint"			; command interpreter process stuff
 	 "compile"			; compilation subprocess
@@ -113,6 +114,7 @@ MIT in each case. |#
 	 "xmodef"			; x bindings for fundamental mode
 	 "manual"			; man page display
 	 "print"			; printer output
+|#
 	 )
 
   (parent ())
@@ -739,7 +741,6 @@ MIT in each case. |#
 
 ;;;; The following are the variants used under DOS
 
-#|
 (define-package (edwin debugger)
   (files "debug")
   (parent (edwin))
@@ -809,10 +810,10 @@ MIT in each case. |#
 	  initialize-processes!			; always present
 	  process-list				; always present
 	  subprocesses-available?))		; always present
-|#
 
 ;;;; The following are the variants used under Unix/X
 
+#|
 (define-package (edwin debugger)
   (files "debug")
   (parent (edwin))
@@ -1158,3 +1159,4 @@ MIT in each case. |#
   (import (runtime debugger-utilities)
 	  show-environment-bindings)
   (initialization (initialize-bochser-mode!)))
+|#
