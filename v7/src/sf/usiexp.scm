@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/usiexp.scm,v 3.3.1.2 1987/06/26 17:08:01 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/usiexp.scm,v 3.3.1.3 1987/06/26 17:28:16 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -329,9 +329,7 @@ MIT in each case. |#
 	  operands)
      (lambda (scode-expression)
        (if-expanded
-	(transmit-values ((access transform/top-level-1 package/transform)
-			  (reference/block operator)
-			  scode-expression)
-			 (lambda (block expression)
-			   expression))))
+	((access transform/top-level-1 package/transform)
+	 (reference/block operator)
+	 scode-expression)))
      if-not-expanded)))
