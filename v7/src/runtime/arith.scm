@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/arith.scm,v 1.16 1990/09/11 22:06:09 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/arith.scm,v 1.16.1.1 1991/08/26 04:13:35 cph Exp $
 
-Copyright (c) 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1989-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -130,7 +130,10 @@ MIT in each case. |#
       (set-trampoline! 'GENERIC-TRAMPOLINE-ADD complex:+)
       (set-trampoline! 'GENERIC-TRAMPOLINE-SUBTRACT complex:-)
       (set-trampoline! 'GENERIC-TRAMPOLINE-MULTIPLY complex:*)
-      (set-trampoline! 'GENERIC-TRAMPOLINE-DIVIDE complex:/))))
+      (set-trampoline! 'GENERIC-TRAMPOLINE-DIVIDE complex:/)
+      (set-trampoline! 'GENERIC-TRAMPOLINE-QUOTIENT complex:quotient)
+      (set-trampoline! 'GENERIC-TRAMPOLINE-REMAINDER complex:remainder)
+      (set-trampoline! 'GENERIC-TRAMPOLINE-MODULO complex:modulo))))
 
 (define flo:significand-digits-base-2)
 (define flo:significand-digits-base-10)
@@ -784,7 +787,6 @@ MIT in each case. |#
 		    (,rat:op X Y)))))))
   (define-standard-binary real:+ flo:+ (copy rat:+))
   (define-standard-binary real:- flo:- (copy rat:-))
-  (define-standard-binary real:/ flo:/ (copy rat:/))
   (define-standard-binary real:rationalize
     flo:rationalize
     rat:rationalize)
@@ -842,6 +844,11 @@ MIT in each case. |#
 	((rat:zero? x) x)
 	((flonum? y) (flo:* (rat:->flonum x) y))
 	(else ((copy rat:*) x y))))
+
+(define (real:/ x y)
+  (cond ((flonum? x) (flo:/ x (if (flonum? y) y (rat:->flonum y))))
+	((flonum? y) (if (rat:zero? x) x (flo:/ (rat:->flonum x) y)))
+	(else ((copy rat:/) x y))))
 
 (define (real:even? n)
   ((copy int:even?)
@@ -1097,7 +1104,7 @@ MIT in each case. |#
 (define (complex:+ z1 z2)
   (if (recnum? z1)
       (if (recnum? z2)
-	  (complex:make-rectangular
+	  (complex:%make-rectangular
 	   (real:+ (rec:real-part z1) (rec:real-part z2))
 	   (real:+ (rec:imag-part z1) (rec:imag-part z2)))
 	  (make-recnum (real:+ (rec:real-part z1) z2)
@@ -1124,32 +1131,32 @@ MIT in each case. |#
 		(z1i (rec:imag-part z1))
 		(z2r (rec:real-part z2))
 		(z2i (rec:imag-part z2)))
-	    (complex:make-rectangular
+	    (complex:%make-rectangular
 	     (real:- (real:* z1r z2r) (real:* z1i z2i))
 	     (real:+ (real:* z1r z2i) (real:* z1i z2r))))
-	  (complex:make-rectangular (real:* (rec:real-part z1) z2)
-				    (real:* (rec:imag-part z1) z2)))
+	  (complex:%make-rectangular (real:* (rec:real-part z1) z2)
+				     (real:* (rec:imag-part z1) z2)))
       (if (recnum? z2)
-	  (complex:make-rectangular (real:* z1 (rec:real-part z2))
-				    (real:* z1 (rec:imag-part z2)))
+	  (complex:%make-rectangular (real:* z1 (rec:real-part z2))
+				     (real:* z1 (rec:imag-part z2)))
 	  ((copy real:*) z1 z2))))
 
 (define (complex:+i* z)
   (if (recnum? z)
-      (complex:make-rectangular (real:negate (rec:imag-part z))
-				(rec:real-part z))
-      (complex:make-rectangular 0 z)))
+      (complex:%make-rectangular (real:negate (rec:imag-part z))
+				 (rec:real-part z))
+      (complex:%make-rectangular 0 z)))
 
 (define (complex:-i* z)
   (if (recnum? z)
-      (complex:make-rectangular (rec:imag-part z)
-				(real:negate (rec:real-part z)))
-      (complex:make-rectangular 0 (real:negate z))))
+      (complex:%make-rectangular (rec:imag-part z)
+				 (real:negate (rec:real-part z)))
+      (complex:%make-rectangular 0 (real:negate z))))
 
 (define (complex:- z1 z2)
   (if (recnum? z1)
       (if (recnum? z2)
-	  (complex:make-rectangular
+	  (complex:%make-rectangular
 	   (real:- (rec:real-part z1) (rec:real-part z2))
 	   (real:- (rec:imag-part z1) (rec:imag-part z2)))
 	  (make-recnum (real:- (rec:real-part z1) z2)
@@ -1182,7 +1189,7 @@ MIT in each case. |#
 		(z2r (rec:real-part z2))
 		(z2i (rec:imag-part z2)))
 	    (let ((d (real:+ (real:square z2r) (real:square z2i))))
-	      (complex:make-rectangular
+	      (complex:%make-rectangular
 	       (real:/ (real:+ (real:* z1r z2r) (real:* z1i z2i)) d)
 	       (real:/ (real:- (real:* z1i z2r) (real:* z1r z2i)) d))))
 	  (make-recnum (real:/ (rec:real-part z1) z2)
@@ -1191,7 +1198,7 @@ MIT in each case. |#
 	  (let ((z2r (rec:real-part z2))
 		(z2i (rec:imag-part z2)))
 	    (let ((d (real:+ (real:square z2r) (real:square z2i))))
-	      (complex:make-rectangular
+	      (complex:%make-rectangular
 	       (real:/ (real:* z1 z2r) d)
 	       (real:/ (real:negate (real:* z1 z2i)) d))))
 	  ((copy real:/) z1 z2))))
@@ -1308,14 +1315,14 @@ MIT in each case. |#
 
 (define (complex:exp z)
   (if (recnum? z)
-      (complex:make-polar (real:exp (rec:real-part z))
-			  (rec:imag-part z))
+      (complex:%make-polar (real:exp (rec:real-part z))
+			   (rec:imag-part z))
       ((copy real:exp) z)))
 
 (define (complex:log z)
   (cond ((recnum? z)
-	 (complex:make-rectangular (real:log (complex:magnitude z))
-				   (complex:angle z)))
+	 (complex:%make-rectangular (real:log (complex:magnitude z))
+				    (complex:angle z)))
 	((real:negative? z)
 	 (make-recnum (real:log (real:negate z)) rec:pi))
 	(else
@@ -1414,12 +1421,32 @@ MIT in each case. |#
 			  (complex:log (complex:- 1 iz))))
 	     +2i))
 
+(define (complex:angle z)
+  (cond ((recnum? z)
+	 (if (and (real:zero? (rec:real-part z))
+		  (real:zero? (rec:imag-part z)))
+	     (real:0 (complex:exact? z))
+	     (real:atan2 (rec:imag-part z) (rec:real-part z))))
+	((real:negative? z) rec:pi)
+	(else (real:0 (real:exact? z)))))
+
+(define (complex:magnitude z)
+  (if (recnum? z)
+      (let ((ar (real:abs (rec:real-part z)))
+	    (ai (real:abs (rec:imag-part z))))
+	(let ((v (real:max ar ai))
+	      (w (real:min ar ai)))
+	  (if (real:zero? v)
+	      v
+	      (real:* v (real:sqrt (real:1+ (real:square (real:/ w v))))))))
+      (real:abs z)))
+
 (define (complex:sqrt z)
   (cond ((recnum? z)
-	 (complex:make-polar (real:sqrt (complex:magnitude z))
-			     (real:/ (complex:angle z) 2)))
+	 (complex:%make-polar (real:sqrt (complex:magnitude z))
+			      (real:/ (complex:angle z) 2)))
 	((real:negative? z)
-	 (complex:make-rectangular 0 (real:sqrt (real:negate z))))
+	 (complex:%make-rectangular 0 (real:sqrt (real:negate z))))
 	(else
 	 ((copy real:sqrt) z))))
 
@@ -1459,13 +1486,28 @@ MIT in each case. |#
 	   (real:expt z1 z2)))))
 
 (define (complex:make-rectangular real imag)
+  (let ((check-arg
+	 (lambda (x)
+	   (if (recnum? x)
+	       (rec:real-arg 'MAKE-RECTANGULAR x)
+	       (begin
+		 (if (not (real:real? x))
+		     (error:illegal-datum x 'MAKE-RECTANGULAR))
+		 x)))))
+    ((copy complex:%make-rectangular) (check-arg real) (check-arg imag))))
+
+(define (complex:make-polar magnitude angle)
+  ((copy complex:%make-polar) (complex:real-arg 'MAKE-POLAR magnitude)
+			      (complex:real-arg 'MAKE-POLAR angle)))
+
+(define (complex:%make-rectangular real imag)
   (if (real:exact0= imag)
       real
       (make-recnum real imag)))
 
-(define (complex:make-polar magnitude angle)
-  (complex:make-rectangular (real:* magnitude (real:cos angle))
-			    (real:* magnitude (real:sin angle))))
+(define (complex:%make-polar magnitude angle)
+  (complex:%make-rectangular (real:* magnitude (real:cos angle))
+			     (real:* magnitude (real:sin angle))))
 
 (define (complex:real-part z)
   (cond ((recnum? z) (rec:real-part z))
@@ -1477,36 +1519,16 @@ MIT in each case. |#
 	((real:real? z) 0)
 	(else (error:illegal-datum z 'IMAG-PART))))
 
-(define (complex:magnitude z)
-  (if (recnum? z)
-      (let ((ar (real:abs (rec:real-part z)))
-	    (ai (real:abs (rec:imag-part z))))
-	(let ((v (real:max ar ai))
-	      (w (real:min ar ai)))
-	  (if (real:zero? v)
-	      v
-	      (real:* v (real:sqrt (real:1+ (real:square (real:/ w v))))))))
-      (real:abs z)))
-
-(define (complex:angle z)
-  (cond ((recnum? z)
-	 (if (and (real:zero? (rec:real-part z))
-		  (real:zero? (rec:imag-part z)))
-	     (real:0 (complex:exact? z))
-	     (real:atan2 (rec:imag-part z) (rec:real-part z))))
-	((real:negative? z) rec:pi)
-	(else (real:0 (real:exact? z)))))
-
 (define (complex:exact->inexact z)
   (if (recnum? z)
-      (complex:make-rectangular (real:exact->inexact (rec:real-part z))
-				(real:exact->inexact (rec:imag-part z)))
+      (complex:%make-rectangular (real:exact->inexact (rec:real-part z))
+				 (real:exact->inexact (rec:imag-part z)))
       ((copy real:exact->inexact) z)))
 
 (define (complex:inexact->exact z)
   (if (recnum? z)
-      (complex:make-rectangular (real:inexact->exact (rec:real-part z))
-				(real:inexact->exact (rec:imag-part z)))
+      (complex:%make-rectangular (real:inexact->exact (rec:real-part z))
+				 (real:inexact->exact (rec:imag-part z)))
       ((copy real:inexact->exact) z)))
 
 (define (complex:->string z radix)
@@ -1618,9 +1640,18 @@ MIT in each case. |#
 					  (reduce complex:* 1 (cddr zs))))))))
 
 (define abs complex:abs)
-(define quotient complex:quotient)
-(define remainder complex:remainder)
-(define modulo complex:modulo)
+(define quotient (ucode-primitive quotient 2))
+(define remainder (ucode-primitive remainder 2))
+
+(define (modulo n d)
+  (let ((r ((ucode-primitive remainder 2) n d)))
+    (if (or (zero? r)
+	    (if (negative? n)
+		(negative? d)
+		(not (negative? d))))
+	r
+	(+ r d))))
+
 (define integer-floor complex:integer-floor)
 (define integer-ceiling complex:integer-ceiling)
 (define integer-truncate complex:quotient)
