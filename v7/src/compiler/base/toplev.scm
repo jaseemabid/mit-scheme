@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/toplev.scm,v 4.35 1991/07/25 02:33:41 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/toplev.scm,v 4.35.1.1 1991/08/24 00:30:43 cph Exp $
 
 Copyright (c) 1988-91 Massachusetts Institute of Technology
 
@@ -153,18 +153,18 @@ MIT in each case. |#
 
 (define (compiler:batch-compile input #!optional output)
   (fluid-let ((compiler:batch-mode? true))
-    (bind-condition-handler (list condition-type:error)
-	compiler:batch-error-handler
+    (bind-condition-handler '() compiler:batch-error-handler
       (lambda ()
 	(if (default-object? output)
 	    (compile-bin-file input)
 	    (compile-bin-file input output))))))
 
 (define (compiler:batch-error-handler condition)
-  (let ((port (nearest-cmdl/output-port)))
-    (newline port)
-    (write-condition-report condition port))
-  (compiler:abort false))
+  (and (not (condition/internal? condition))
+       (condition/error? condition)
+       (begin
+	 (warn (condition/report-string condition))
+	 (compiler:abort false))))
 
 (define (compiler:abort value)
   (if (not compiler:abort-handled?)
