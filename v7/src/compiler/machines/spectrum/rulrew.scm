@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: rulrew.scm,v 1.12 1993/08/06 05:44:41 jawilson Exp $
+$Id: rulrew.scm,v 1.12.1.1 1994/11/26 19:26:30 gjr Exp $
 
 Copyright (c) 1990-1993 Massachusetts Institute of Technology
 
@@ -46,6 +46,68 @@ MIT in each case. |#
   ;; constructed.
   (rtl:make-cons-pointer type datum))
 
+
+(define-rule add-pre-cse-rewriting-rule!
+  (CONS-POINTER (REGISTER (? type register-known-value))
+		(? datum))
+  (QUALIFIER 
+   (and (rtl:machine-constant? type)
+	(let ((value (rtl:machine-constant-value type))
+	      (class (rtl:expression-value-class datum)))
+	  ;; Typecode values that we can use for DEPI instruction, even
+	  ;; though the type cant be specified in 6 bits (01xxxx/10xxxx)
+	  ;; If the quad mask bits are 0xxxx0 then we can do (0xxxxx/xxxxx0)
+	  ;; In a single DEPI.
+	  ;; Forcing them to be constants prevents any cse on the values.
+	  (and (value-class=address? class)
+	       (fix:fixnum? value)
+	       (or (even? (fix:or quad-mask-value value))
+		   (fix:<= (fix:or quad-mask-value value) #b11111))))))
+  (rtl:make-cons-pointer type datum))
+
+
+;(define-rule add-pre-cse-rewriting-rule!
+;  (CONS-POINTER (REGISTER (? type register-known-value))
+;		(? datum))
+;  (QUALIFIER 
+;   (and (rtl:machine-constant? type)
+;	(let ((value (rtl:machine-constant-value type))
+;	      (class (rtl:expression-value-class datum)))
+;	  ;; Elide a (CONS-POINTER address-bits address-register)
+;	  (and (eq? class value-class=address)
+;	       (fix:fixnum? value)
+;	       (fix:= value quad-mask-value value)))))
+;  datum)
+
+(define-rule add-pre-cse-rewriting-rule!
+  (CONS-POINTER (REGISTER (? type register-known-value))
+		(? datum))
+  (QUALIFIER 
+   (and (rtl:machine-constant? type)
+	(let ((value (rtl:machine-constant-value type)))
+	  ;; Typecode values that we can use for DEPI instructions.
+	  ;; Forcing them to be constants prevents any cse on the values.
+	  (or (fits-in-5-bits-signed? value)
+	      (fits-in-5-bits-signed? (- value (1+ max-type-code)))
+	      (= value quad-mask-value) ; for which we use r5
+	      ))))
+  (rtl:make-cons-pointer type datum))
+
+(define-rule add-pre-cse-rewriting-rule!
+  (CONS-NON-POINTER (REGISTER (? type register-known-value))
+		    (? datum))
+  (QUALIFIER 
+   (and (rtl:machine-constant? type)
+	(let ((value (rtl:machine-constant-value type)))
+	  ;; Typecode values that we can use for DEPI instructions.
+	  ;; Forcing them to be constants prevents any cse on the values.
+	  (or (fits-in-5-bits-signed? value)
+	      (fits-in-5-bits-signed? (- value (1+ max-type-code)))
+	      (= value quad-mask-value) ; for which we use 
+	      ))))
+  (rtl:make-cons-pointer type datum))
+
+
 (define-rule rewriting
   (CONS-POINTER (REGISTER (? type register-known-value))
 		(REGISTER (? datum register-known-value)))
@@ -60,7 +122,8 @@ MIT in each case. |#
 	(rtl:constant? (rtl:object->type-expression type))))
   (rtl:make-cons-pointer
    (rtl:make-machine-constant
-    (object-type (rtl:constant-value (rtl:object->type-expression datum))))
+    (target-object-type
+     (rtl:constant-value (rtl:object->type-expression datum))))
    datum))
 
 (define-rule rewriting
@@ -74,16 +137,18 @@ MIT in each case. |#
 (define-rule rewriting
   (OBJECT->TYPE (REGISTER (? source register-known-value)))
   (QUALIFIER (rtl:constant? source))
-  (rtl:make-machine-constant (object-type (rtl:constant-value source))))
+  (rtl:make-machine-constant (target-object-type (rtl:constant-value source))))
 
 (define-rule rewriting
   (OBJECT->DATUM (REGISTER (? source register-known-value)))
   (QUALIFIER (rtl:constant-non-pointer? source))
-  (rtl:make-machine-constant (careful-object-datum (rtl:constant-value source))))
+  (rtl:make-machine-constant
+   (careful-object-datum (rtl:constant-value source))))
 
 (define (rtl:constant-non-pointer? expression)
   (and (rtl:constant? expression)
        (non-pointer-object? (rtl:constant-value expression))))
+
 
 ;;; These rules are losers because there's no abstract way to cons a
 ;;; statement or a predicate without also getting some CFG structure.
@@ -110,7 +175,7 @@ MIT in each case. |#
   (cond ((rtl:constant? expression)
 	 (let ((value (rtl:constant-value expression)))
 	   (and (non-pointer-object? value)
-		(zero? (object-type value))
+		(zero? (target-object-type value))
 		(zero? (careful-object-datum value)))))
 	((rtl:cons-pointer? expression)
 	 (and (let ((expression (rtl:cons-pointer-type expression)))
@@ -122,117 +187,75 @@ MIT in each case. |#
 	(else false)))
 
 ;;;; Fixnums
+;;;
+;; Some constants should always be folded into the operation because either
+;; they are encodable as an immediate value in the instruction at no cost
+;; or they are open coded specially in a way that does not put the value in
+;; a register.  We detect these cases by inspecting the arithconst predicates
+;; in fulfix.scm.
+;; This is done pre-cse so that cse doesnt decide to hide the constant in a
+;; register in expressions like (cons (fix:quotient x 8) (fix:remainder x 8)))
 
-(define-rule rewriting
-  (OBJECT->FIXNUM (REGISTER (? source register-known-value)))
-  (QUALIFIER (rtl:constant-fixnum? source))
-  (rtl:make-object->fixnum source))
-
-(define-rule rewriting
-  (FIXNUM-2-ARGS FIXNUM-LSH
-		 (? operand-1)
-		 (REGISTER (? operand-2 register-known-value))
-		 #F)
-  (QUALIFIER (and (rtl:register? operand-1)
-		  (rtl:constant-fixnum-test operand-2 (lambda (n) n true))))
-  (rtl:make-fixnum-2-args 'FIXNUM-LSH operand-1 operand-2 #F))
-
-(define-rule rewriting
-  (FIXNUM-2-ARGS MULTIPLY-FIXNUM
-		 (REGISTER (? operand-1 register-known-value))
+(define-rule add-pre-cse-rewriting-rule!
+  (FIXNUM-2-ARGS (? operation)
+		 (REGISTER (? operand-1 register-known-fixnum-constant))
 		 (? operand-2)
-		 #F)
-  (QUALIFIER (and (rtl:register? operand-2)
-		  (rtl:constant-fixnum-test operand-1 spectrum-inline-multiply?)))
-  (rtl:make-fixnum-2-args 'MULTIPLY-FIXNUM operand-1 operand-2 #F))
-
-(define-rule rewriting
-  (FIXNUM-2-ARGS MULTIPLY-FIXNUM
-		 (? operand-1)
-		 (REGISTER (? operand-2 register-known-value))
-		 #F)
-  (QUALIFIER (and (rtl:register? operand-1)
-		  (rtl:constant-fixnum-test operand-2 spectrum-inline-multiply?)))
-  (rtl:make-fixnum-2-args 'MULTIPLY-FIXNUM operand-1 operand-2 #F))
-
-(define (spectrum-inline-multiply? n)
-  #|
-  (let ((absn (abs n)))
-    (and (integer-log-base-2? absn)
-	 (<= absn 64)))
-  |#
-  n					; fnord
-  true)
-
-(define-rule rewriting
-  (FIXNUM-2-ARGS FIXNUM-QUOTIENT
-		 (? operand-1)
-		 (REGISTER (? operand-2 register-known-value))
-		 #F)
-  (QUALIFIER (and (rtl:register? operand-1)
-		  (rtl:constant-fixnum-test
-		   operand-2
-		   (lambda (n)
-		     (integer-log-base-2? (abs n))))))
-  (rtl:make-fixnum-2-args 'FIXNUM-QUOTIENT operand-1 operand-2 #F))
-
-(define-rule rewriting
-  (FIXNUM-2-ARGS FIXNUM-REMAINDER
-		 (? operand-1)
-		 (REGISTER (? operand-2 register-known-value))
-		 #F)
-  (QUALIFIER (and (rtl:register? operand-1)
-		  (rtl:constant-fixnum-test
-		   operand-2
-		   (lambda (n)
-		     (integer-log-base-2? (abs n))))))
-  (rtl:make-fixnum-2-args 'FIXNUM-REMAINDER operand-1 operand-2 #F))
-
-;; These are used by vector-ref and friends with computed indices.
-
-(define-rule rewriting
-  (FIXNUM-2-ARGS MULTIPLY-FIXNUM
-		 (REGISTER (? operand-1 register-known-value))
-		 (REGISTER (? operand-2 register-known-value))
-		 #F)
+		 (? overflow?))
   (QUALIFIER
-   (and (rtl:object->fixnum-of-register? operand-1)
-	(rtl:constant-fixnum-test
-	 operand-2
-	 (lambda (n)
-	   (integer-log-base-2? n)))))
-  (rtl:make-fixnum-2-args 'MULTIPLY-FIXNUM operand-1 operand-2 #F))
+   (and (rtl:register? operand-2)
+	(fixnum-2-args/operator/constant*register?
+	 operation
+	 (known-fixnum-constant/fixnum-value operand-1)
+	 overflow?)))
+  (rtl:make-fixnum-2-args operation operand-1 operand-2 overflow?))
 
-(define-rule rewriting
-  (FIXNUM-2-ARGS MULTIPLY-FIXNUM
-		 (REGISTER (? operand-1 register-known-value))
-		 (REGISTER (? operand-2 register-known-value))
-		 #F)
+(define-rule add-pre-cse-rewriting-rule!
+  (FIXNUM-2-ARGS (? operation)
+		 (? operand-1)
+		 (REGISTER (? operand-2 register-known-fixnum-constant))
+		 (? overflow?))
   (QUALIFIER
-   (and (rtl:constant-fixnum-test
-	 operand-1
-	 (lambda (n)
-	   (integer-log-base-2? n)))
-	(rtl:object->fixnum-of-register? operand-2)))
-  (rtl:make-fixnum-2-args 'MULTIPLY-FIXNUM operand-1 operand-2 #F))
+   (and (rtl:register? operand-1)
+	(fixnum-2-args/operator/register*constant?
+	 operation
+	 (known-fixnum-constant/fixnum-value operand-2)
+	 overflow?)))
+  (rtl:make-fixnum-2-args operation operand-1 operand-2 overflow?))
 
-(define (rtl:constant-fixnum? expression)
-  (and (rtl:constant? expression)
-       (fix:fixnum? (rtl:constant-value expression))))
+		
+(define (register-known-fixnum-constant regnum)
+  ;; returns the rtl of a constant that is a fixnum, i.e (CONSTANT 1000)
+  ;; recognizes (CONSTANT x)
+  ;;            (OBJECT->FIXNUM (CONSTANT x))
+  ;;            (OBJECT->FIXNUM (REGISTER y)) where y also satisfies this pred
+  (let ((expr (register-known-value regnum)))
+    (and expr
+	 (cond ((and (rtl:constant? expr)
+		     (fix:fixnum? (rtl:constant-value expr)))
+		expr)
+	       ((and (rtl:object->fixnum? expr)
+		     (rtl:constant? (rtl:object->fixnum-expression expr))
+		     (fix:fixnum?  (rtl:constant-value
+				    (rtl:object->fixnum-expression expr))))
+		(rtl:object->fixnum-expression expr))
+	       ((and (rtl:object->fixnum? expr)
+		     (rtl:register? (rtl:object->fixnum-expression expr)))
+		(register-known-fixnum-constant 
+		 (rtl:register-number (rtl:object->fixnum-expression expr))))
+	       (else #F)))))
 
-(define (rtl:constant-fixnum-test expression predicate)
-  (and (rtl:object->fixnum? expression)
-       (let ((expression (rtl:object->fixnum-expression expression)))
-	 (and (rtl:constant? expression)
-	      (let ((n (rtl:constant-value expression)))
-		(and (fix:fixnum? n)
-		     (predicate n)))))))
-
-(define (rtl:object->fixnum-of-register? expression)
-   (and (rtl:object->fixnum? expression)
-	(rtl:register? (rtl:object->fixnum-expression expression))))
+(define (known-fixnum-constant/fixnum-value constant)
+  (rtl:constant-value constant))
 
-;;;; Closures and othe optimizations.  
+(define-rule add-pre-cse-rewriting-rule!
+  (PRED-1-ARG INDEX-FIXNUM? (? source))
+
+  ;; This is a predicate so we can't use rtl:make-type-test
+
+  (list 'TYPE-TEST (rtl:make-object->type source) (ucode-type positive-fixnum)))
+  
+
+;;;; Closures and other optimizations.  
 
 ;; These rules are Spectrum specific
 
@@ -247,23 +270,6 @@ MIT in each case. |#
 		      (rtl:cons-closure? datum))))
   (rtl:make-cons-pointer type datum))
 
-#|
-;; Not yet written.
-
-;; A type is compatible when a depi instruction can put it in assuming that
-;; the datum has the quad bits set.
-;; A register is a machine-address-register if it is a machine register and
-;; always contains an address (ie. free pointer, stack pointer,
-;; or dlink register)
-
-(define-rule rewriting
-  (CONS-POINTER (REGISTER (? type register-known-value))
-		(REGISTER (? datum machine-address-register)))
-  (QUALIFIER
-   (and (rtl:machine-constant? type)
-	(spectrum-type-optimizable? (rtl:machine-constant-value type))))
-  (rtl:make-cons-pointer type datum))
-|#
 
 (define-rule rewriting
   (FLOAT-OFFSET (REGISTER (? base register-known-value))
@@ -299,3 +305,38 @@ MIT in each case. |#
 				  (rtl:register?
 				   (rtl:object->address-expression
 				    base*)))))))))))
+
+
+;;
+;; (CONS-NON-POINTER (MACHINE-CONSTANT 0)
+;;                   (? thing-with-known-type-already=0)) => thing
+;;
+
+(define-rule add-pre-cse-rewriting-rule!
+  (CONS-NON-POINTER (REGISTER (? type register-known-value))
+		    (? datum))
+  (QUALIFIER
+   (and (rtl:machine-constant? type)
+	(= 0 (rtl:machine-constant-value type))
+	(rtl:has-type-zero? datum)))
+  datum)
+
+(define (rtl:has-type-zero? expr)
+  (or (value-class=ascii? (rtl:expression-value-class expr))
+      (value-class=datum? (rtl:expression-value-class expr))
+      #F))
+
+
+;; Remove all object->fixnum and fixnum->object and object->unsigned-fixnum
+
+(define-rule add-pre-cse-rewriting-rule!
+  (OBJECT->FIXNUM (? frob))
+  frob)
+
+(define-rule add-pre-cse-rewriting-rule!
+  (OBJECT->UNSIGNED-FIXNUM (? frob))
+  frob)
+
+(define-rule add-pre-cse-rewriting-rule!
+  (FIXNUM->OBJECT (? frob))
+  frob)
