@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-output.scm,v 1.1.2.7 2002/01/31 05:12:26 cph Exp $
+;;; $Id: syntax-output.scm,v 1.1.2.8 2002/01/31 05:44:42 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -43,10 +43,9 @@
   (make-definition name
 		   (if (lambda? value)
 		       (lambda-components* value
-			 (lambda (name required optional rest body)
-			   (if (eq? name lambda-tag:unnamed)
-			       (make-lambda* pattern required optional rest
-					     body)
+			 (lambda (name* required optional rest body)
+			   (if (eq? name* lambda-tag:unnamed)
+			       (make-lambda* name required optional rest body)
 			       value)))
 		       value)))
 
