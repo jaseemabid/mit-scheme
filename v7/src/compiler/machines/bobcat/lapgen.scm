@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/lapgen.scm,v 4.18.1.1 1988/12/06 22:41:37 arthur Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/lapgen.scm,v 4.18.1.2 1989/05/11 17:39:15 arthur Exp $
 
-Copyright (c) 1988 Massachusetts Institute of Technology
+Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -62,26 +62,32 @@ MIT in each case. |#
   (machine-register->memory source (pseudo-register-home target)))
 
 (define-integrable (pseudo-register-offset register)
-  (+ #x000A (register-renumber register)))
+  (+ 180 (* 3 (register-renumber register))))
 
 (define-integrable (pseudo-register-home register)
   (offset-reference regnum:regs-pointer
 		    (pseudo-register-offset register)))
 
 (define-integrable (machine->machine-register source target)
-  (INST (MOV L
-	     ,(register-reference source)
-	     ,(register-reference target))))
+  (cond ((float-register? source)
+	 (if (float-register? target)
+	     (INST (FMOVE ,source ,target))
+	     (error "Moving from floating point register to non-fp register")))
+	((float-register? target)
+	 (error "Moving from non-floating point register to fp register"))
+	(else (INST (MOV L
+			 ,(register-reference source)
+			 ,(register-reference target))))))
 
 (define-integrable (machine-register->memory source target)
-  (INST (MOV L
-	     ,(register-reference source)
-	     ,target)))
+  (if (float-register? source)
+      (INST (FMOVE X ,(register-reference source) ,target))
+      (INST (MOV L ,(register-reference source) ,target))))
 
 (define-integrable (memory->machine-register source target)
-  (INST (MOV L
-	     ,source
-	     ,(register-reference target))))
+  (if (float-register? target)
+      (INST (FMOVE X ,source ,(register-reference target)))
+      (INST (MOV L ,source ,(register-reference target)))))
 
 (package (offset-reference byte-offset-reference)
 
@@ -123,8 +129,10 @@ MIT in each case. |#
       ((0) (LAP))
       ((1 2) (LAP (ADDQ L (& ,(* 4 n)) ,target)))
       ((-1 -2) (LAP (SUBQ L (& ,(* -4 n)) ,target)))
-      ((< register 8) (LAP (ADD L (& ,(* 4 n)) ,target)))
-      (else (LAP (LEA (@AO ,(- register 8) ,(* 4 n)) ,target))))))
+      (else
+       (if (< register 8)
+	   (LAP (ADD L (& ,(* 4 n)) ,target))
+	   (LAP (LEA (@AO ,(- register 8) ,(* 4 n)) ,target)))))))
 
 (define (load-constant constant target)
   (if (non-pointer-object? constant)
@@ -512,6 +520,91 @@ MIT in each case. |#
     (cond ((zero? n) (LAP))
 	  (else (LAP (SUB L (& ,(* n #x100)) ,target))))))
 
+;;;; Flonum Operators
+
+(define (float-target-reference target)
+  (delete-dead-registers!)
+  (register-reference
+   (or (register-alias target 'FLOAT)
+       (allocate-alias-register! target 'FLOAT))))
+
+(define (define-flonum-method operator methods method)
+  (let ((entry (assq operator (cdr methods))))
+    (if entry
+	(set-cdr! entry method)
+	(set-cdr! methods (cons (cons operator method) (cdr methods)))))
+  operator)
+
+(define (lookup-flonum-method operator methods)
+  (cdr (or (assq operator (cdr methods))
+	   (error "Unknown operator" operator))))
+
+
+(define flonum-methods/1-arg
+  (list 'FLONUM-METHODS/1-ARG))
+
+(define-integrable (flonum-1-arg/operate operator)
+  (lookup-flonum-method operator flonum-methods/1-arg))
+
+;;; Notice the weird ,', syntax here.  If LAP changes, this may also have to change.
+
+(let-syntax
+    ((define-flonum-operation
+       (macro (primitive-name instruction-name)
+	 `(define-flonum-method ',primitive-name flonum-methods/1-arg
+	    (lambda (source target)
+	      (LAP (,instruction-name ,',source ,',target)))))))
+  (define-flonum-operation SINE-FLONUM FSIN)
+  (define-flonum-operation COSINE-FLONUM FCOS)
+  (define-flonum-operation ARCTAN-FLONUM FATAN)
+  (define-flonum-operation EXP-FLONUM FETOX)
+  (define-flonum-operation LN-FLONUM FLOGN)
+  (define-flonum-operation SQRT-FLONUM FSQRT)
+  (define-flonum-operation TRUNCATE-FLONUM FINT))
+
+(define flonum-methods/2-args
+  (list 'FLONUM-METHODS/2-ARGS))
+
+(define-integrable (flonum-2-args/operate operator)
+  (lookup-flonum-method operator flonum-methods/2-args))
+
+(let-syntax
+    ((define-flonum-operation
+       (macro (primitive-name instruction-name)
+	 `(define-flonum-method ',primitive-name flonum-methods/2-args
+	   (lambda (source target)
+	     (LAP (,instruction-name ,',source ,',target)))))))
+  (define-flonum-operation PLUS-FLONUM FADD)
+  (define-flonum-operation MINUS-FLONUM FSUB)
+  (define-flonum-operation MULTIPLY-FLONUM FMUL)
+  (define-flonum-operation DIVIDE-FLONUM FDIV))
+
+(define (invert-float-cc cc)
+  (cdr (or (assq cc
+		'((EQ . NE) (NE . EQ)
+		  (GT . NGT) (NGT . GT)
+		  (GE . NGE) (NGE . GE)
+		  (LT . NLT) (NLT . LT)
+		  (LE . NLE) (NLE . LE)
+		  (GL . NGL) (NGL . GL)
+		  (MI . PL) (PL . MI)))
+	   (error "INVERT-FLOAT-CC: Not a known CC" cc))))
+
+
+(define (set-flonum-branches! cc)
+  (set-current-branches!
+   (lambda (label)
+     (LAP (FB ,cc (@PCR ,label))))
+   (lambda (label)
+     (LAP (FB ,(invert-float-cc cc) (@PCR ,label))))))
+
+(define (flonum-predicate->cc predicate)
+  (case predicate
+    ((EQUAL-FLONUM? ZERO-FLONUM?) 'EQ)
+    ((LESS-THAN-FLONUM? NEGATIVE-FLONUM?) 'LT)
+    ((GREATER-THAN-FLONUM? POSITIVE-FLONUM?) 'GT)
+    (else (error "FLONUM-PREDICATE->CC: Unknown predicate" predicate))))
+
 ;;;; OBJECT->DATUM rules - Mhwu
 ;;;  Similar to fixnum rules, but no sign extension
 
@@ -581,6 +674,10 @@ MIT in each case. |#
 (define (address-register? register)
   (and (< register 16)
        (>= register 8)))
+(define (float-register? register)
+  (and (< register 24)
+       (>= register 16)))
+
 (define-integrable (lap:ea-keyword expression)
   (car expression))
 

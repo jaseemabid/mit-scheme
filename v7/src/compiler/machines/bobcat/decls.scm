@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 4.18.1.1 1988/12/13 19:58:17 arthur Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 4.18.1.2 1989/05/11 17:37:31 arthur Exp $
 
-Copyright (c) 1988 Massachusetts Institute of Technology
+Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -242,7 +242,7 @@ MIT in each case. |#
 				 (write-string " depends on ")
 				 (write (source-node/filename node))))
 			   (set-source-node/modification-time! node* false))
-			 (source-node/dependents node))))
+			 (source-node/forward-closure node))))
 	 source-nodes)))
   (for-each (lambda (node)
 	      (if (not (source-node/modification-time node))
@@ -331,11 +331,11 @@ MIT in each case. |#
 		     filenames))))
     (file-dependency/syntax/join
      (append (filename/append "base"
-			      "blocks" "cfg1" "cfg2" "cfg3" "contin" "ctypes"
-			      "debug" "enumer" "infnew" "infutl" "lvalue"
-			      "object" "pmerly" "proced" "rvalue"
-			      "scode" "sets" "subprb" "switch" "toplev" "utils"
-			      )
+			      "blocks" "cfg1" "cfg2" "cfg3" "constr"
+			      "contin" "ctypes" "debug" "enumer" "infnew"
+			      "lvalue" "object" "pmerly" "proced" "refctx"
+			      "rvalue" "scode" "sets" "subprb" "switch"
+			      "toplev" "utils")
 	     (filename/append "back"
 			      "asmmac" "bittop" "bitutl" "insseq" "lapgn1"
 			      "lapgn2" "lapgn3" "linear" "regmap" "symtab"
@@ -345,18 +345,21 @@ MIT in each case. |#
 	     (filename/append "fggen"
 			      "declar" "fggen" "canon")
 	     (filename/append "fgopt"
-			      "blktyp" "closan" "conect" "contan" "desenv"
-			      "envopt" "folcon" "offset" "operan" "order"
-			      "outer" "sideff" "simapp" "simple")
+			      "blktyp" "closan" "conect" "contan" "delint"
+			      "desenv" "envopt" "folcon" "offset" "operan"
+			      "order" "outer" "param" "reord" "reuse"
+			      "sideff" "simapp" "simple" "subfre")
 	     (filename/append "rtlbase"
 			      "regset" "rgraph" "rtlcfg" "rtlcon" "rtlexp"
-			      "rtline" "rtlobj" "rtlreg" "rtlty1" "rtlty2")
+			      "rtline" "rtlobj" "rtlreg" "rtlty1" "rtlty2"
+			      "valclass")
 	     (filename/append "rtlgen"
-			      "fndblk" "opncod" "rgcomb" "rgproc" "rgretn"
-			      "rgrval" "rgstmt" "rtlgen")
+			      "fndblk" "fndvar" "opncod" "rgcomb" "rgproc"
+			      "rgretn" "rgrval" "rgstmt" "rtlgen")
 	     (filename/append "rtlopt"
 			      "ralloc" "rcse1" "rcse2" "rcseep" "rcseht"
-			      "rcserq" "rcsesr" "rdeath" "rdebug" "rlife"))
+			      "rcserq" "rcsesr" "rdeath" "rdebug" "rinvex"
+			      "rlife"))
      compiler-syntax-table)
     (file-dependency/syntax/join
      (filename/append "machines/bobcat"
@@ -364,7 +367,7 @@ MIT in each case. |#
      lap-generator-syntax-table)
     (file-dependency/syntax/join
      (filename/append "machines/bobcat"
-		      "insutl" "instr1" "instr2" "instr3" "instr4")
+		      "insutl" "instr1" "instr2" "instr3" "instr4" "instr5")
      assembler-syntax-table)))
 
 ;;;; Integration Dependencies
@@ -372,15 +375,16 @@ MIT in each case. |#
 (define (initialize/integration-dependencies!)
   (let ((front-end-base
 	 (filename/append "base"
-			  "blocks" "cfg1" "cfg2" "cfg3" "contin" "ctypes"
-			  "enumer" "lvalue" "object" "proced" "rvalue"
+			  "blocks" "cfg1" "cfg2" "cfg3"
+			  "contin" "ctypes" "enumer" "lvalue"
+			  "object" "proced" "rvalue"
 			  "scode" "subprb" "utils"))
 	(bobcat-base
 	 (filename/append "machines/bobcat" "machin"))
 	(rtl-base
 	 (filename/append "rtlbase"
-			  "regset" "rgraph" "rtlcfg" "rtlcon" "rtlexp" "rtlobj"
-			  "rtlreg" "rtlty1" "rtlty2"))
+			  "regset" "rgraph" "rtlcfg" "rtlexp" "rtlobj"
+			  "rtlreg" "rtlty1" "rtlty2" "valclass"))
 	(cse-base
 	 (filename/append "rtlopt"
 			  "rcse1" "rcse2" "rcseep" "rcseht" "rcserq" "rcsesr"))
@@ -402,7 +406,7 @@ MIT in each case. |#
 	 (append
 	  (filename/append "back" "bittop")
 	  (filename/append "machines/bobcat"
-			   "instr1" "instr2" "instr3" "instr4"))))
+			   "instr1" "instr2" "instr3" "instr4" "instr5"))))
 
     (define (file-dependency/integration/join filenames dependencies)
       (for-each (lambda (filename)
@@ -444,7 +448,6 @@ MIT in each case. |#
       "blocks" "cfg3" "ctypes")
     (define-integration-dependencies "base" "subprb" "base"
       "cfg3" "contin" "enumer" "object" "proced")
-    (define-integration-dependencies "base" "infnew" "base" "infutl")
 
     (define-integration-dependencies "machines/bobcat" "machin" "rtlbase"
       "rtlreg" "rtlty1" "rtlty2")
@@ -473,26 +476,32 @@ MIT in each case. |#
     (define-integration-dependencies "rtlbase" "rtlty2" "base" "scode")
     (define-integration-dependencies "rtlbase" "rtlty2" "machines/bobcat"
       "machin")
-    (define-integration-dependencies "rtlbase" "rtlty2" "rtlbase" "rtlty1")
+    (define-integration-dependencies "rtlbase" "rtlty2" "rtlbase" "rtlty1")    (define-integration-dependencies "rtlbase" "valclass" "rtlbase"
+      "rtlty2" "rtlreg")
+
     (file-dependency/integration/join
      (append
+      (filename/append "base" "refctx")
       (filename/append "fggen"
 		       "declar" "fggen") ; "canon" needs no integrations
       (filename/append "fgopt"
-		       "blktyp" "closan" "conect" "contan" "desenv"
-		       "envopt" "folcon" "offset" "operan" "order"
-		       "outer" "sideff" "simapp" "simple"))
-     (append front-end-base bobcat-base))
+		       "blktyp" "closan" "conect" "contan" "delint" "desenv"
+		       "envopt" "folcon" "offset" "operan" "order" "param"
+		       "outer" "reuse" "sideff" "simapp" "simple" "subfre"))
+     (append bobcat-base front-end-base))
+
+    (define-integration-dependencies "fgopt" "reuse" "fgopt" "reord")
 
     (file-dependency/integration/join
      (filename/append "rtlgen"
-		      "fndblk" "opncod" "rgcomb" "rgproc" "rgretn" "rgrval"
-		      "rgstmt" "rtlgen")
-     (append front-end-base bobcat-base rtl-base))
+		      "fndblk" "fndvar" "opncod" "rgcomb" "rgproc" "rgretn"
+		      "rgrval" "rgstmt" "rtlgen")
+     (append bobcat-base front-end-base rtl-base))
 
     (file-dependency/integration/join
      (append cse-base
-	     (filename/append "rtlopt" "ralloc" "rdeath" "rdebug" "rlife"))
+	     (filename/append "rtlopt" "ralloc" "rdeath" "rdebug" "rinvex"
+			      "rlife"))
      (append bobcat-base rtl-base))
 
     (file-dependency/integration/join cse-base cse-base)
@@ -527,16 +536,16 @@ MIT in each case. |#
     (define-integration-dependencies "back" "regmap" "base" "utils")
     (define-integration-dependencies "back" "symtab" "base" "utils"))
 
-(for-each (lambda (node)
-	    (let ((links (source-node/backward-links node)))
-	      (if (not (null? links))
-		  (set-source-node/declarations!
-		   node
-		   (cons (make-integration-declaration
-			  (source-node/pathname node)
-			  (map source-node/pathname links))
-			 (source-node/declarations node))))))
-	  source-nodes))
+  (for-each (lambda (node)
+	      (let ((links (source-node/backward-links node)))
+		(if (not (null? links))
+		    (set-source-node/declarations!
+		     node
+		     (cons (make-integration-declaration
+			    (source-node/pathname node)
+			    (map source-node/pathname links))
+			   (source-node/declarations node))))))
+	    source-nodes))
 
 (define (make-integration-declaration pathname integration-dependencies)
   `(INTEGRATE-EXTERNAL
