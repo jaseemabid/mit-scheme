@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/contan.scm,v 4.5 1988/08/22 20:40:12 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/contan.scm,v 4.5.1.1 1988/12/05 11:13:50 cph Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
