@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/uxterm.c,v 1.10 1991/01/07 23:57:14 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/uxterm.c,v 1.10.1.1 1991/08/23 22:17:40 cph Exp $
 
-Copyright (c) 1990, 1991 Massachusetts Institute of Technology
+Copyright (c) 1990-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -486,6 +486,31 @@ DEFUN_VOID (OS_job_control_p)
 
 #ifdef HAVE_PTYS
 
+#ifdef FIRST_PTY_LETTER
+
+#define PTY_DECLARATIONS						\
+  int c;								\
+  int i
+
+#define PTY_ITERATION							\
+  for (c = FIRST_PTY_LETTER; (c <= 'z'); c += 1)			\
+    for (i = 0; (i < 16); i += 1)
+
+#define PTY_MASTER_NAME_SPRINTF(master_name)				\
+  sprintf ((master_name), "/dev/pty%c%x", c, i)
+
+#define PTY_SLAVE_NAME_SPRINTF(slave_name, fd)				\
+{									\
+  sprintf ((slave_name), "/dev/tty%c%x", c, i);				\
+  if ((UX_access ((slave_name), (R_OK | W_OK))) < 0)			\
+    {									\
+      UX_close (fd);							\
+      continue;								\
+    }									\
+}
+
+#endif /* FIRST_PTY_LETTER */
+
 /* Open an available pty, putting channel in (*ptyv),
    and return the file name of the pty.
    Signal error if none available.  */
@@ -495,56 +520,40 @@ DEFUN (OS_open_pty_master, (master_fd, master_fname),
        Tchannel * master_fd AND
        CONST char ** master_fname)
 {
-  struct stat stb;
-  register int c;
-  register int i;
-  char master_name [24];
-  char slave_name [24];
+  static char master_name [24];
+  static char slave_name [24];
   int fd;
+  PTY_DECLARATIONS;
+
 #ifdef PTY_ITERATION
   PTY_ITERATION
-#else
-  for (c = FIRST_PTY_LETTER; (c <= 'z'); c += 1)
-    for (i = 0; (i < 16); i += 1)
 #endif
-      {
-#ifdef PTY_NAME_SPRINTF
-	PTY_NAME_SPRINTF
-#else
-	sprintf (master_name, "/dev/pty%c%x", c, i);
-#endif
-      retry_open:
-	fd = (UX_open (master_name, O_RDWR, 0));
-	if (fd < 0)
-	  {
-	    if (errno == EACCES)
-	      goto loser;
-	    if (errno != EINTR)
+    {
+      PTY_MASTER_NAME_SPRINTF (master_name);
+    retry_open:
+      fd = (UX_open (master_name, O_RDWR, 0));
+      if (fd < 0)
+	{
+	  if (errno != EINTR)
+	    {
+#ifdef PTY_ITERATION
 	      continue;
-	    deliver_pending_interrupts ();
-	    goto retry_open;
-	  }
-	/* check to make certain that both sides are available
-	   this avoids a nasty yet stupid bug in rlogins */
-#ifdef PTY_TTY_NAME_SPRINTF
-	PTY_TTY_NAME_SPRINTF
 #else
-	sprintf (slave_name, "/dev/tty%c%x", c, i);
+	      error_system_call (errno, "open");
 #endif
-	if ((UX_access (slave_name, (R_OK | W_OK))) < 0)
-	  {
-	    UX_close (fd);
-	    continue;
-	  }
-	MAKE_CHANNEL (fd, channel_type_pty_master, (*master_fd) =);
-	(*master_fname) = master_name;
-	return (slave_name);
-      }
- loser:
+	    }
+	  deliver_pending_interrupts ();
+	  goto retry_open;
+	}
+      PTY_SLAVE_NAME_SPRINTF (slave_name, fd);
+      MAKE_CHANNEL (fd, channel_type_pty_master, (*master_fd) =);
+      (*master_fname) = master_name;
+      return (slave_name);
+    }
   error_external_return ();
   return (0);
 }
-
+
 void
 DEFUN (OS_pty_master_send_signal, (channel, sig), Tchannel channel AND int sig)
 {
@@ -563,7 +572,7 @@ DEFUN (OS_pty_master_send_signal, (channel, sig), Tchannel channel AND int sig)
 #endif /* HAVE_BSD_JOB_CONTROL */
 #endif /* TIOCSIGSEND */
 }
-
+
 #else /* not HAVE_PTYS */
 
 CONST char *
@@ -580,7 +589,7 @@ DEFUN (OS_pty_master_send_signal, (channel, sig), Tchannel channel AND int sig)
   error_unimplemented_primitive ();
 }
 
-#endif /* HAVE_PTYS */
+#endif /* not HAVE_PTYS */
 
 void
 DEFUN (OS_pty_master_kill, (channel), Tchannel channel)
