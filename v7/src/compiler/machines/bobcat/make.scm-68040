@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/make.scm-68040,v 1.21 1987/06/09 19:59:29 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/make.scm-68040,v 1.21.1.1 1987/06/25 10:34:41 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -52,9 +52,7 @@ MIT in each case. |#
 	(make-environment))
       (define rtl-analyzer-package
 	(make-environment))
-      (define lap-generator-package
-	(make-environment))
-      (define lap-syntaxer-package
+      (define lap-syntax-package
 	(make-environment))
       (define lap-package
 	(make-environment)))))
@@ -68,7 +66,7 @@ MIT in each case. |#
       (define :modification 21)
       (define :files)
 
-;      (parse-rcs-header "$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/make.scm-68040,v 1.21 1987/06/09 19:59:29 cph Exp $"
+;      (parse-rcs-header "$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/make.scm-68040,v 1.21.1.1 1987/06/25 10:34:41 jinx Exp $"
 ;	(lambda (filename version date time author state)
 ;	  (set! :version (car version))
 ;	  (set! :modification (cadr version))))
@@ -105,6 +103,7 @@ MIT in each case. |#
 		 "base/rtypes.bin"	;RTL analyzer datatypes
 		 "base/pmlook.bin"	;pattern matcher: lookup
 		 "base/pmpars.bin"	;pattern matcher: parser
+		 "back-end/insseq.bin"	;lap instruction sequences
 		 ))
 
 	 (cons converter-package
@@ -148,17 +147,15 @@ MIT in each case. |#
 		 "front-end/ralloc.bin"	;RTL register allocator
 		 ))
 
-	 (cons lap-generator-package
+	 (cons lap-syntax-package
 	       '("back-end/lapgen.bin"	;LAP generator.
 		 "back-end/regmap.bin"	;Hardware register allocator.
 		 "machines/bobcat/lapgen.bin" ;code generation rules.
-		 ))
-
-	 (cons lap-syntaxer-package
-	       '("back-end/syntax.bin"	;Generic syntax phase
+		 "back-end/syntax.bin"	;Generic syntax phase
 		 "machines/bobcat/coerce.bin" ;Coercions: integer -> bit string
 		 "back-end/asmmac.bin"	;Macros for hairy syntax
 		 "machines/bobcat/insmac.bin" ;Macros for hairy syntax
+		 "machines/bobcat/insutl.bin" ;Utilities for instructions
 		 "machines/bobcat/instr1.bin" ;68000 Effective addressing
 		 "machines/bobcat/instr2.bin" ;68000 Instructions
 		 "machines/bobcat/instr3.bin" ;  "        "
