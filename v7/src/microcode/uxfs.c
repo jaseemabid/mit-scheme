@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxfs.c,v 1.19.2.1 2000/11/27 05:57:58 cph Exp $
+$Id: uxfs.c,v 1.19.2.1.2.1 2000/12/04 22:01:21 cph Exp $
 
 Copyright (c) 1990-2000 Massachusetts Institute of Technology
 
@@ -102,6 +102,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #      define _XIAFS_SUPER_MAGIC 0x012FD16D
 #    endif
 #  endif
+#endif
+
+#ifndef FILE_TOUCH_OPEN_TRIES
+#  define FILE_TOUCH_OPEN_TRIES 5
 #endif
 
 int
@@ -363,6 +367,97 @@ void
 DEFUN (OS_directory_delete, (name), CONST char * name)
 {
   STD_VOID_SYSTEM_CALL (syscall_rmdir, (UX_rmdir (name)));
+}
+
+static void EXFUN (protect_fd, (int fd));
+
+int
+DEFUN (OS_file_touch, (filename), CONST char * filename)
+{
+  int fd;
+  transaction_begin ();
+  {
+    unsigned int count = 0;
+    while (1)
+      {
+	count += 1;
+	/* Use O_EXCL to prevent overwriting existing file. */
+	fd = (UX_open (filename, (O_RDWR | O_CREAT | O_EXCL), MODE_REG));
+	if (fd >= 0)
+	  {
+	    protect_fd (fd);
+	    transaction_commit ();
+	    return (1);
+	  }
+	if (errno == EEXIST)
+	  {
+	    fd = (UX_open (filename, O_RDWR, MODE_REG));
+	    if (fd >= 0)
+	      {
+		protect_fd (fd);
+		break;
+	      }
+	    else if ((errno == ENOENT)
+#ifdef ESTALE
+		     || (errno == ESTALE)
+#endif
+		     )
+	      continue;
+	  }
+	if (count >= FILE_TOUCH_OPEN_TRIES)
+	  error_system_call (errno, syscall_open);
+      }
+  }
+  {
+    struct stat file_status;
+    STD_VOID_SYSTEM_CALL (syscall_fstat, (UX_fstat (fd, (&file_status))));
+    if (((file_status . st_mode) & S_IFMT) != S_IFREG)
+      error_system_call (errno, syscall_open);
+    /* CASE 3: file length of 0 needs special treatment. */
+    if ((file_status . st_size) == 0)
+      {
+	char buf [1];
+	(buf[0]) = '\0';
+	STD_VOID_SYSTEM_CALL (syscall_write, (UX_write (fd, buf, 1)));
+#ifdef HAVE_FTRUNCATE
+	STD_VOID_SYSTEM_CALL (syscall_ftruncate, (UX_ftruncate (fd, 0)));
+	transaction_commit ();
+#else
+	transaction_commit ();
+	fd = (UX_open (filename, (O_WRONLY | O_TRUNC), MODE_REG));
+	if (fd >= 0)
+	  STD_VOID_SYSTEM_CALL (syscall_close, (UX_close (fd)));
+#endif
+	return (0);
+      }
+  }
+  /* CASE 4: read, then write back the first byte in the file. */
+  {
+    char buf [1];
+    int scr;
+    STD_UINT_SYSTEM_CALL (syscall_read, scr, (UX_read (fd, buf, 1)));
+    if (scr > 0)
+      {
+	STD_VOID_SYSTEM_CALL (syscall_lseek, (UX_lseek (fd, 0, SEEK_SET)));
+	STD_VOID_SYSTEM_CALL (syscall_write, (UX_write (fd, buf, 1)));
+      }
+  }
+  transaction_commit ();
+  return (0);
+}
+
+static void
+DEFUN (protect_fd_close, (ap), PTR ap)
+{
+  UX_close (* ((int *) ap));
+}
+
+static void
+DEFUN (protect_fd, (fd), int fd)
+{
+  int * p = (dstack_alloc (sizeof (int)));
+  (*p) = fd;
+  transaction_record_action (tat_always, protect_fd_close, p);
 }
 
 static DIR ** directory_pointers;

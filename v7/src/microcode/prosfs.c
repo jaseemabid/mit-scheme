@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prosfs.c,v 1.14.2.1 2000/11/27 05:57:57 cph Exp $
+$Id: prosfs.c,v 1.14.2.1.2.1 2000/12/04 22:01:15 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -227,6 +227,18 @@ DEFINE_PRIMITIVE ("DIRECTORY-DELETE", Prim_directory_delete, 1, 1,
   PRIMITIVE_HEADER (1);
   OS_directory_delete (STRING_ARG (1));
   PRIMITIVE_RETURN (UNSPECIFIC);
+}
+
+DEFINE_PRIMITIVE ("FILE-TOUCH", Prim_file_touch, 1, 1,
+  "Given a file name, change the times of the file to the current time.\n\
+If the file does not exist, create it.\n\
+Both the access time and modification time are changed.\n\
+Return #F if the file existed and its time was modified.\n\
+Otherwise the file did not exist and it was created.")
+{
+  PRIMITIVE_HEADER (1);
+  PRIMITIVE_RETURN
+    (BOOLEAN_TO_OBJECT (OS_file_touch ((CONST char *) (STRING_ARG (1)))));
 }
 
 DEFINE_PRIMITIVE ("NEW-DIRECTORY-OPEN", Prim_new_directory_open, 1, 1,

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prntfs.c,v 1.15.2.1 2000/11/27 05:57:57 cph Exp $
+$Id: prntfs.c,v 1.15.2.1.2.1 2000/12/04 22:01:09 cph Exp $
 
 Copyright (c) 1993-2000 Massachusetts Institute of Technology
 
@@ -32,15 +32,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 extern void EXFUN (OS_file_copy, (CONST char *, CONST char *));
 extern int win32_directory_read (unsigned int, WIN32_FIND_DATA *);
-
-static SCHEME_OBJECT file_attributes_internal
-  (DWORD, FILETIME *, FILETIME *, FILETIME *, DWORD, DWORD);
-static SCHEME_OBJECT EXFUN (file_touch, (CONST char * filename));
-static void EXFUN (protect_fd, (int fd));
-
-#ifndef FILE_TOUCH_OPEN_TRIES
-#define FILE_TOUCH_OPEN_TRIES 5
-#endif
 
 static double ut_zero = 0.0;
 
@@ -275,98 +266,6 @@ the result is #F.")
       PRIMITIVE_RETURN
 	(create_attributes_vector (0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0));
     }
-}
-
-DEFINE_PRIMITIVE ("FILE-TOUCH", Prim_file_touch, 1, 1,
-  "Given a file name, change the times of the file to the current time.\n\
-If the file does not exist, create it.\n\
-Both the access time and modification time are changed.\n\
-Return #F if the file existed and its time was modified.\n\
-Otherwise the file did not exist and it was created.")
-{
-  PRIMITIVE_HEADER (1);
-  PRIMITIVE_RETURN (file_touch ((CONST char *) (STRING_ARG (1))));
-}
-
-
-static SCHEME_OBJECT
-DEFUN (file_touch, (filename), CONST char * filename)
-{
-  int fd;
-  transaction_begin ();
-  {
-    unsigned int count = 0;
-    while (1)
-      {
-	count += 1;
-	/* Use O_EXCL to prevent overwriting existing file. */
-	fd = (open (filename, (O_RDWR | O_CREAT | O_EXCL), MODE_REG));
-	if (fd >= 0)
-	  {
-	    protect_fd (fd);
-	    transaction_commit ();
-	    return (SHARP_T);
-	  }
-	if (errno == EEXIST)
-	  {
-	    fd = (open (filename, O_RDWR, MODE_REG));
-	    if (fd >= 0)
-	      {
-		protect_fd (fd);
-		break;
-	      }
-	    else if (errno == ENOENT)
-	      continue;
-	  }
-	if (count >= FILE_TOUCH_OPEN_TRIES)
-	  NT_error_unix_call (errno, syscall_open);
-      }
-  }
-  {
-    struct stat file_status;
-    STD_VOID_UNIX_CALL (fstat, (fd, (&file_status)));
-    if (((file_status . st_mode) & S_IFMT) != S_IFREG)
-      error_bad_range_arg (1);
-    /* CASE 3: file length of 0 needs special treatment. */
-    if ((file_status . st_size) == 0)
-     {
-	char buf [1];
-	(buf[0]) = '\0';
-	STD_VOID_UNIX_CALL (write, (fd, buf, 1));
-	transaction_commit ();
-	fd = (open (filename, (O_WRONLY | O_TRUNC), MODE_REG));
-	if (fd >= 0)
-	  STD_VOID_UNIX_CALL (close, (fd));
-	return (SHARP_F);
-      }
-  }
-  /* CASE 4: read, then write back the first byte in the file. */
-  {
-    char buf [1];
-    int scr;
-    STD_UINT_UNIX_CALL (scr, read, (fd, buf, 1));
-    if (scr > 0)
-      {
-	STD_VOID_UNIX_CALL (lseek, (fd, 0, SEEK_SET));
-	STD_VOID_UNIX_CALL (write, (fd, buf, 1));
-      }
-  }
-  transaction_commit ();
-  return (SHARP_F);
-}
-
-static void
-DEFUN (protect_fd_close, (ap), PTR ap)
-{
-  close (* ((int *) ap));
-}
-
-static void
-DEFUN (protect_fd, (fd), int fd)
-{
-  int * p = (dstack_alloc (sizeof (int)));
-  (*p) = fd;
-  transaction_record_action (tat_always, protect_fd_close, p);
 }
 
 DEFINE_PRIMITIVE ("FILE-EQ?", Prim_file_eq_p, 2, 2,

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: pruxfs.c,v 9.55.2.1 2000/11/27 05:57:57 cph Exp $
+$Id: pruxfs.c,v 9.55.2.1.2.1 2000/12/04 22:01:18 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -36,12 +36,6 @@ static SCHEME_OBJECT EXFUN (file_attributes_internal, (struct stat * s));
 static void EXFUN (file_mode_string, (struct stat * s, char * a));
 static char EXFUN (file_type_letter, (struct stat * s));
 static void EXFUN (rwx, (unsigned short bits, char * chars));
-static SCHEME_OBJECT EXFUN (file_touch, (CONST char * filename));
-static void EXFUN (protect_fd, (int fd));
-
-#ifndef FILE_TOUCH_OPEN_TRIES
-#define FILE_TOUCH_OPEN_TRIES 5
-#endif
 
 DEFINE_PRIMITIVE ("FILE-MODES", Prim_file_modes, 1, 1,
   "Return mode bits of FILE, as an integer.")
@@ -287,106 +281,6 @@ DEFUN (rwx, (bits, chars), unsigned short bits AND char * chars)
   (chars[0]) = (((bits & S_IRUSR) != 0) ? 'r' : '-');
   (chars[1]) = (((bits & S_IWUSR) != 0) ? 'w' : '-');
   (chars[2]) = (((bits & S_IXUSR) != 0) ? 'x' : '-');
-}
-
-DEFINE_PRIMITIVE ("FILE-TOUCH", Prim_file_touch, 1, 1,
-  "Given a file name, change the times of the file to the current time.\n\
-If the file does not exist, create it.\n\
-Both the access time and modification time are changed.\n\
-Return #F if the file existed and its time was modified.\n\
-Otherwise the file did not exist and it was created.")
-{
-  PRIMITIVE_HEADER (1);
-  PRIMITIVE_RETURN (file_touch ((CONST char *) (STRING_ARG (1))));
-}
-
-static SCHEME_OBJECT
-DEFUN (file_touch, (filename), CONST char * filename)
-{
-  int fd;
-  transaction_begin ();
-  {
-    unsigned int count = 0;
-    while (1)
-      {
-	count += 1;
-	/* Use O_EXCL to prevent overwriting existing file. */
-	fd = (UX_open (filename, (O_RDWR | O_CREAT | O_EXCL), MODE_REG));
-	if (fd >= 0)
-	  {
-	    protect_fd (fd);
-	    transaction_commit ();
-	    return (SHARP_T);
-	  }
-	if (errno == EEXIST)
-	  {
-	    fd = (UX_open (filename, O_RDWR, MODE_REG));
-	    if (fd >= 0)
-	      {
-		protect_fd (fd);
-		break;
-	      }
-	    else if ((errno == ENOENT)
-#ifdef ESTALE
-		     || (errno == ESTALE)
-#endif
-		     )
-	      continue;
-	  }
-	if (count >= FILE_TOUCH_OPEN_TRIES)
-	  error_system_call (errno, syscall_open);
-      }
-  }
-  {
-    struct stat file_status;
-    STD_VOID_SYSTEM_CALL (syscall_fstat, (UX_fstat (fd, (&file_status))));
-    if (((file_status . st_mode) & S_IFMT) != S_IFREG)
-      error_bad_range_arg (1);
-    /* CASE 3: file length of 0 needs special treatment. */
-    if ((file_status . st_size) == 0)
-      {
-	char buf [1];
-	(buf[0]) = '\0';
-	STD_VOID_SYSTEM_CALL (syscall_write, (UX_write (fd, buf, 1)));
-#ifdef HAVE_TRUNCATE
-	STD_VOID_SYSTEM_CALL (syscall_ftruncate, (UX_ftruncate (fd, 0)));
-	transaction_commit ();
-#else /* not HAVE_TRUNCATE */
-	transaction_commit ();
-	fd = (UX_open (filename, (O_WRONLY | O_TRUNC), MODE_REG));
-	if (fd >= 0)
-	  STD_VOID_SYSTEM_CALL (syscall_close, (UX_close (fd)));
-#endif /* HAVE_TRUNCATE */
-	return (SHARP_F);
-      }
-  }
-  /* CASE 4: read, then write back the first byte in the file. */
-  {
-    char buf [1];
-    int scr;
-    STD_UINT_SYSTEM_CALL (syscall_read, scr, (UX_read (fd, buf, 1)));
-    if (scr > 0)
-      {
-	STD_VOID_SYSTEM_CALL (syscall_lseek, (UX_lseek (fd, 0, SEEK_SET)));
-	STD_VOID_SYSTEM_CALL (syscall_write, (UX_write (fd, buf, 1)));
-      }
-  }
-  transaction_commit ();
-  return (SHARP_F);
-}
-
-static void
-DEFUN (protect_fd_close, (ap), PTR ap)
-{
-  UX_close (* ((int *) ap));
-}
-
-static void
-DEFUN (protect_fd, (fd), int fd)
-{
-  int * p = (dstack_alloc (sizeof (int)));
-  (*p) = fd;
-  transaction_record_action (tat_always, protect_fd_close, p);
 }
 
 DEFINE_PRIMITIVE ("FILE-EQ?", Prim_file_eq_p, 2, 2,

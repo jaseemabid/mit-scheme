@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: osfs.h,v 1.8 1999/12/21 18:48:47 cph Exp $
+$Id: osfs.h,v 1.8.4.1 2000/12/04 22:01:06 cph Exp $
 
 Copyright (c) 1990-1999 Massachusetts Institute of Technology
 
@@ -42,6 +42,7 @@ extern void EXFUN
   (OS_file_link_soft, (CONST char * from_name, CONST char * to_name));
 extern void EXFUN (OS_directory_make, (CONST char * name));
 extern void EXFUN (OS_directory_delete, (CONST char * name));
+extern int EXFUN (OS_file_touch, (CONST char *));
 extern unsigned int EXFUN (OS_directory_open, (CONST char * name));
 extern int EXFUN (OS_directory_valid_p, (long index));
 extern void EXFUN (OS_directory_close, (unsigned int index));
