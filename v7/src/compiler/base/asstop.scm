@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: asstop.scm,v 1.10 1993/12/08 17:45:42 gjr Exp $
+$Id: asstop.scm,v 1.10.1.1 1994/03/30 21:15:39 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -234,33 +234,35 @@ MIT in each case. |#
     (lambda ()
       (set-debugging-info!
        *code-vector*
-       (let ((info
-	      (info-generation-phase-3
-	       (last-reference *dbg-expression*)
-	       (last-reference *dbg-procedures*)
-	       (last-reference *dbg-continuations*)
-	       *label-bindings*
-	       (last-reference *external-labels*))))
-	 (cond ((eq? pathname 'KEEP)	; for dynamic execution
-		info)
-	       ((eq? pathname 'RECURSIVE) ; recursive compilation
-		(set! *recursive-compilation-results*
-		      (cons (vector *recursive-compilation-number*
-				    info
-				    *code-vector*)
-			    *recursive-compilation-results*))
-		(cons *info-output-filename* *recursive-compilation-number*))
-	       (else
-		(compiler:dump-info-file
-		 (let ((others (recursive-compilation-results)))
-		   (if (null? others)
-		       info
-		       (list->vector
-			(cons info
-			      (map (lambda (other) (vector-ref other 1))
-				   others)))))
-		 pathname)
-		*info-output-filename*)))))))
+       (and *use-debugging-info?*
+	    (let ((info
+		   (info-generation-phase-3
+		    (last-reference *dbg-expression*)
+		    (last-reference *dbg-procedures*)
+		    (last-reference *dbg-continuations*)
+		    *label-bindings*
+		    (last-reference *external-labels*))))
+	      (cond ((eq? pathname 'KEEP) ; for dynamic execution
+		     info)
+		    ((eq? pathname 'RECURSIVE) ; recursive compilation
+		     (set! *recursive-compilation-results*
+			   (cons (vector *recursive-compilation-number*
+					 info
+					 *code-vector*)
+				 *recursive-compilation-results*))
+		     (cons *info-output-filename*
+			   *recursive-compilation-number*))
+		    (else
+		     (compiler:dump-info-file
+		      (let ((others (recursive-compilation-results)))
+			(if (null? others)
+			    info
+			    (list->vector
+			     (cons info
+				   (map (lambda (other) (vector-ref other 1))
+					others)))))
+		      pathname)
+		     *info-output-filename*))))))))
 
 (define (recursive-compilation-results)
   (sort *recursive-compilation-results*
