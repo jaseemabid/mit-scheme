@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.88 1987/05/22 00:11:43 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.88.1.1 1987/06/25 10:52:16 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -155,10 +155,14 @@ MIT in each case. |#
   (define-scode-operator make-combination)
   (define-scode-operator make-comment)
   (define-scode-operator make-conditional)
+  (define-scode-operator make-declaration)
   (define-scode-operator make-definition)
+  (define-scode-operator make-disjunction)
   (define-scode-operator make-lambda)
   (define-scode-operator make-quotation)
   (define-scode-operator make-sequence)
+  (define-scode-operator make-the-environment)
+  (define-scode-operator make-unassigned-object)
   (define-scode-operator make-variable)
   (define-scode-operator open-block-components)
   (define-scode-operator open-block?)
@@ -171,9 +175,48 @@ MIT in each case. |#
   (define-scode-operator unbound?-name)
   (define-scode-operator variable-name)
   (define-scode-operator variable?))
+
+;;; Scode constants
 
 (define scode/constant?
   (access scode-constant? system-global-environment))
+
+(define-integrable (scode/constant-value const)
+  const)
+
+(define-integrable (scode/make-constant const)
+  const)
+
+;;; Abolute variables and combinations
+
+(define (scode/make-absolute-reference variable-name)
+  (scode/make-access '() variable-name))
+
+(define (scode/absolute-reference? obj)
+  (and (scode/access? obj)
+       (scode/access-components
+	obj
+	(lambda (environment name)
+	  (null? environment)))))
+
+(define (scode/absolute-reference-name obj)
+  (scode/access-components obj (lambda (ignore name) name)))
+
+(define (scode/make-absolute-combination name operands)
+  (scode/make-combination (scode/make-absolute-reference name) operands))
+
+(define (scode/absolute-combination? obj)
+  (and (scode/combination? obj)
+       (scode/combination-components
+	obj
+	(lambda (op ops)
+	  (scode/absolute-reference? obj)))))
+
+(define (scode/absolute-combination-components obj receiver)
+  (scode/combination-components
+   obj
+   (lambda (op ops)
+     (receiver (scode/absolute-reference-name op) ops))))
 
 (define (scode/error-combination-components combination receiver)
   (scode/combination-components combination
@@ -181,17 +224,18 @@ MIT in each case. |#
       (receiver (car operands)
 		(let ((irritant (cadr operands)))
 		  (cond ((scode/access? irritant) '())
-			((scode/combination? irritant)
-			 (scode/combination-components irritant
-			   (lambda (operator operands)
-			     (if (and (scode/access? operator)
-				      (scode/access-components operator
-					(lambda (environment name)
-					  (and (null? environment)
-					       (eq? name 'LIST)))))
+			((scode/absolute-combination? irritant)
+			 (scode/absolute-combination-components irritant
+			   (lambda (name operands)
+			     (if (eq? name 'LIST)
 				 operands
 				 (list irritant)))))
 			(else (list irritant))))))))
+
+(define (scode/make-error-combination message operand)
+  (scode/make-absolute-combination
+   'ERROR-PROCEDURE
+   (list message operand (scode/make-the-environment))))
 
 (define (scode/procedure-type-code *lambda)
   (cond ((primitive-type? type-code:lambda *lambda)

@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/regmap.scm,v 1.88 1987/05/19 18:06:04 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/regmap.scm,v 1.88.1.1 1987/06/25 10:53:26 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -326,15 +326,15 @@ REGISTER-RENUMBERs are equal.
 		(allocator-values
 		 alias
 		 (register-map:add-alias map entry alias)
-		 (append! instructions
-			  (register->register-transfer
-			   (map-entry:any-alias entry)
-			   alias)))
+		 (LAP ,@instructions
+		      ,@(register->register-transfer
+			 (map-entry:any-alias entry)
+			 alias)))
 		(allocator-values
 		 alias
 		 (register-map:add-home map home alias true)
-		 (append! instructions
-			  (home->register-transfer home alias)))))))))
+		 (LAP ,@instructions
+		      ,@(home->register-transfer home alias)))))))))
 
 (define-export (allocate-alias-register map type needed-registers home)
   ;; Finds or makes an alias register for HOME.  Used when about to
@@ -494,8 +494,8 @@ REGISTER-RENUMBERs are equal.
 	(let ((instructions (loop (cdr entries))))
 	  (if (map-entry-saved-into-home? (car entries))
 	      instructions
-	      (append! (save-into-home-instruction (car entries))
-		       instructions)))))
+	      (LAP ,@(save-into-home-instruction (car entries))
+		   ,@instructions)))))
   loop)
 
 (define (shared-loop tail)
@@ -506,9 +506,9 @@ REGISTER-RENUMBERs are equal.
 	  (define (loop output-aliases)
 	    (if (null? output-aliases)
 		(shared-loop (cdr entries))
-		(append! (register->register-transfer (car input-aliases)
-						      (car output-aliases))
-			 (loop (cdr output-aliases)))))
+		(LAP ,@(register->register-transfer (car input-aliases)
+						    (car output-aliases))
+		     ,@(loop (cdr output-aliases)))))
 	  (loop (eqv-set-difference (map-entry-aliases (cdar entries))
 				    input-aliases)))))
   loop)
@@ -523,14 +523,14 @@ REGISTER-RENUMBERs are equal.
 	      (define (loop registers)
 		(if (null? registers)
 		    instructions
-		    (append! (register->register-transfer (car aliases)
-							  (car registers))
-			     (loop (cdr registers)))))
-	      (append! (home->register-transfer home (car aliases))
-		       (loop (cdr aliases))))
+		    (LAP ,@(register->register-transfer (car aliases)
+							(car registers))
+			 ,@(loop (cdr registers)))))
+	      (LAP ,@(home->register-transfer home (car aliases))
+		   ,@(loop (cdr aliases))))
 	    instructions))))
 
 )
 
 ;;; end REGISTER-ALLOCATOR-PACKAGE
-)
+))
