@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: version.scm,v 14.204 2001/12/17 17:40:59 cph Exp $
+$Id: version.scm,v 14.204.2.1 2002/01/15 20:47:31 cph Exp $
 
-Copyright (c) 1988-2001 Massachusetts Institute of Technology
+Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,10 +26,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 (declare (usual-integrations))
 
 (define (initialize-package!)
-  (add-subsystem-identification! "Release" '(7 6 1 "pre"))
+  (add-subsystem-identification! "Release" '(7 7 0 "pre"))
   (snarf-microcode-version!)
   (add-event-receiver! event:after-restore snarf-microcode-version!)
-  (add-subsystem-identification! "Runtime" '(14 193)))
+  (add-subsystem-identification! "Runtime" '(15 0)))
 
 (define (snarf-microcode-version!)
   (add-subsystem-identification! "Microcode"

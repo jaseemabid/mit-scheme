@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: make.scm,v 14.83 2002/01/12 02:56:18 cph Exp $
+$Id: make.scm,v 14.83.2.1 2002/01/15 20:46:01 cph Exp $
 
 Copyright (c) 1988-2001 Massachusetts Institute of Technology
 
@@ -49,9 +49,6 @@ USA.
 	   val)))))
 
 (define system-global-environment #f)
-
-(define (non-hygienic-macro-transformer transformer)
-  transformer)
 
 ;; *MAKE-ENVIRONMENT is referred to by compiled code.  It must go
 ;; before the uses of the-environment later, and after apply above.
@@ -478,9 +475,6 @@ USA.
    (RUNTIME NUMBER-PARSER)
    (RUNTIME PARSER)
    (RUNTIME UNPARSER)
-   (RUNTIME SYNTAXER)
-   (RUNTIME ILLEGAL-DEFINITIONS)
-   (RUNTIME MACROS)
    (RUNTIME UNSYNTAXER)
    (RUNTIME PRETTY-PRINTER)
    (RUNTIME EXTENDED-SCODE-EVAL)
