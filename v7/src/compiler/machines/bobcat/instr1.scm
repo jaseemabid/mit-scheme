@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/instr1.scm,v 1.61 1987/04/27 20:26:11 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/instr1.scm,v 1.61.1.1 1987/06/10 21:19:57 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -102,13 +102,11 @@ MIT in each case. |#
      (and (not (eq? (ea-keyword ea) '&))
 	  (memq 'DATA (ea-categories ea))))))
 
-;;; These are just predicates, to be used in conjunction with EA-ALL.
-
-(define (ea-b=>-A ea s)
-  (not (and (eq? s 'B) (eq? (ea-keyword ea) 'A))))
-
-(define (ea-a&<b=>-A> ea s)
-  (and (memq 'ALTERABLE (ea-categories ea)) (ea-b=>-A ea s)))
+(define (ea-all-A expression)
+  (let ((ea (ea-all expression)))
+    (and ea
+	 (not (eq? (ea-keyword ea) 'A))
+	 ea)))
 
 ;;;; Effective Address Description
 
@@ -322,52 +320,55 @@ MIT in each case. |#
 
 ;;;; Symbolic Constants
 
-(declare (integrate-operator symbol-member bwl? bw? wl? rl? us? da?
-			     cc? nwl? bwlq?))
+;;; These procedures are used in this file.
 
-(define ((symbol-member list) expression)
-  (declare (integrate list expression))
-  (memq expression list))
+(define-integrable (symbol-mapping alist)
+  (lambda (expression)
+    (declare (integrate expression))
+    (cdr (assq expression alist))))
 
-(define bwl? (symbol-member '(B W L)))
-(define bw?  (symbol-member '(B W)))
-(define wl?  (symbol-member '(W L)))
-(define rl?  (symbol-member '(R L)))
-(define us?  (symbol-member '(U S)))
-(define da?  (symbol-member '(D A)))
-(define nwl? (symbol-member '(N W L)))
-(define bwlq? (symbol-member '(B W L Q)))
-
-(define cc?
-  (symbol-member
-   '(T F HI LS HS LO CC CS NE EQ VC VS PL MI GE LT GT LE)))
-
-(declare (integrate-operator symbol-mapping encode-bwl encode-blw encode-bw
-			     encode-wl encode-lw encode-rl encode-us encode-da
-			     granularity encode-cc encode-nwl encode-bwlq))
-
-(define ((symbol-mapping alist) expression)
-  (declare (integrate alist expression))
-  (cdr (assq expression alist)))
-
-(define encode-bwl  (symbol-mapping '((B . 0) (W . 1) (L . 2))))
-(define encode-blw  (symbol-mapping '((B . 1) (W . 3) (L . 2))))
-(define encode-bw   (symbol-mapping '((B . 0) (W . 1))))
-(define encode-wl   (symbol-mapping '((W . 0) (L . 1))))
-(define encode-lw   (symbol-mapping '((W . 1) (L . 0))))
-(define encode-rl   (symbol-mapping '((R . 0) (L . 1))))
-(define encode-us   (symbol-mapping '((U . 0) (S . 1))))
-(define encode-da   (symbol-mapping '((D . 0) (A . 1))))
-(define granularity (symbol-mapping '((B . 8) (W . 16) (L . 32))))
+(define encode-da (symbol-mapping '((D . 0) (A . 1))))
+(define encode-wl (symbol-mapping '((W . 0) (L . 1))))
 (define encode-nwl (symbol-mapping '((N . 1) (W . 2) (L . 3))))
 (define encode-bwlq (symbol-mapping '((B . 0) (W . 1) (L . 2) (Q . 3))))
 
-(define encode-cc
-  (symbol-mapping
+;;; Constant transformers
+
+(define-integrable (symbol-transformer alist)
+  (lambda (symbol)
+    (declare (integrate alist))
+    (let ((place (assq symbol alist)))
+      (if (null? place)
+	  #F
+	  (cdr place)))))
+
+(declare (integrate-operator bwl bwl bw wl lw rl us cc))
+
+(define bwl-b (symbol-transformer '((W . 1) (L . 2))))
+(define bwl   (symbol-transformer '((B . 0) (W . 1) (L . 2))))
+(define bw    (symbol-transformer '((B . 0) (W . 1))))
+(define wl    (symbol-transformer '((W . 0) (L . 1))))
+(define lw    (symbol-transformer '((W . 1) (L . 0))))
+(define rl    (symbol-transformer '((R . 0) (L . 1))))
+(define us    (symbol-transformer '((U . 0) (S . 1))))
+(define cc
+  (symbol-transformer
    '((T . 0) (F . 1) (HI . 2) (LS . 3) (HS . 4) (LO . 5)
      (CC . 4) (CS . 5) (NE . 6) (EQ . 7) (VC . 8) (VS . 9)
      (PL . 10) (MI . 11) (GE . 12) (LT . 13) (GT . 14) (LE . 15))))
 
+;;; Register list transformers
+
+(define (@+reg-list l)
+  (if (not (register-list? l))
+      #F
+      (encode-c@a+register-list l)))
+
+(define (@-reg-list l)
+  (if (not (register-list? l))
+      #F
+      (encode-@-register-list l)))
+
 (define (register-list? expression)
   (eq?-subset? expression '(D0 D1 D2 D3 D4 D5 D6 D7 A0 A1 A2 A3 A4 A5 A6 A7)))
 
@@ -389,7 +390,4 @@ MIT in each case. |#
    '((D0 . 0) (D1 . 1) (D2 . 2) (D3 . 3) (D4 . 4) (D5 . 5) (D6 . 6) (D7 . 7)
 	      (A0 . 8) (A1 . 9) (A2 . 10) (A3 . 11) (A4 . 12) (A5 . 13)
 	      (A6 . 14) (A7 . 15))))
-
-(define-instruction DC
-  ((W (? expression))
    (WORD (16 expression SIGNED))))
