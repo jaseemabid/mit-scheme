@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/pardec.scm,v 3.4.1.1 1987/06/23 19:43:45 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/pardec.scm,v 3.4.1.2 1987/06/30 21:22:51 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -45,7 +45,7 @@ MIT in each case. |#
        (lambda (declaration bindings)
 	 (let ((association (assq (car declaration) known-declarations)))
 	   (if (not association)
-	       (warn "Unknown declaration" declaration)
+	       bindings
 	       (transmit-values (cdr association)
 		 (lambda (before-bindings? parser)
 		   (let ((block
@@ -316,7 +316,7 @@ MIT in each case. |#
 		(finish value)))
 	    (variable/final-value variable environment finish if-not))))))
 
-;;;; User provided expansions
+;;;; User provided expansions and processors
 
 (define expander-evaluation-environment
   (access package/expansion
@@ -330,4 +330,12 @@ MIT in each case. |#
 			 (eval (cadr expander)
 			       expander-evaluation-environment))
 		       expanders))))
-	    (variable/final-value variable environment finish if-not))))))
+
+(define-declaration 'PROCESS-OPERATOR true
+  (lambda (block table/cons table expanders)
+    (bind/general table/cons table false 'PROCESS false
+		  (map car expanders)
+		  (map (lambda (expander)
+			 (eval (cadr expander)
+			       expander-evaluation-environment))
+		       expanders))))
