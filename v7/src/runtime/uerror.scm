@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/uerror.scm,v 14.16 1990/10/03 21:53:53 jinx Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/uerror.scm,v 14.16.1.1 1991/08/26 23:30:39 cph Exp $
 
-Copyright (c) 1988, 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1988-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -610,8 +610,8 @@ MIT in each case. |#
 	  (internal-apply-frame/operator-filter
 	   (ucode-primitive file-length)
 	   ;; (ucode-primitive file-read-char) ; -gone.
-	   (ucode-primitive file-write-char)
-	   (ucode-primitive file-write-string)
+	   (ucode-primitive file-write-char 2)
+	   (ucode-primitive file-write-string 2)
 	   (ucode-primitive file-copy)
 	   (ucode-primitive file-rename)
 	   (ucode-primitive file-remove)
