@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: version.h,v 11.181.4.1 2001/12/14 21:29:12 cph Exp $
+$Id: version.h,v 11.181.4.2 2001/12/16 05:56:15 cph Exp $
 
 Copyright (c) 1988-2001 Massachusetts Institute of Technology
 
@@ -34,5 +34,5 @@ USA.
 #define SCHEME_VERSION		14
 #endif
 #ifndef SCHEME_SUBVERSION
-#define SCHEME_SUBVERSION	6
+#define SCHEME_SUBVERSION	7
 #endif
