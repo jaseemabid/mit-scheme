@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: switch.scm,v 4.25 1999/01/02 06:06:43 cph Exp $
+$Id: switch.scm,v 4.25.2.1 2001/12/11 05:48:11 cph Exp $
 
-Copyright (c) 1988-1999 Massachusetts Institute of Technology
+Copyright (c) 1988-1999, 2001 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+02111-1307, USA.
 |#
 
 ;;;; Compiler Option Switches
@@ -54,7 +55,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 (define compiler:cross-compiling? false)
 ;; This only works in the C back end, right now
 (define compiler:compress-top-level? false)
-(define compiler:avoid-scode? true)
 
 ;; If true, the compiler is allowed to assume that fixnum operations
 ;; are only applied to inputs for which the operation is closed, i.e.
