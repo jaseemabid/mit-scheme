@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-rules.scm,v 1.1.2.1 2002/01/15 20:46:02 cph Exp $
+;;; $Id: syntax-rules.scm,v 1.1.2.2 2002/01/18 21:19:23 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -52,9 +52,12 @@
 	      `(,(rename 'ER-MACRO-TRANSFORMER)
 		(,(rename 'LAMBDA)
 		 (,r-form ,r-rename ,r-compare)
+		 ,r-compare		;prevent compiler warnings
 		 ,(let loop ((clauses clauses))
 		    (if (null? clauses)
-			`(,(rename 'ILL-FORMED-SYNTAX) ,r-form)
+			`(,(rename 'BEGIN)
+			  ,r-rename	;prevent compiler warnings
+			  (,(rename 'ILL-FORMED-SYNTAX) ,r-form))
 			(let ((pattern (caar clauses)))
 			  (let ((sids
 				 (parse-pattern rename compare keywords
