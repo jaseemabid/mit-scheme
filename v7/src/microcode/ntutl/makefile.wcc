@@ -1,6 +1,6 @@
 ### -*- Fundamental -*-
 ###
-###     $Id: makefile.wcc,v 1.13.2.1.2.1 2000/12/02 05:54:59 cph Exp $
+###     $Id: makefile.wcc,v 1.13.2.1.2.2 2000/12/02 21:17:04 cph Exp $
 ###
 ###     Copyright (c) 1992-2000 Massachusetts Institute of Technology
 ###
@@ -336,6 +336,8 @@ clean : .SYMBOLIC
 	-del *.res
 	-del *.err
 	-del *.sym
+	-del *.map
+	-del usrdef.c bchdef.c
 
 unconfig : .SYMBOLIC
 	-del cmpauxmd.asm
@@ -353,12 +355,6 @@ unconfig : .SYMBOLIC
 	-del *.ico
 	-del *.rc
 	-del *.cur
-
-primitive_tables : .SYMBOLIC
-	-del usrdef.c
-	-del usrdef.obj
-	-del bchdef.c
-	-del bchdef.obj
 
 scheme.exe : $(OBJECTS) $(SCHEME_OBJECTS) scheme32.obj ntgui.res
 	*wlink system nt_win name $^@ $(LDFLAGS) &
