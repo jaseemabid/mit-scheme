@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcl.c,v 9.50.4.5 2000/12/01 21:52:03 cph Exp $
+$Id: bchgcl.c,v 9.50.4.6 2000/12/04 05:58:40 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -338,7 +338,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 	    else
 	      {
 		unsigned long n_words = (1 + (OBJECT_DATUM (*old_start)));
-		FLOAT_ALIGN_FREE (new_address, free);
+		BCH_ALIGN_FLOAT (new_address, free);
 		TRANSPORT_VECTOR (new_address, free, old_start, n_words);
 		(*scan++) = (OBJECT_NEW_ADDRESS (object, new_address));
 		(*old_start) = (MAKE_BROKEN_HEART (new_address));
@@ -425,7 +425,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 	    else
 	      {
 		unsigned long n_words = (1 + (OBJECT_DATUM (*old_start)));
-		FLOAT_ALIGN_FREE (new_address, free);
+		BCH_ALIGN_FLOAT (new_address, free);
 		TRANSPORT_VECTOR (new_address, free, old_start, n_words);
 		(*scan++)
 		  = (RELOCATE_COMPILED (object, new_address, old_start));
@@ -542,7 +542,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 		      {
 			unsigned long n_words
 			  = (1 + (OBJECT_DATUM (*old_start)));
-			FLOAT_ALIGN_FREE (new_address, free);
+			BCH_ALIGN_FLOAT (new_address, free);
 			TRANSPORT_VECTOR
 			  (new_address, free, old_start, n_words);
 			BCH_STORE_OPERATOR_LINKAGE_ADDRESS
@@ -659,7 +659,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 		else
 		  {
 		    unsigned long n_words = (1 + (OBJECT_DATUM (*old_start)));
-		    FLOAT_ALIGN_FREE (new_address, free);
+		    BCH_ALIGN_FLOAT (new_address, free);
 		    TRANSPORT_VECTOR (new_address, free, old_start, n_words);
 		    BCH_STORE_CLOSURE_ENTRY_ADDRESS
 		      ((RELOCATE_COMPILED_RAW_ADDRESS

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcc.h,v 9.60.2.3.2.3 2000/12/01 21:52:00 cph Exp $
+$Id: bchgcc.h,v 9.60.2.3.2.4 2000/12/04 05:58:36 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -220,17 +220,25 @@ extern void EXFUN (reset_allocator_parameters, (void));
 } while (0)
 
 #ifdef FLOATING_ALIGNMENT
-#define FLOAT_ALIGN_FREE(free, free_ptr)				\
+
+#define BCH_ALIGN_FLOAT(address, pointer)				\
 {									\
-  while ((((long) ((free) + 1)) & FLOATING_ALIGNMENT) != 0)		\
+  while (!FLOATING_ALIGNED_P (address))					\
     {									\
-      (free) += 1;							\
-      (* ((free_ptr)++)) = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, 0));	\
+      (address) += 1;							\
+      (* ((pointer)++)) = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, 0));	\
     }									\
 }
 
+#define BCH_ALIGN_FLOAT_ADDRESS(address)				\
+{									\
+  while (!FLOATING_ALIGNED_P (address))					\
+    (address) += 1;							\
+}
+
 #else
-#define FLOAT_ALIGN_FREE(free, free_ptr)
+#define BCH_ALIGN_FLOAT(address, pointer)
+#define BCH_ALIGN_FLOAT_ADDRESS(address)
 #endif
 
 #endif /* SCM_BCHGCC_H */
