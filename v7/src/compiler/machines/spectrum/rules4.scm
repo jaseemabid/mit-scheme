@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rules4.scm,v 4.12 1992/11/09 18:41:58 jinx Exp $
+$Id: rules4.scm,v 4.12.1.1 1994/03/30 21:19:42 gjr Exp $
 
-Copyright (c) 1988-1992 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -39,31 +39,54 @@ MIT in each case. |#
 
 ;;;; Variable cache trap handling.
 
+(define *interpreter-call-clobbered-regs*
+  ;; g26 g25 g24 g23 used for argument passing, already cleared
+  (list g31 g2 g28 g29))
+
+(define (interpreter-call code extension extra)
+  (let ((start (%load-interface-args! false extension extra false)))
+    (LAP ,@start
+	 ,@(preserving-regs
+	    *interpreter-call-clobbered-regs*
+	    (lambda (gen-preservation-info)
+	      (if (not gen-preservation-info)
+		  (invoke-interface-ble code)
+		  (let ((label1 (generate-label))
+			(label2 (generate-label)))
+		    (LAP (LDI () ,code ,g28)
+			 (BLE () (OFFSET ,hook:compiler-interpreter-call 4
+					 ,regnum:scheme-to-interface-ble))
+			 (LDO ()
+			      (OFFSET (- (- ,label2 ,label1)
+					 ,*privilege-level*)
+				      0 31)
+			      31)
+			 (LABEL ,label1)
+			 ,@(gen-preservation-info)
+			 (LABEL ,label2)))))))))
+
 (define-rule statement
   (INTERPRETER-CALL:CACHE-REFERENCE (? cont)
 				    (REGISTER (? extension))
 				    (? safe?))
   cont					; ignored
-  (LAP ,@(load-interface-args! false extension false false)
-       ,@(invoke-interface-ble
-	  (if safe?
-	      code:compiler-safe-reference-trap
-	      code:compiler-reference-trap))))
+  (interpreter-call (if safe?
+			code:compiler-safe-reference-trap
+			code:compiler-reference-trap)
+		    extension false))
 
 (define-rule statement
   (INTERPRETER-CALL:CACHE-ASSIGNMENT (? cont)
 				     (REGISTER (? extension))
 				     (? value register-expression))
   cont					; ignored
-  (LAP ,@(load-interface-args! false extension value false)
-       ,@(invoke-interface-ble code:compiler-assignment-trap)))
+  (interpreter-call code:compiler-assignment-trap extension value))
 
 (define-rule statement
   (INTERPRETER-CALL:CACHE-UNASSIGNED? (? cont)
 				      (REGISTER (? extension)))
   cont					; ignored
-  (LAP ,@(load-interface-args! false extension false false)
-       ,@(invoke-interface-ble code:compiler-unassigned?-trap)))
+  (interpreter-call code:compiler-unassigned?-trap extension false))
 
 ;;;; Interpreter Calls
 
