@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: edwin.pkg,v 1.118 1993/04/27 09:22:28 cph Exp $
+$Id: edwin.pkg,v 1.118.1.1 1993/07/16 06:33:35 gjr Exp $
 
 Copyright (c) 1989-1993 Massachusetts Institute of Technology
 
@@ -818,7 +818,6 @@ MIT in each case. |#
 
 ;;;; This is the variant used under DOS
 
-#|
 (define-package (edwin process)
   (file-case os-type
     ((dos)  "dosproc"))
@@ -829,16 +828,18 @@ MIT in each case. |#
 	  get-buffer-process			; always present
 	  initialize-processes!			; always present
 	  process-list				; always present
+	  process-output-available?		; always present
+	  process-status-changes?		; always present
 	  subprocesses-available?))		; always present
 
 (define-package (edwin dosjob)
   (file-case os-type
     ((dos) "doscom" "dosshell"))
   (parent (edwin)))
-|#
 
 ;;;; This is the variant used under Unix/X
 
+#|
 (define-package (edwin process)
   (file-case os-type
     ((unix) "process")
@@ -875,7 +876,7 @@ MIT in each case. |#
 	  process-list				; always present
 	  process-mark
 	  process-name
-	  process-output-available?
+	  process-output-available?		; always present
 	  process-runnable?
 	  process-send-char
 	  process-send-eof
@@ -883,7 +884,7 @@ MIT in each case. |#
 	  process-send-substring
 	  process-sentinel
 	  process-status
-	  process-status-changes?
+	  process-status-changes?		; always present
 	  process-status-message
 	  quit-process
 	  set-process-buffer!
@@ -1117,7 +1118,7 @@ MIT in each case. |#
 	  edwin-variable$rmail-primary-inbox-list
 	  edwin-variable$rmail-reply-with-re
 	  rmail-spool-directory))
-#|
+
 (define-package (edwin bochser)
   (files "bochser"
 	 "bochsmod")
