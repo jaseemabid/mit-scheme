@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: compiler.pkg,v 1.46 1993/12/08 17:47:44 gjr Exp $
+$Id: compiler.pkg,v 1.46.1.1 1994/03/30 21:17:23 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -34,7 +34,7 @@ MIT in each case. |#
 
 ;;;; Compiler Packaging
 
-(global-definitions "../runtime/runtim")
+(global-definitions "../runtime/runtime")
 
 (define-package (compiler)
   (files "base/switch"
@@ -73,10 +73,14 @@ MIT in each case. |#
 	 "rtlbase/valclass"		;RTL: value classes
 
 	 "back/insseq"			;LAP instruction sequences
+	 ;; New stuff
+	 "base/parass"			;parallel assignment
+	 ;; End of new stuff
 	 )
   (parent ())
   (export ()
 	  compiler:analyze-side-effects?
+	  compiler:assume-safe-fixnums?
 	  compiler:cache-free-variables?
 	  compiler:coalescing-constant-warnings?
 	  compiler:code-compression?
@@ -85,6 +89,7 @@ MIT in each case. |#
 	  compiler:default-top-level-declarations
 	  compiler:enable-expansion-declarations?
 	  compiler:enable-integration-declarations?
+	  compiler:generate-kmp-files?
 	  compiler:generate-lap-files?
 	  compiler:generate-range-checks?
 	  compiler:generate-rtl-files?
@@ -147,9 +152,18 @@ MIT in each case. |#
 	 "base/asstop")
   (parent (compiler))
   (export ()
+	  ;; New stuff
+	  cbf/new
+	  cf/new
+	  compile-bin-file/new
+	  compile-expression/new
+	  compile-procedure/new
+	  compile-scode/new
+	  ;; End of new stuff
 	  cbf
 	  cf
 	  compile-bin-file
+	  compile-expression
 	  compile-procedure
 	  compile-scode
 	  compiler:dump-bci-file
@@ -161,7 +175,14 @@ MIT in each case. |#
 	  cross-compile-bin-file
 	  cross-compile-bin-file-end)
   (export (compiler)
-	  canonicalize-label-name)
+	  canonicalize-label-name
+	  ;; New stuff
+	  *argument-registers*
+	  ;; End of new stuff
+	  *procedure-result?*
+	  )
+  (export (compiler midend)
+	  compile-recursively/new)
   (export (compiler fg-generator)
 	  compile-recursively)
   (export (compiler rtl-generator)
@@ -219,9 +240,11 @@ MIT in each case. |#
   (parent (compiler))
   (export (compiler)
 	  parse-rule
+	  compile-pattern
 	  rule-result-expression)
   (export (compiler macros)
 	  parse-rule
+	  compile-pattern
 	  rule-result-expression))
 
 (define-package (compiler pattern-matcher/early)
@@ -518,6 +541,7 @@ MIT in each case. |#
 (define-package (compiler rtl-cse)
   (files "rtlopt/rcse1"			;RTL common subexpression eliminator
 	 "rtlopt/rcse2"
+	 "rtlopt/rcsemrg"		;CSE control-flow merge
 	 "rtlopt/rcseep"		;CSE expression predicates
 	 "rtlopt/rcseht"		;CSE hash table
 	 "rtlopt/rcserq"		;CSE register/quantity abstractions
@@ -551,7 +575,9 @@ MIT in each case. |#
   (export (compiler top-level)
 	  rtl-rewriting:post-cse
 	  rtl-rewriting:pre-cse)
-  (export (compiler lap-syntaxer) add-rewriting-rule!))
+  (export (compiler lap-syntaxer)
+	  add-pre-cse-rewriting-rule!
+	  add-rewriting-rule!))
 
 (define-package (compiler rtl-optimizer lifetime-analysis)
   (files "rtlopt/rlife")
@@ -633,6 +659,10 @@ MIT in each case. |#
 	  linearize-lap
 	  set-current-branches!
 	  set-extra-code-block/xtra!)
+  ;; New stuff
+  (export (compiler)
+	  *strongly-heed-branch-preferences?*)
+  ;; End of new stuff
   (export (compiler top-level)
 	  *end-of-block-code*
 	  linearize-lap))
@@ -640,6 +670,11 @@ MIT in each case. |#
 (define-package (compiler lap-optimizer)
   (files "machines/spectrum/lapopt")
   (parent (compiler))
+  (import (compiler lap-syntaxer)
+	  entry->address
+	  invert-condition)
+  (export (compiler lap-syntaxer)
+	  lap:mark-preferred-branch!)
   (export (compiler top-level)
 	  optimize-linear-lap))
 
@@ -655,7 +690,6 @@ MIT in each case. |#
   (export (compiler top-level)
 	  assemble))
 
-#|
 (define-package (compiler disassembler)
   (files "machines/spectrum/dassm1"
 	 "machines/spectrum/dassm2"
@@ -663,7 +697,11 @@ MIT in each case. |#
   (parent (compiler))
   (export ()
 	  compiler:write-lap-file
-	  compiler:disassemble)
+	  compiler:disassemble
+	  compiler:disassemble-memory)
+  (import (compiler lap-syntaxer)
+	  code:-alist
+	  hook:-alist)
   (import (runtime compiler-info)
 	  compiled-code-block/dbg-info
 	  dbg-info-vector/blocks-vector
@@ -672,4 +710,48 @@ MIT in each case. |#
 	  dbg-label/external?
 	  dbg-label/name
 	  dbg-labels/find-offset))
-|#
+
+;;; New stuff
+
+(define-package (compiler midend)
+  (files "midend/synutl"
+	 "midend/midend"
+	 "midend/utils"
+	 "midend/fakeprim"
+	 "midend/dbgstr"
+	 "midend/inlate"
+	 "midend/envconv"
+	 "midend/expand"
+	 "midend/assconv"
+	 "midend/cleanup"
+	 "midend/earlyrew"
+	 "midend/lamlift"
+	 "midend/closconv"
+	 ;; "midend/staticfy"		; broken, for now
+	 "midend/applicat"
+	 "midend/simplify"
+	 "midend/cpsconv"
+	 "midend/laterew"
+	 "midend/compat"		; compatibility with current compiler
+	 "midend/stackopt"
+	 "midend/indexify"
+	 "midend/rtlgen")
+  (parent (compiler))
+  (export (compiler top-level)
+	  *envconv/compile-by-procedures?*
+	  *envconv/procedure-result?*
+	  kmp->rtl
+	  optimize-kmp
+	  rtlgen/top-level
+	  rtlgen/argument-registers
+	  rtlgen/available-registers
+	  scode->kmp
+	  within-midend))
+
+(define-package (compiler rtl-parser)
+  (files "rtlbase/rtlpars")
+  (parent (compiler))
+  (export (compiler)
+	  rtl->rtl-graph))
+
+;; End of New stuff
