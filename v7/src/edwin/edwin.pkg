@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: edwin.pkg,v 1.118.1.1 1993/07/16 06:33:35 gjr Exp $
+$Id: edwin.pkg,v 1.118.1.2 1993/07/16 19:22:37 gjr Exp $
 
 Copyright (c) 1989-1993 Massachusetts Institute of Technology
 
@@ -291,6 +291,8 @@ MIT in each case. |#
 	  terminal-set-state)
   (import (runtime transcript)
 	  transcript-port)
+  (import (runtime primitive-io)
+	  have-select?)
   (initialization (initialize-package!)))
 
 (define-package (edwin window)
