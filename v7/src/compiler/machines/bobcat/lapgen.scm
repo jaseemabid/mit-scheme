@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/lapgen.scm,v 1.179 1987/06/10 19:48:46 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/lapgen.scm,v 1.179.1.1 1987/06/25 10:24:51 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -39,13 +39,13 @@ MIT in each case. |#
 ;;;; Basic machine instructions
 
 (define (register->register-transfer source target)
-  `(,(machine->machine-register source target)))
+  (LAP ,(machine->machine-register source target)))
 
 (define (home->register-transfer source target)
-  `(,(pseudo->machine-register source target)))
+  (LAP ,(pseudo->machine-register source target)))
 
 (define (register->home-transfer source target)
-  `(,(machine->pseudo-register source target)))
+  (LAP ,(machine->pseudo-register source target)))
 
 (define-integrable (pseudo->machine-register source target)
   (memory->machine-register (pseudo-register-home source) target))
@@ -58,67 +58,82 @@ MIT in each case. |#
 		    (+ #x000A (register-renumber register))))
 
 (define-integrable (machine->machine-register source target)
-  `(MOVE L ,(register-reference source) ,(register-reference target)))
+  (INST (MOVE L
+	      ,(register-reference source)
+	      ,(register-reference target))))
 
 (define-integrable (machine-register->memory source target)
-  `(MOVE L ,(register-reference source) ,target))
+  (INST (MOVE L
+	      ,(register-reference source)
+	      ,target)))
 
 (define-integrable (memory->machine-register source target)
-  `(MOVE L ,source ,(register-reference target)))
+  (INST (MOVE L
+	      ,source
+	      ,(register-reference target))))
 
 (define (offset-reference register offset)
   (if (zero? offset)
       (if (< register 8)
-	  `(@D ,register)
-	  `(@A ,(- register 8)))
+	  (INST-EA (@D ,register))
+	  (INST-EA (@A ,(- register 8))))
       (if (< register 8)
-	  `(@DO ,register ,(* 4 offset))
-	  `(@AO ,(- register 8) ,(* 4 offset)))))
+	  (INST-EA (@DO ,register ,(* 4 offset)))
+	  (INST-EA (@AO ,(- register 8) ,(* 4 offset))))))
 
 (define (load-dnw n d)
-  (cond ((zero? n) `(CLR W (D ,d)))
-	((<= -128 n 127) `(MOVEQ (& ,n) (D ,d)))
-	(else `(MOVE W (& ,n) (D ,d)))))
+  (cond ((zero? n)
+	 (INST (CLR W (D ,d))))
+	((<= -128 n 127)
+	 (INST (MOVEQ (& ,n) (D ,d))))
+	(else
+	 (INST (MOVE W (& ,n) (D ,d))))))
 
 (define (test-dnw n d)
   (if (zero? n)
-      `(TST W (D ,d))
-      `(CMP W (& ,n) (D ,d))))
+      (INST (TST W (D ,d)))
+      (INST (CMP W (& ,n) (D ,d)))))
 
 (define (increment-anl an n)
   (case n
-    ((0) '())
-    ((1 2) `((ADDQ L (& ,(* 4 n)) (A ,an))))
-    ((-1 -2) `((SUBQ L (& ,(* -4 n)) (A ,an))))
-    (else `((LEA (@AO ,an ,(* 4 n)) (A ,an))))))
+    ((0) (LAP))
+    ((1 2) (LAP (ADDQ L (& ,(* 4 n)) (A ,an))))
+    ((-1 -2) (LAP (SUBQ L (& ,(* -4 n)) (A ,an))))
+    (else (LAP (LEA (@AO ,an ,(* 4 n)) (A ,an))))))
 
 (define (load-constant constant target)
   (if (non-pointer-object? constant)
       (load-non-pointer (primitive-type constant)
 			(primitive-datum constant)
 			target)
-      `(MOVE L (@PCR ,(constant->label constant)) ,target)))
+      (INST (MOVE L
+		  (@PCR ,(constant->label constant))
+		  ,target))))
 
 (define (load-non-pointer type datum target)
   (cond ((not (zero? type))
-	 `(MOVE L (& ,(make-non-pointer-literal type datum)) ,target))
+	 (INST (MOVE L
+		     (& ,(make-non-pointer-literal type datum))
+		     ,target)))
 	((and (zero? datum)
-	      (memq (car target) '(D @D @A @A+ @-A @AO @DO @AOX W L)))
-	 `(CLR L ,target))
-	((and (<= -128 datum 127) (eq? (car target) 'D))
-	 `(MOVEQ (& ,datum) ,target))
-	(else
-	 `(MOVE L (& ,datum) ,target))))
+	      (memq (lap:ea-keyword target) '(D @D @A @A+ @-A @AO @DO @AOX W L)))
+	 (INST (CLR L ,target)))
+	((and (<= -128 datum 127) (eq? (lap:ea-keyword target) 'D))
+	 (INST (MOVEQ (& ,datum) ,target)))
+	(else (INST (MOVE L (& ,datum) ,target)))))
 
-(define (test-byte n expression)
-  (if (and (zero? n) (TSTable-expression? expression))
-      `(TST B ,expression)
-      `(CMP B (& ,n) ,expression)))
+(define (test-byte n effective-address)
+  (if (and (zero? n) (TSTable-effective-address? effective-address))
+      (INST (TST B ,effective-address))
+      (INST (CMP B (& ,n) ,effective-address))))
 
-(define (test-non-pointer type datum expression)
-  (if (and (zero? type) (zero? datum) (TSTable-expression? expression))
-      `(TST L ,expression)
-      `(CMP L (& ,(make-non-pointer-literal type datum)) ,expression)))
+(define (test-non-pointer type datum effective-address)
+  (if (and (zero? type) (zero? datum)
+	   (TSTable-effective-address? effective-address))
+      (INST (TST L ,effective-address))
+      (INST (CMP L
+		 (& ,(make-non-pointer-literal type datum))
+		 ,effective-address))))
 
 (define make-non-pointer-literal
   (let ((type-scale-factor (expt 2 24)))
@@ -128,10 +143,11 @@ MIT in each case. |#
 	 datum))))
 
 (define (set-standard-branches! cc)
-  (set-current-branches! (lambda (label)
-			   `((B ,cc L (@PCR ,label))))
-			 (lambda (label)
-			   `((B ,(invert-cc cc) L (@PCR ,label))))))
+  (set-current-branches!
+   (lambda (label)
+     (LAP (B ,cc L (@PCR ,label))))
+   (lambda (label)
+     (LAP (B ,(invert-cc cc) L (@PCR ,label))))))
 
 (define (invert-cc cc)
   (cdr (or (assq cc
@@ -152,26 +168,27 @@ MIT in each case. |#
     (let ((result
 	   (case (car expression)
 	     ((REGISTER)
-	      `((MOVE L ,(coerce->any (cadr expression)) ,target)))
+	      (LAP (MOVE L ,(coerce->any (cadr expression)) ,target)))
 	     ((OFFSET)
-	      `((MOVE L
-		      ,(indirect-reference! (cadadr expression)
-					    (caddr expression))
-		      ,target)))
+	      (LAP
+	       (MOVE L
+		     ,(indirect-reference! (cadadr expression)
+					   (caddr expression))
+		     ,target)))
 	     ((CONSTANT)
-	      `(,(load-constant (cadr expression) target)))
+	      (LAP ,(load-constant (cadr expression) target)))
 	     ((UNASSIGNED)
-	      `(,(load-non-pointer type-code:unassigned 0 target)))
+	      (LAP ,(load-non-pointer type-code:unassigned 0 target)))
 	     (else
 	      (error "Unknown expression type" (car expression))))))
       (delete-machine-register! register)
       result)))
 
-(define-integrable (TSTable-expression? expression)
-  (memq (car expression) '(D @D @A @A+ @-A @DO @AO @AOX W L)))
+(define-integrable (TSTable-effective-address? effective-address)
+  (memq (lap:ea-keyword effective-address) '(D @D @A @A+ @-A @DO @AO @AOX W L)))
 
-(define-integrable (register-expression? expression)
-  (memq (car expression) '(A D)))
+(define-integrable (register-effective-address? effective-address)
+  (memq (lap:ea-keyword effective-address) '(A D)))
 
 (define (indirect-reference! register offset)
   (if (= register regnum:frame-pointer)
@@ -209,23 +226,37 @@ MIT in each case. |#
   (if (<= n limit)
       (let loop ((n n))
 	(if (zero? n)
-	    '()
-	    `(,instruction
-	      ,@(loop (-1+ n)))))
+	    (LAP)
+	    (LAP ,instruction
+		 ,@(loop (-1+ n)))))
       (let ((loop (generate-label 'LOOP)))
 	(with-counter
 	 (lambda (counter)
-	   `(,(load-dnw (-1+ n) counter)
-	     (LABEL ,loop)
-	     ,instruction
-	     (DB F (D ,counter) (@PCR ,loop))))))))
-
+	   (LAP ,(load-dnw (-1+ n) counter)
+		(LABEL ,loop)
+		,instruction
+		(DB F (D ,counter) (@PCR ,loop))))))))
+
 (define-integrable (data-register? register)
   (< register 8))
 
 (define (address-register? register)
   (and (< register 16)
        (>= register 8)))
+
+(define-integrable (lap:ea-keyword expression)
+  (car expression))
+
+(define-export (lap:make-label-statement label)
+  (INST (LABEL ,label)))
+
+(define-export (lap:make-unconditional-branch label)
+  (INST (BRA L (@PCR ,label))))
+
+(define-export (lap:make-entry-point label block-start-label)
+  (LAP (ENTRY-POINT ,label)
+       (DC W (- ,label ,block-start-label))
+       (LABEL ,label)))
 
 ;;;; Registers/Entries
 
@@ -234,9 +265,10 @@ MIT in each case. |#
 		 (define (loop names index)
 		   (if (null? names)
 		       '()
-		       (cons `(DEFINE ,(symbol-append 'ENTRY:COMPILER-
-						      (car names))
-				'(@AO 6 ,index))
+		       (cons `(DEFINE-INTEGRABLE
+				,(symbol-append 'ENTRY:COMPILER-
+						(car names))
+				(INST-EA (@AO 6 ,index)))
 			     (loop (cdr names) (+ index 6)))))
 		 `(BEGIN ,@(loop names start)))))
   (define-entries #x00F0 apply error wrong-number-of-arguments
@@ -248,14 +280,14 @@ MIT in each case. |#
     safe-reference-trap unassigned?-trap cache-variable-multiple
     uuo-link-multiple))
 
-(define reg:compiled-memtop '(@A 6))
-(define reg:environment '(@AO 6 #x000C))
-(define reg:temp '(@AO 6 #x0010))
-(define reg:enclose-result '(@AO 6 #x0014))
+(define-integrable reg:compiled-memtop (INST-EA (@A 6)))
+(define-integrable reg:environment (INST-EA (@AO 6 #x000C)))
+(define-integrable reg:temp (INST-EA (@AO 6 #x0010)))
+(define-integrable reg:enclose-result (INST-EA (@AO 6 #x0014)))
 
-(define popper:apply-closure '(@AO 6 #x0168))
-(define popper:apply-stack '(@AO 6 #x01A8))
-(define popper:value '(@AO 6 #x01E8))
+(define-integrable popper:apply-closure (INST-EA (@AO 6 #x0168)))
+(define-integrable popper:apply-stack (INST-EA (@AO 6 #x01A8)))
+(define-integrable popper:value (INST-EA (@AO 6 #x01E8)))
 
 ;;;; Transfers to Registers
 
@@ -268,7 +300,7 @@ MIT in each case. |#
 (define-rule statement
   (ASSIGN (REGISTER 12) (REGISTER 15))
   (enable-frame-pointer-offset! 0)
-  '())
+  (LAP))
 
 (define-rule statement
   (ASSIGN (REGISTER 15) (OFFSET-ADDRESS (REGISTER 15) (? n)))
@@ -277,42 +309,44 @@ MIT in each case. |#
 (define-rule statement
   (ASSIGN (REGISTER (? target)) (OFFSET-ADDRESS (REGISTER 15) (? n)))
   (QUALIFIER (pseudo-register? target))
-  `((LEA (@AO 7 ,(* 4 n)) ,(reference-assignment-alias! target 'ADDRESS))))
+  (LAP
+   (LEA (@AO 7 ,(* 4 n))
+	,(reference-assignment-alias! target 'ADDRESS))))
 
 (define-rule statement
   (ASSIGN (REGISTER 15) (REGISTER (? source)))
   (disable-frame-pointer-offset!
-   `((MOVE L ,(coerce->any source) (A 7)))))
+   (LAP (MOVE L ,(coerce->any source) (A 7)))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target)) (CONSTANT (? source)))
   (QUALIFIER (pseudo-register? target))
-  `(,(load-constant source (coerce->any target))))
+  (LAP ,(load-constant source (coerce->any target))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target)) (VARIABLE-CACHE (? name)))
   (QUALIFIER (pseudo-register? target))
-  `((MOVE L
-	  (@PCR ,(free-reference-label name))
-	  ,(reference-assignment-alias! target 'DATA))))
+  (LAP (MOVE L
+	     (@PCR ,(free-reference-label name))
+	     ,(reference-assignment-alias! target 'DATA))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target)) (REGISTER (? source)))
   (QUALIFIER (pseudo-register? target))
   (move-to-alias-register! source 'DATA target)
-  '())
+  (LAP))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target)) (OBJECT->ADDRESS (REGISTER (? source))))
   (QUALIFIER (pseudo-register? target))
   (let ((target (move-to-alias-register! source 'DATA target)))
-    `((AND L ,mask-reference ,target))))
+    (LAP (AND L ,mask-reference ,target))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target)) (OBJECT->TYPE (REGISTER (? source))))
   (QUALIFIER (pseudo-register? target))
   (let ((target (move-to-alias-register! source 'DATA target)))
-    `((RO L L (& 8) ,target))))
+    (LAP (RO L L (& 8) ,target))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target)) (OFFSET (REGISTER (? address)) (? offset)))
@@ -323,16 +357,18 @@ MIT in each case. |#
     ;; heuristic that works reasonably well since if the value is a
     ;; pointer, we will probably want to dereference it, which
     ;; requires that we first mask it.
-    `((MOVE L ,source
-	    ,(register-reference (allocate-alias-register! target 'DATA))))))
+    (LAP (MOVE L
+	       ,source
+	       ,(register-reference (allocate-alias-register! target 'DATA))))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target)) (POST-INCREMENT (REGISTER 15) 1))
   (QUALIFIER (pseudo-register? target))
   (record-pop!)
   (delete-dead-registers!)
-  `((MOVE L (@A+ 7)
-	  ,(register-reference (allocate-alias-register! target 'DATA)))))
+  (LAP (MOVE L
+	     (@A+ 7)
+	     ,(register-reference (allocate-alias-register! target 'DATA)))))
 
 (define-rule statement
   (ASSIGN (REGISTER (? target))
@@ -341,184 +377,196 @@ MIT in each case. |#
   (let ((target* (coerce->any target))
 	(datum (coerce->any datum)))
     (delete-dead-registers!)
-    (if (register-expression? target*)
-	`((MOVE L ,datum ,reg:temp)
-	  (MOVE B (& ,type) ,reg:temp)
-	  (MOVE L ,reg:temp ,target*))
-	`((MOVE L ,datum ,target*)
-	  (MOVE B (& ,type) ,target*)))))
+    (if (register-effective-address? target*)
+	(LAP (MOVE L ,datum ,reg:temp)
+	     (MOVE B (& ,type) ,reg:temp)
+	     (MOVE L ,reg:temp ,target*))
+	(LAP (MOVE L ,datum ,target*)
+	     (MOVE B (& ,type) ,target*)))))
 
 ;;;; Transfers to Memory
 
 (define-rule statement
   (ASSIGN (OFFSET (REGISTER (? a)) (? n))
 	  (CONSTANT (? object)))
-  `(,(load-constant object (indirect-reference! a n))))
+  (LAP ,(load-constant object (indirect-reference! a n))))
 
 (define-rule statement
   (ASSIGN (OFFSET (REGISTER (? a)) (? n))
 	  (REGISTER (? r)))
-  `((MOVE L ,(coerce->any r) ,(indirect-reference! a n))))
+  (LAP (MOVE L
+	     ,(coerce->any r)
+	     ,(indirect-reference! a n))))
 
 (define-rule statement
   (ASSIGN (OFFSET (REGISTER (? a)) (? n))
 	  (POST-INCREMENT (REGISTER 15) 1))
   (record-pop!)
-  `((MOVE L (@A+ 7) ,(indirect-reference! a n))))
+  (LAP (MOVE L
+	     (@A+ 7)
+	     ,(indirect-reference! a n))))
 
 (define-rule statement
   (ASSIGN (OFFSET (REGISTER (? a)) (? n))
 	  (CONS-POINTER (CONSTANT (? type)) (REGISTER (? r))))
   (let ((target (indirect-reference! a n)))
-    `((MOVE L ,(coerce->any r) ,target)
-      (MOVE B (& ,type) ,target))))
+    (LAP (MOVE L ,(coerce->any r) (EVALUATE target))
+	 (MOVE B (& ,type) ,target))))
 
 (define-rule statement
   (ASSIGN (OFFSET (REGISTER (? a0)) (? n0))
 	  (OFFSET (REGISTER (? a1)) (? n1)))
   (let ((source (indirect-reference! a1 n1)))
-    `((MOVE L ,source ,(indirect-reference! a0 n0)))))
+    (LAP (MOVE L
+	       ,source
+	       ,(indirect-reference! a0 n0)))))
 
 ;;;; Consing
 
 (define-rule statement
   (ASSIGN (POST-INCREMENT (REGISTER 13) 1) (CONSTANT (? object)))
-  `(,(load-constant object '(@A+ 5))))
+  (LAP ,(load-constant object (INST-EA (@A+ 5)))))
 
 (define-rule statement
   (ASSIGN (POST-INCREMENT (REGISTER 13) 1) (UNASSIGNED))
-  `(,(load-non-pointer type-code:unassigned 0 '(@A+ 5))))
+  (LAP ,(load-non-pointer type-code:unassigned 0 (INST-EA (@A+ 5)))))
 
 (define-rule statement
   (ASSIGN (POST-INCREMENT (REGISTER 13) 1) (REGISTER (? r)))
-  `((MOVE L ,(coerce->any r) (@A+ 5))))
+  (LAP (MOVE L ,(coerce->any r) (@A+ 5))))
 
 (define-rule statement
   (ASSIGN (POST-INCREMENT (REGISTER 13) 1) (OFFSET (REGISTER (? r)) (? n)))
-  `((MOVE L ,(indirect-reference! r n) (@A+ 5))))
+  (LAP (MOVE L ,(indirect-reference! r n) (@A+ 5))))
 
 (define-rule statement
   (ASSIGN (POST-INCREMENT (REGISTER 13) 1) (ENTRY:PROCEDURE (? label)))
   (let ((temporary
 	 (register-reference (allocate-temporary-register! 'ADDRESS))))
-    `((LEA (@PCR ,(procedure-external-label (label->procedure label)))
-	   ,temporary)
-      (MOVE L ,temporary (@A+ 5))
-      (MOVE B (& ,type-code:return-address) (@AO 5 -4)))))
+    (LAP (LEA (@PCR ,(procedure-external-label (label->procedure label)))
+	      ,temporary)
+	 (MOVE L ,temporary (@A+ 5))
+	 (MOVE B (& ,type-code:return-address) (@AO 5 -4)))))
 
 ;;;; Pushes
 
 (define-rule statement
   (ASSIGN (PRE-INCREMENT (REGISTER 15) -1) (CONSTANT (? object)))
   (record-push!
-   `(,(load-constant object '(@-A 7)))))
+   (LAP ,(load-constant object (INST-EA (@-A 7))))))
 
 (define-rule statement
   (ASSIGN (PRE-INCREMENT (REGISTER 15) -1) (UNASSIGNED))
   (record-push!
-   `(,(load-non-pointer type-code:unassigned 0 '(@-A 7)))))
+   (LAP ,(load-non-pointer type-code:unassigned 0 (INST-EA (@-A 7))))))
 
 (define-rule statement
   (ASSIGN (PRE-INCREMENT (REGISTER 15) -1) (REGISTER (? r)))
   (record-push!
    (if (= r regnum:frame-pointer)
-       `((PEA ,(offset-reference regnum:stack-pointer (frame-pointer-offset)))
-	 (MOVE B (& ,type-code:stack-environment) (@A 7)))
-       `((MOVE L ,(coerce->any r) (@-A 7))))))
+       (LAP (PEA ,(offset-reference regnum:stack-pointer
+				    (frame-pointer-offset)))
+	    (MOVE B (& ,type-code:stack-environment) (@A 7)))
+       (LAP (MOVE L ,(coerce->any r) (@-A 7))))))
 
 (define-rule statement
   (ASSIGN (PRE-INCREMENT (REGISTER 15) -1)
 	  (CONS-POINTER (CONSTANT (? type)) (REGISTER (? r))))
   (record-push!
-   `((MOVE L ,(coerce->any r) (@-A 7))
-     (MOVE B (& ,type) (@A 7)))))
+   (LAP (MOVE L ,(coerce->any r) (@-A 7))
+	(MOVE B (& ,type) (@A 7)))))
 
 (define-rule statement
   (ASSIGN (PRE-INCREMENT (REGISTER 15) -1) (OFFSET (REGISTER (? r)) (? n)))
   (record-push!
-   `((MOVE L ,(indirect-reference! r n) (@-A 7)))))
+   (LAP (MOVE L ,(indirect-reference! r n) (@-A 7)))))
 
 (define-rule statement
   (ASSIGN (PRE-INCREMENT (REGISTER 15) -1)
 	  (OFFSET-ADDRESS (REGISTER 12) (? n)))
   (record-push!
-   `((PEA ,(offset-reference regnum:stack-pointer
-			     (+ n (frame-pointer-offset))))
-     (MOVE B (& ,type-code:stack-environment) (@A 7)))))
+   (LAP (PEA ,(offset-reference regnum:stack-pointer
+				(+ n (frame-pointer-offset))))
+	(MOVE B (& ,type-code:stack-environment) (@A 7)))))
 
 (define-rule statement
   (ASSIGN (PRE-INCREMENT (REGISTER 15) -1) (ENTRY:CONTINUATION (? label)))
   (record-continuation-frame-pointer-offset! label)
   (record-push!
-   `((PEA (@PCR ,label))
-     (MOVE B (& ,type-code:return-address) (@A 7)))))
+   (LAP (PEA (@PCR ,label))
+	(MOVE B (& ,type-code:return-address) (@A 7)))))
 
 ;;;; Predicates
 
 (define-rule predicate
   (TRUE-TEST (REGISTER (? register)))
   (set-standard-branches! 'NE)
-  `(,(test-non-pointer (ucode-type false) 0 (coerce->any register))))
+  (LAP ,(test-non-pointer (ucode-type false) 0 (coerce->any register))))
 
 (define-rule predicate
   (TRUE-TEST (OFFSET (REGISTER (? register)) (? offset)))
   (set-standard-branches! 'NE)
-  `(,(test-non-pointer (ucode-type false) 0
-		       (indirect-reference! register offset))))
+  (LAP ,(test-non-pointer (ucode-type false) 0
+			  (indirect-reference! register offset))))
 
 (define-rule predicate
   (TYPE-TEST (REGISTER (? register)) (? type))
   (QUALIFIER (pseudo-register? register))
   (set-standard-branches! 'EQ)
-  `(,(test-byte type
-		(register-reference (load-alias-register! register 'DATA)))))
+  (LAP ,(test-byte type
+		   (register-reference (load-alias-register! register 'DATA)))))
 
 (define-rule predicate
   (TYPE-TEST (OBJECT->TYPE (REGISTER (? register))) (? type))
   (QUALIFIER (pseudo-register? register))
   (set-standard-branches! 'EQ)
   (let ((reference (move-to-temporary-register! register 'DATA)))
-    `((RO L L (& 8) ,reference)
-      ,(test-byte type reference))))
+    (LAP (RO L L (& 8) ,reference)
+	 ,(test-byte type reference))))
 
 (define-rule predicate
   (UNASSIGNED-TEST (REGISTER (? register)))
   (set-standard-branches! 'EQ)
-  `(,(test-non-pointer (ucode-type unassigned) 0 (coerce->any register))))
+  (LAP ,(test-non-pointer (ucode-type unassigned) 0
+			  (coerce->any register))))
 
 (define-rule predicate
   (UNASSIGNED-TEST (OFFSET (REGISTER (? register)) (? offset)))
   (set-standard-branches! 'EQ)
-  `(,(test-non-pointer (ucode-type unassigned) 0
-		       (indirect-reference! register offset))))
+  (LAP ,(test-non-pointer (ucode-type unassigned) 0
+			  (indirect-reference! register offset))))
 
 (define (eq-test/constant*register constant register)
   (set-standard-branches! 'EQ)
   (if (non-pointer-object? constant)
-      `(,(test-non-pointer (primitive-type constant)
-			   (primitive-datum constant)
-			   (coerce->any register)))
-      `((CMP L
-	     (@PCR ,(constant->label constant))
-	     ,(coerce->machine-register register)))))
+      (LAP ,(test-non-pointer (primitive-type constant)
+			      (primitive-datum constant)
+			      (coerce->any register)))
+      (LAP (CMP L
+		(@PCR ,(constant->label constant))
+		,(coerce->machine-register register)))))
 
 (define (eq-test/constant*memory constant memory-reference)
   (set-standard-branches! 'EQ)
   (if (non-pointer-object? constant)
-      `(,(test-non-pointer (primitive-type constant)
-			   (primitive-datum constant)
-			   memory-reference))
+      (LAP ,(test-non-pointer (primitive-type constant)
+			      (primitive-datum constant)
+			      memory-reference))
       (let ((temp (reference-temporary-register! false)))
-	`((MOVE L ,memory-reference ,temp)
-	  (CMP L (@PCR ,(constant->label constant)) ,temp)))))
+	(LAP (MOVE L
+		   ,memory-reference
+		   ,temp)
+	     (CMP L
+		  (@PCR ,(constant->label constant))
+		  ,temp)))))
 
 (define (eq-test/register*register register-1 register-2)
   (set-standard-branches! 'EQ)
   (let ((finish
 	 (lambda (register-1 register-2)
-	   `((CMP L
-		  ,(coerce->any register-2)
-		  ,(coerce->machine-register register-1))))))
+	   (LAP (CMP L
+		     ,(coerce->any register-2)
+		     ,(coerce->machine-register register-1))))))
     (if (or (and (not (register-has-alias? register-1 'DATA))
 		 (register-has-alias? register-2 'DATA))
 	    (and (not (register-has-alias? register-1 'ADDRESS))
@@ -528,15 +576,21 @@ MIT in each case. |#
 
 (define (eq-test/register*memory register memory-reference)
   (set-standard-branches! 'EQ)
-  `((CMP L ,memory-reference ,(coerce->machine-register register))))
+  (LAP (CMP L
+	    ,memory-reference
+	    ,(coerce->machine-register register))))
 
 (define (eq-test/memory*memory register-1 offset-1 register-2 offset-2)
   (set-standard-branches! 'EQ)
   (let ((temp (reference-temporary-register! false)))
     (let ((finish
 	   (lambda (register-1 offset-1 register-2 offset-2)
-	     `((MOVE L ,(indirect-reference! register-1 offset-1) ,temp)
-	       (CMP L ,(indirect-reference! register-2 offset-2) ,temp)))))
+	     (LAP (MOVE L
+			,(indirect-reference! register-1 offset-1)
+			,temp)
+		  (CMP L
+		       ,(indirect-reference! register-2 offset-2)
+		       ,temp)))))
       (if (or (and (not (register-has-alias? register-1 'ADDRESS))
 		   (register-has-alias? register-2 'ADDRESS))
 	      (and (not (register-has-alias? register-1 'DATA))
@@ -562,11 +616,11 @@ MIT in each case. |#
 
 (define-rule predicate
   (EQ-TEST (CONSTANT (? constant)) (POST-INCREMENT (REGISTER 15) 1))
-  (eq-test/constant*memory constant '(@A+ 7)))
+  (eq-test/constant*memory constant (INST-EA (@A+ 7))))
 
 (define-rule predicate
   (EQ-TEST (POST-INCREMENT (REGISTER 15) 1) (CONSTANT (? constant)))
-  (eq-test/constant*memory constant '(@A+ 7)))
+  (eq-test/constant*memory constant (INST-EA (@A+ 7))))
 
 (define-rule predicate
   (EQ-TEST (REGISTER (? register-1)) (REGISTER (? register-2)))
@@ -587,12 +641,12 @@ MIT in each case. |#
 (define-rule predicate
   (EQ-TEST (POST-INCREMENT (REGISTER 15) 1) (REGISTER (? register)))
   (record-pop!)
-  (eq-test/register*memory register '(@A+ 7)))
+  (eq-test/register*memory register (INST-EA (@A+ 7))))
 
 (define-rule predicate
   (EQ-TEST (REGISTER (? register)) (POST-INCREMENT (REGISTER 15) 1))
   (record-pop!)
-  (eq-test/register*memory register '(@A+ 7)))
+  (eq-test/register*memory register (INST-EA (@A+ 7))))
 
 (define-rule predicate
   (EQ-TEST (OFFSET (REGISTER (? register-1)) (? offset-1))
@@ -604,17 +658,17 @@ MIT in each case. |#
 (define-rule statement
   (INVOCATION:APPLY (? number-pushed) (? prefix) (? continuation))
   (disable-frame-pointer-offset!
-   `(,@(generate-invocation-prefix prefix)
-     ,(load-dnw number-pushed 0)
-     (JMP ,entry:compiler-apply))))
+   (LAP ,@(generate-invocation-prefix prefix)
+	,(load-dnw number-pushed 0)
+	(JMP ,entry:compiler-apply))))
 
 (define-rule statement
   (INVOCATION:JUMP (? n)
 		   (APPLY-CLOSURE (? frame-size) (? receiver-offset))
 		   (? continuation) (? label))
   (disable-frame-pointer-offset!
-   `(,@(clear-map!)
-     ,@(apply-closure-sequence frame-size receiver-offset label))))
+   (LAP ,@(clear-map!)
+	,@(apply-closure-sequence frame-size receiver-offset label))))
 
 (define-rule statement
   (INVOCATION:JUMP (? n)
@@ -622,23 +676,23 @@ MIT in each case. |#
 				(? n-levels))
 		   (? continuation) (? label))
   (disable-frame-pointer-offset!
-   `(,@(clear-map!)
-     ,@(apply-stack-sequence frame-size receiver-offset n-levels label))))
+   (LAP ,@(clear-map!)
+	,@(apply-stack-sequence frame-size receiver-offset n-levels label))))
 
 (define-rule statement
   (INVOCATION:JUMP (? number-pushed) (? prefix) (? continuation) (? label))
   (QUALIFIER (not (memq (car prefix) '(APPLY-CLOSURE APPLY-STACK))))
   (disable-frame-pointer-offset!
-   `(,@(generate-invocation-prefix prefix)
-     (BRA L (@PCR ,label)))))
+   (LAP ,@(generate-invocation-prefix prefix)
+	(BRA L (@PCR ,label)))))
 
 (define-rule statement
   (INVOCATION:LEXPR (? number-pushed) (? prefix) (? continuation)
 		    (? label))
   (disable-frame-pointer-offset!
-   `(,@(generate-invocation-prefix prefix)
-     ,(load-dnw number-pushed 0)
-     (BRA L (@PCR ,label)))))
+   (LAP ,@(generate-invocation-prefix prefix)
+	,(load-dnw number-pushed 0)
+	(BRA L (@PCR ,label)))))
 
 (define-rule statement
   (INVOCATION:CACHE-REFERENCE (? frame-size) (? prefix) (? continuation)
@@ -646,11 +700,11 @@ MIT in each case. |#
   (disable-frame-pointer-offset!
    (let ((set-extension (expression->machine-register! extension a3)))
      (delete-dead-registers!)
-     `(,@set-extension
-       ,@(generate-invocation-prefix prefix)
-       ,(load-dnw frame-size 0)
-       (LEA (@PCR ,*block-start-label*) (A 1))
-       (JMP ,entry:compiler-cache-reference-apply)))))
+     (LAP ,@set-extension
+	  ,@(generate-invocation-prefix prefix)
+	  ,(load-dnw frame-size 0)
+	  (LEA (@PCR ,*block-start-label*) (A 1))
+	  (JMP ,entry:compiler-cache-reference-apply)))))
 
 (define-rule statement
   (INVOCATION:LOOKUP (? frame-size) (? prefix) (? continuation)
@@ -658,80 +712,87 @@ MIT in each case. |#
   (disable-frame-pointer-offset!
    (let ((set-environment (expression->machine-register! environment d4)))
      (delete-dead-registers!)
-     `(,@set-environment
-       ,@(generate-invocation-prefix prefix)
-       ,(load-constant name '(D 5))
-       ,(load-dnw frame-size 0)
-       (JMP ,entry:compiler-lookup-apply)))))
+     (LAP ,@set-environment
+	  ,@(generate-invocation-prefix prefix)
+	  ,(load-constant name (INST-EA (D 5)))
+	  ,(load-dnw (1+ frame-size) 0)
+	  (JMP ,entry:compiler-lookup-apply)))))
 
 (define-rule statement
   (INVOCATION:PRIMITIVE (? number-pushed) (? prefix) (? continuation)
 			(? primitive))
   (disable-frame-pointer-offset!
-   `(,@(generate-invocation-prefix prefix)
-     ,@(if (eq? primitive compiled-error-procedure)
-	   `(,(load-dnw (1+ number-pushed) 0)
-	     (JMP ,entry:compiler-error))
-	   `(,(load-dnw (primitive-datum primitive) 6)
-	     (JMP ,entry:compiler-primitive-apply))))))
+   (LAP ,@(generate-invocation-prefix prefix)
+	,@(if (eq? primitive compiled-error-procedure)
+	      (LAP ,(load-dnw (1+ number-pushed) 0)
+		   (JMP ,entry:compiler-error))
+	      (LAP ,(load-dnw (primitive-datum primitive) 6)
+		   (JMP ,entry:compiler-primitive-apply))))))
 
 (define-rule statement
   (RETURN)
   (disable-frame-pointer-offset!
-   `(,@(clear-map!)
-     (CLR B (@A 7))
-     (RTS))))
+   (LAP ,@(clear-map!)
+	(CLR B (@A 7))
+	(RTS))))
 
 (define (generate-invocation-prefix prefix)
-  `(,@(clear-map!)
-    ,@(case (car prefix)
-	((NULL) '())
-	((MOVE-FRAME-UP)
-	 (apply generate-invocation-prefix:move-frame-up (cdr prefix)))
-	((APPLY-CLOSURE)
-	 (apply generate-invocation-prefix:apply-closure (cdr prefix)))
-	((APPLY-STACK)
-	 (apply generate-invocation-prefix:apply-stack (cdr prefix)))
-	(else (error "GENERATE-INVOCATION-PREFIX: bad prefix type" prefix)))))
+  (LAP ,@(clear-map!)
+       ,@(case (car prefix)
+	   ((NULL) (LAP))
+	   ((MOVE-FRAME-UP)
+	    (apply generate-invocation-prefix:move-frame-up (cdr prefix)))
+	   ((APPLY-CLOSURE)
+	    (apply generate-invocation-prefix:apply-closure (cdr prefix)))
+	   ((APPLY-STACK)
+	    (apply generate-invocation-prefix:apply-stack (cdr prefix)))
+	   (else
+	    (error "GENERATE-INVOCATION-PREFIX: bad prefix type" prefix)))))
 
 (define (generate-invocation-prefix:move-frame-up frame-size how-far)
-  (cond ((zero? how-far) '())
-	((zero? frame-size)
-	 (increment-anl 7 how-far))
+  (cond ((or (zero? frame-size) (zero? how-far))
+	 (LAP))
 	((= frame-size 1)
-	 `((MOVE L (@A+ 7) ,(offset-reference a7 (-1+ how-far)))
-	   ,@(increment-anl 7 (-1+ how-far))))
+	 (LAP (MOVE L (@A+ 7) ,(offset-reference a7 (-1+ how-far)))
+	      ,@(increment-anl 7 (-1+ how-far))))
 	((= frame-size 2)
 	 (if (= how-far 1)
-	     `((MOVE L (@AO 7 4) (@AO 7 8))
-	       (MOVE L (@A+ 7) (@A 7)))
-	     (let ((i `(MOVE L (@A+ 7) ,(offset-reference a7 (-1+ how-far)))))
-	       `(,i ,i ,@(increment-anl 7 (- how-far 2))))))
+	     (LAP (MOVE L (@AO 7 4) (@AO 7 8))
+		  (MOVE L (@A+ 7) (@A 7)))
+	     (let ((i
+		    (INST (MOVE L
+				(@A+ 7)
+				,(offset-reference a7 (-1+ how-far))))))
+	       (LAP ,i
+		    ,i
+		    ,@(increment-anl 7 (- how-far 2))))))
 	(else
 	 (let ((temp-0 (allocate-temporary-register! 'ADDRESS))
 	       (temp-1 (allocate-temporary-register! 'ADDRESS)))
-	   `((LEA ,(offset-reference a7 frame-size)
-		  ,(register-reference temp-0))
-	     (LEA ,(offset-reference a7 (+ frame-size how-far))
-		  ,(register-reference temp-1))
-	     ,@(generate-n-times frame-size 5
-				 `(MOVE L
-					(@-A ,(- temp-0 8))
-					(@-A ,(- temp-1 8)))
-		 (lambda (generator)
-		   (generator (allocate-temporary-register! 'DATA))))
-	     (MOVE L ,(register-reference temp-1) (A 7)))))))
+	   (LAP (LEA ,(offset-reference a7 frame-size)
+		     ,(register-reference temp-0))
+		(LEA ,(offset-reference a7 (+ frame-size how-far))
+		     ,(register-reference temp-1))
+	    
+	    ,@(generate-n-times
+	       frame-size 5
+	       (INST (MOVE L
+			   (@-A ,(- temp-0 8))
+			   (@-A ,(- temp-1 8))))
+	       (lambda (generator)
+		 (generator (allocate-temporary-register! 'DATA))))
+	    (MOVE L ,(register-reference temp-1) (A 7)))))))
 
 (define (generate-invocation-prefix:apply-closure frame-size receiver-offset)
   (let ((label (generate-label)))
-    `(,@(apply-closure-sequence frame-size receiver-offset label)
-      (LABEL ,label))))
+    (LAP ,@(apply-closure-sequence frame-size receiver-offset label)
+	 (LABEL ,label))))
 
 (define (generate-invocation-prefix:apply-stack frame-size receiver-offset
 						n-levels)
   (let ((label (generate-label)))
-    `(,@(apply-stack-sequence frame-size receiver-offset n-levels label)
-      (LABEL ,label))))
+    (LAP ,@(apply-stack-sequence frame-size receiver-offset n-levels label)
+	 (LABEL ,label))))
 
 ;;;; Interpreter Calls
 
@@ -755,31 +816,34 @@ MIT in each case. |#
 (define (lookup-call entry environment name)
   (let ((set-environment (expression->machine-register! environment a0)))
     (let ((clear-map (clear-map!)))
-      `(,@set-environment
-	,@clear-map
-	,(load-constant name '(A 1))
-	(JSR ,entry)
-	,@(make-external-label (generate-label))))))
+      (LAP ,@set-environment
+	   ,@clear-map
+	   ,(load-constant name (INST-EA (A 1)))
+	   (JSR ,entry)
+	   ,@(make-external-label (generate-label))))))
 
 (define-rule statement
   (INTERPRETER-CALL:ENCLOSE (? number-pushed))
-  (decrement-frame-pointer-offset! number-pushed
-    `((MOVE L (A 5) ,reg:enclose-result)
-      (MOVE B (& ,(ucode-type vector)) ,reg:enclose-result)
-      ,(load-non-pointer (ucode-type manifest-vector) number-pushed
-			 '(@A+ 5))
-      ,@(generate-n-times number-pushed 5 '(MOVE L (@A+ 7) (@A+ 5))
-	  (lambda (generator)
-	    (generator (allocate-temporary-register! 'DATA)))))
-#| Alternate sequence which minimizes code size.
+  (decrement-frame-pointer-offset!
+   number-pushed
+   (LAP (MOVE L (A 5) ,reg:enclose-result)
+	(MOVE B (& ,(ucode-type vector)) ,reg:enclose-result)
+	,(load-non-pointer (ucode-type manifest-vector) number-pushed
+			   (INST-EA (@A+ 5)))
+     
+	,@(generate-n-times number-pushed 5
+			    (INST (MOVE L (@A+ 7) (@A+ 5)))
+			    (lambda (generator)
+			      (generator (allocate-temporary-register! 'DATA)))))
+   #| Alternate sequence which minimizes code size. ;
    DO NOT USE THIS!  The `clear-registers!' call does not distinguish between
    registers containing objects and registers containing unboxed things, and
    as a result can write unboxed stuff to memory.
-    `(,@(clear-registers! a0 a1 d0)
-      (MOVE W (& ,number-pushed) (D 0))
-      (JSR ,entry:compiler-enclose))
-|#
-    ))
+   (LAP ,@(clear-registers! a0 a1 d0)
+	(MOVE W (& ,number-pushed) (D 0))
+	(JSR ,entry:compiler-enclose))
+   |#
+   ))
 
 (define-rule statement
   (INTERPRETER-CALL:DEFINE (? environment) (? name) (? value))
@@ -795,12 +859,12 @@ MIT in each case. |#
   (let ((set-environment (expression->machine-register! environment a0)))
     (let ((set-value (expression->machine-register! value a2)))
       (let ((clear-map (clear-map!)))
-	`(,@set-environment
-	  ,@set-value
-	  ,@clear-map
-	  ,(load-constant name '(A 1))
-	  (JSR ,entry)
-	  ,@(make-external-label (generate-label)))))))
+	(LAP ,@set-environment
+	     ,@set-value
+	     ,@clear-map
+	     ,(load-constant name (INST-EA (A 1)))
+	     (JSR ,entry)
+	     ,@(make-external-label (generate-label)))))))
 
 (define-rule statement
   (INTERPRETER-CALL:DEFINE (? environment) (? name)
@@ -820,25 +884,25 @@ MIT in each case. |#
   (let ((set-environment (expression->machine-register! environment a0)))
     (let ((datum (coerce->any datum)))
       (let ((clear-map (clear-map!)))
-	`(,@set-environment
-	  (MOVE L ,datum ,reg:temp)
-	  (MOVE B (& ,type) ,reg:temp)
-	  ,@clear-map
-	  (MOVE L ,reg:temp (A 2))
-	  ,(load-constant name '(A 1))
-	  (JSR ,entry)
-	  ,@(make-external-label (generate-label)))))))
+	(LAP ,@set-environment
+	     (MOVE L ,datum ,reg:temp)
+	     (MOVE B (& ,type) ,reg:temp)
+	     ,@clear-map
+	     (MOVE L ,reg:temp (A 2))
+	     ,(load-constant name (INST-EA (A 1)))
+	     (JSR ,entry)
+	     ,@(make-external-label (generate-label)))))))
 
 (define-rule statement
   (INTERPRETER-CALL:CACHE-REFERENCE (? extension) (? safe?))
   (let ((set-extension (expression->machine-register! extension a0)))
     (let ((clear-map (clear-map!)))
-      `(,@set-extension
-	,@clear-map
-	(JSR ,(if safe?
-		  entry:compiler-safe-reference-trap
-		  entry:compiler-reference-trap))
-	,@(make-external-label (generate-label))))))
+      (LAP ,@set-extension
+	   ,@clear-map
+	   (JSR ,(if safe?
+		     entry:compiler-safe-reference-trap
+		     entry:compiler-reference-trap))
+	   ,@(make-external-label (generate-label))))))
 
 (define-rule statement
   (INTERPRETER-CALL:CACHE-ASSIGNMENT (? extension) (? value))
@@ -846,11 +910,11 @@ MIT in each case. |#
   (let ((set-extension (expression->machine-register! extension a0)))
     (let ((set-value (expression->machine-register! value a1)))
       (let ((clear-map (clear-map!)))
-	`(,@set-extension
-	  ,@set-value
-	  ,@clear-map
-	  (JSR ,entry:compiler-assignment-trap)
-	  ,@(make-external-label (generate-label)))))))
+	(LAP ,@set-extension
+	     ,@set-value
+	     ,@clear-map
+	     (JSR ,entry:compiler-assignment-trap)
+	     ,@(make-external-label (generate-label)))))))
 
 (define-rule statement
   (INTERPRETER-CALL:CACHE-ASSIGNMENT (? extension)
@@ -859,48 +923,58 @@ MIT in each case. |#
   (let ((set-extension (expression->machine-register! extension a0)))
     (let ((datum (coerce->any datum)))
       (let ((clear-map (clear-map!)))
-	`(,@set-extension
-	  (MOVE L ,datum ,reg:temp)
-	  (MOVE B (& ,type) ,reg:temp)
-	  ,@clear-map
-	  (MOVE L ,reg:temp (A 1))
-	  (JSR ,entry:compiler-assignment-trap)
-	  ,@(make-external-label (generate-label)))))))
+	(LAP ,@set-extension
+	     (MOVE L ,datum ,reg:temp)
+	     (MOVE B (& ,type) ,reg:temp)
+	     ,@clear-map
+	     (MOVE L ,reg:temp (A 1))
+	     (JSR ,entry:compiler-assignment-trap)
+	     ,@(make-external-label (generate-label)))))))
 
-;;; This is invoked by the top level of the LAP generator.
+;;; This is invoked by the top level of the LAP GENERATOR.
 
 (define generate/quotation-header
-  (let ((declare-constant
-	 (lambda (entry)
-	   `(SCHEME-OBJECT ,(cdr entry) ,(car entry)))))
+  (let ()
+    (define (declare-constants constants code)
+      (define (inner constants)
+	(if (null? constants)
+	    code
+	    (let ((entry (car constants)))
+	      (LAP (SCHEME-OBJECT ,(cdr entry) ,(car entry))
+		   ,@(inner (cdr constants))))))
+      (inner constants))
+
     (lambda (block-label constants references uuo-links)
-      `(,@(map declare-constant references)
-	,@(map declare-constant uuo-links)
-	,@(map declare-constant constants)
-	,@(if (or (not (null? references))
-		  (not (null? uuo-links)))
-	      `(,@(let ((environment-label (allocate-constant-label)))
-		    `((SCHEME-OBJECT ,environment-label ENVIRONMENT)
-		      (LEA (@PCR ,environment-label) (A 0))))
-		(MOVE L ,reg:environment (@A 0))
-		(LEA (@PCR ,block-label) (A 0))
-		,@(if (null? references)
-		      '()
-		      `((LEA (@PCR ,(cdar references)) (A 1))
-			,@(if (null? (cdr references))
-			      `((JSR ,entry:compiler-cache-variable))
-			      `(,(load-dnw (length references) 1)
-				(JSR ,entry:compiler-cache-variable-multiple)))
-			,@(make-external-label (generate-label))))
-		,@(if (null? uuo-links)
-		      '()
-		      `((LEA (@PCR ,(cdar uuo-links)) (A 1))
-			,@(if (null? (cdr uuo-links))
-			      `((JSR ,entry:compiler-uuo-link))
-			      `(,(load-dnw (length uuo-links) 1)
-				(JSR ,entry:compiler-uuo-link-multiple)))
-			,@(make-external-label (generate-label)))))
-	      '())))))
+      (declare-constants references
+       (declare-constants uuo-links
+	(declare-constants constants
+	 (if (or (not (null? references))
+		 (not (null? uuo-links)))
+	     (LAP ,@(let ((environment-label (allocate-constant-label)))
+		      (LAP
+		       (SCHEME-OBJECT ,environment-label ENVIRONMENT)
+		       (LEA (@PCR ,environment-label) (A 0))))
+		  (MOVE L ,reg:environment (@A 0))
+		  (LEA (@PCR ,block-label) (A 0))
+		  ,@(if (null? references)
+			(LAP)
+			(LAP
+			 (LEA (@PCR ,(cdar references)) (A 1))
+			 ,@(if (null? (cdr references))
+			       (LAP (JSR ,entry:compiler-cache-variable))
+			       (LAP ,(load-dnw (length references) 1)
+				    (JSR 
+				     ,entry:compiler-cache-variable-multiple)))
+			 ,@(make-external-label (generate-label))))
+		  ,@(if (null? uuo-links)
+			(LAP)
+			(LAP (LEA (@PCR ,(cdar uuo-links)) (A 1))
+			     ,@(if (null? (cdr uuo-links))
+				   (LAP (JSR ,entry:compiler-uuo-link))
+				   (LAP ,(load-dnw (length uuo-links) 1)
+					(JSR ,entry:compiler-uuo-link-multiple)))
+			     ,@(make-external-label (generate-label)))))
+	     (LAP))))))))
 
 ;;;; Procedure/Continuation Entries
 
@@ -917,9 +991,9 @@ MIT in each case. |#
   (PROCEDURE-HEAP-CHECK (? label))
   (disable-frame-pointer-offset!
    (let ((gc-label (generate-label)))
-     `(,@(procedure-header (label->procedure label) gc-label)
-       (CMP L ,reg:compiled-memtop (A 5))
-       (B GE S (@PCR ,gc-label))))))
+     (LAP ,@(procedure-header (label->procedure label) gc-label)
+	  (CMP L ,reg:compiled-memtop (A 5))
+	  (B GE S (@PCR ,gc-label))))))
 
 ;;; Note: do not change the MOVE.W in the setup-lexpr call to a MOVEQ.
 ;;; The setup-lexpr code assumes a fixed calling sequence to compute
@@ -931,98 +1005,103 @@ MIT in each case. |#
   (SETUP-LEXPR (? label))
   (disable-frame-pointer-offset!
    (let ((procedure (label->procedure label)))
-     `(,@(procedure-header procedure false)
-       (MOVE W
-	     (& ,(+ (procedure-required procedure)
-		    (procedure-optional procedure)
-		    (if (procedure/closure? procedure) 1 0)))
-	     (D 1))
-       (MOVEQ (& ,(if (procedure-rest procedure) 1 0)) (D 2))
-       (JSR , entry:compiler-setup-lexpr)))))
+     (LAP ,@(procedure-header procedure false)
+	  (MOVE W
+		(& ,(+ (procedure-required procedure)
+		       (procedure-optional procedure)
+		       (if (procedure/closure? procedure) 1 0)))
+		(D 1))
+	  (MOVEQ (& ,(if (procedure-rest procedure) 1 0)) (D 2))
+	  (JSR ,entry:compiler-setup-lexpr)))))
 
 (define-rule statement
   (CONTINUATION-HEAP-CHECK (? internal-label))
   (enable-frame-pointer-offset!
    (continuation-frame-pointer-offset (label->continuation internal-label)))
   (let ((gc-label (generate-label)))
-    `((LABEL ,gc-label)
-      (JSR ,entry:compiler-interrupt-continuation)
-      ,@(make-external-label internal-label)
-      (CMP L ,reg:compiled-memtop (A 5))
-      (B GE S (@PCR ,gc-label)))))
+    (LAP (LABEL ,gc-label)
+	 (JSR ,entry:compiler-interrupt-continuation)
+	 ,@(make-external-label internal-label)
+	 (CMP L ,reg:compiled-memtop (A 5))
+	 (B GE S (@PCR ,gc-label)))))
 
 (define (procedure-header procedure gc-label)
   (let ((internal-label (procedure-label procedure)))
-    (append! (if (procedure/closure? procedure)
-		 (let ((required (1+ (procedure-required procedure)))
-		       (optional (procedure-optional procedure))
-		       (label (procedure-external-label procedure)))
-		   (if (and (procedure-rest procedure)
-			    (zero? required))
-		       (begin (set-procedure-external-label! procedure
-							     internal-label)
-			      `((ENTRY-POINT ,internal-label)))
-		       `((ENTRY-POINT ,label)
-    			 ,@(make-external-label label)
-			 ,(test-dnw required 0)
-			 ,@(cond ((procedure-rest procedure)
-				  `((B GE S (@PCR ,internal-label))))
-				 ((zero? optional)
-				  `((B EQ S (@PCR ,internal-label))))
-				 (else
-				  (let ((wna-label (generate-label)))
-				    `((B LT S (@PCR ,wna-label))
-				      ,(test-dnw (+ required optional) 0)
-				      (B LE S (@PCR ,internal-label))
-				      (LABEL ,wna-label)))))
-			 (JMP ,entry:compiler-wrong-number-of-arguments))))
-		 '())
-	     (if gc-label
-		 `((LABEL ,gc-label)
-		   (JSR ,entry:compiler-interrupt-procedure))
-		 '())
-	     `(,@(make-external-label internal-label)))))
+    (LAP ,@(if (procedure/closure? procedure)
+	       (let ((required (1+ (procedure-required procedure)))
+		     (optional (procedure-optional procedure))
+		     (label (procedure-external-label procedure)))
+		 (if (and (procedure-rest procedure)
+			  (zero? required))
+		     (begin (set-procedure-external-label! procedure
+							   internal-label)
+			    (LAP (ENTRY-POINT ,internal-label)))
+		     (LAP (ENTRY-POINT ,label)
+			  ,@(make-external-label label)
+			  ,(test-dnw required 0)
+			  ,@(cond ((procedure-rest procedure)
+				   (LAP (B GE S (@PCR ,internal-label))))
+				  ((zero? optional)
+				   (LAP (B EQ S (@PCR ,internal-label))))
+				  (else
+				   (let ((wna-label (generate-label)))
+				     (LAP (B LT S (@PCR ,wna-label))
+					  ,(test-dnw (+ required optional) 0)
+					  (B LE S (@PCR ,internal-label))
+					  (LABEL ,wna-label)))))
+			  (JMP ,entry:compiler-wrong-number-of-arguments))))
+	       (LAP))
+	 ,@(if gc-label
+	       (LAP (LABEL ,gc-label)
+		    (JSR ,entry:compiler-interrupt-procedure))
+	       (LAP))
+	 ,@(make-external-label internal-label))))
 
 (define (make-external-label label)
-  `((DC W (- ,label ,*block-start-label*))
-    (LABEL ,label)))
+  (LAP (DC W (- ,label ,*block-start-label*))
+       (LABEL ,label)))
 
 ;;;; Poppers
 
 (define-rule statement
   (MESSAGE-RECEIVER:CLOSURE (? frame-size))
   (record-push!
-   `((MOVE L (& ,(* frame-size 4)) (@-A 7)))))
+   (LAP (MOVE L (& ,(* frame-size 4)) (@-A 7)))))
 
 (define-rule statement
   (MESSAGE-RECEIVER:STACK (? frame-size))
   (record-push!
-   `((MOVE L (& ,(+ #x00100000 (* frame-size 4))) (@-A 7)))))
+   (LAP (MOVE L
+	      (& ,(+ #x00100000 (* frame-size 4)))
+	      (@-A 7)))))
 
 (define-rule statement
   (MESSAGE-RECEIVER:SUBPROBLEM (? label))
   (record-continuation-frame-pointer-offset! label)
-  (increment-frame-pointer-offset! 2
-    `((PEA (@PCR ,label))
-      (MOVE B (& ,type-code:return-address) (@A 7))
-      (MOVE L (& #x00200000) (@-A 7)))))
+  (increment-frame-pointer-offset!
+   2
+   (LAP (PEA (@PCR ,label))
+	(MOVE B (& ,type-code:return-address) (@A 7))
+	(MOVE L (& #x00200000) (@-A 7)))))
 
 (define (apply-closure-sequence frame-size receiver-offset label)
-  `(,(load-dnw frame-size 1)
-    (LEA (@AO 7 ,(* (+ receiver-offset (frame-pointer-offset)) 4)) (A 0))
-    (LEA (@PCR ,label) (A 1))
-    (JMP ,popper:apply-closure)))
+  (LAP ,(load-dnw frame-size 1)
+       (LEA (@AO 7 ,(* (+ receiver-offset (frame-pointer-offset)) 4))
+	    (A 0))
+       (LEA (@PCR ,label) (A 1))
+       (JMP ,popper:apply-closure)))
 
 (define (apply-stack-sequence frame-size receiver-offset n-levels label)
-  `((MOVEQ (& ,n-levels) (D 0))
-    ,(load-dnw frame-size 1)
-    (LEA (@AO 7 ,(* (+ receiver-offset (frame-pointer-offset)) 4)) (A 0))
-    (LEA (@PCR ,label) (A 1))
-    (JMP ,popper:apply-stack)))
+  (LAP (MOVEQ (& ,n-levels) (D 0))
+       ,(load-dnw frame-size 1)
+       (LEA (@AO 7 ,(* (+ receiver-offset (frame-pointer-offset)) 4))
+	    (A 0))
+       (LEA (@PCR ,label) (A 1))
+       (JMP ,popper:apply-stack)))
 
 (define-rule statement
   (MESSAGE-SENDER:VALUE (? receiver-offset))
   (disable-frame-pointer-offset!
-   `(,@(clear-map!)
-     ,@(increment-anl 7 (+ receiver-offset (frame-pointer-offset)))
-(define popper:value '(@AO 6 #x01E8))
+   (LAP ,@(clear-map!)
+	,@(increment-anl 7 (+ receiver-offset (frame-pointer-offset)))
+	(JMP ,popper:value))))
