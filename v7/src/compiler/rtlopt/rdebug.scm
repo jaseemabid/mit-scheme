@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rdebug.scm,v 1.2 1987/08/07 17:08:01 cph Rel $
+$Id: rdebug.scm,v 1.2.1.1 1994/03/30 21:23:05 gjr Exp $
 
-Copyright (c) 1987 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
