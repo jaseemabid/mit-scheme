@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: macros.scm,v 1.12.2.1 2002/01/22 18:02:01 cph Exp $
+;;; $Id: macros.scm,v 1.12.2.2 2002/01/31 05:48:31 cph Exp $
 ;;;
 ;;; Copyright (c) 1993-2002 Massachusetts Institute of Technology
 ;;;
@@ -424,8 +424,8 @@
 	     (let loop ((body body))
 	       (if (and (identifier? (car body))
 			(pair? (cdr body)))
-		   (if (identifier=? (car body) instance-environment
-				     'CALL-NEXT-METHOD environment)
+		   (if (identifier=? instance-environment (car body)
+				     environment 'CALL-NEXT-METHOD)
 		       (loop (cdr body))
 		       (cons (car body) (loop (cdr body))))
 		   body))))
