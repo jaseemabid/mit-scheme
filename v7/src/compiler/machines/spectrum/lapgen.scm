@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: lapgen.scm,v 4.46 1993/12/08 17:48:53 gjr Exp $
+$Id: lapgen.scm,v 4.46.1.1 1994/03/30 21:18:16 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -48,14 +48,26 @@ MIT in each case. |#
     (else (error "unknown register type" source))))
 
 (define (home->register-transfer source target)
-  (memory->register-transfer (pseudo-register-displacement source)
-			     regnum:regs-pointer
-			     target))
+  ;;! Until untagged-fixnums allowed object<->fixnum conversions to be
+  ;;  elided the following test was not necessary because there would always
+  ;;  be a conversion inbetween `thinking' about a register's home and
+  ;;  moving the result to the return-value register.  The real issue
+  ;;  is that the return-value register always lives in a machine
+  ;;  register and is never stored like the other pseudo-registers.
+  ;;  ?Perhaps this behaviour ought to be (or is?) codified elsewhere?
+  (if (machine-register? source)
+      (register->register-transfer source target)
+      (memory->register-transfer (pseudo-register-displacement source)
+				 regnum:regs-pointer
+				 target)))
 
 (define (register->home-transfer source target)
-  (register->memory-transfer source
-			     (pseudo-register-displacement target)
-			     regnum:regs-pointer))
+  ;;! See above.
+  (if (machine-register? target)
+      (register->register-transfer source target)
+      (register->memory-transfer source
+				 (pseudo-register-displacement target)
+				 regnum:regs-pointer)))
 
 (define (reference->register-transfer source target)
   (case (ea/mode source)
@@ -92,7 +104,8 @@ MIT in each case. |#
   ;; too.
   (list
    ;; g0 g1 g2 g3 g4 g5
-   g6 g7 g8 g9 g10 g11 g12 g13 g14 g15 g16 g17 g18
+   g6 g7 g8 g9 g10 g11 g12 g13 g14 g15 g16 g17
+   ;; g18: holds '()
    ;; g19 g20 g21 g22
    g23 g24 g25 g26
    ;; g27
@@ -166,6 +179,8 @@ MIT in each case. |#
 
 (define (load-constant constant target)
   ;; Load a Scheme constant into a machine register.
+  (if (or (eq? constant '()) (eq? constant #F))
+      (warn "load-constant: register constant slipped through:" constant))
   (if (non-pointer-object? constant)
       (load-immediate (non-pointer->literal constant) target)
       (load-pc-relative (constant->label constant) target 'CONSTANT)))
@@ -176,18 +191,21 @@ MIT in each case. |#
   (load-immediate (make-non-pointer-literal type datum) target))
 
 (define (non-pointer->literal constant)
-  (make-non-pointer-literal (object-type constant)
+  (make-non-pointer-literal (target-object-type constant)
 			    (careful-object-datum constant)))
 
 (define-integrable (make-non-pointer-literal type datum)
-  (+ (* type type-scale-factor) datum))
+  (let ((unsigned-value (+ (* type type-scale-factor) datum)))
+    (if (<= unsigned-value #x7FFFFFFF)
+	unsigned-value
+	(- unsigned-value #x100000000))))
 
 (define-integrable type-scale-factor
   ;; (expt 2 scheme-datum-width) ***
   #x4000000)
 
 (define-integrable (deposit-type type target)
-  (deposit-immediate type (-1+ scheme-type-width) scheme-type-width target))
+  (adjust-type #F type target))
 
 ;;;; Regularized Machine Instructions
 
@@ -211,10 +229,25 @@ MIT in each case. |#
 		     (LAP (LDO () (OFFSET ,r%i 0 ,t) ,t))))))))
 
 (define (deposit-immediate i p len t)
-  (if (fits-in-5-bits-signed? i)
-      (LAP (DEPI () ,i ,p ,len ,t))
-      (LAP ,@(load-immediate i regnum:addil-result)
-	   (DEP () ,regnum:addil-result ,p ,len ,t))))
+  (cond ((fits-in-5-bits-signed? i)
+	 (LAP (DEPI () ,i ,p ,len ,t)))
+	((and (<= len 5)
+	      (fix:fixnum? i))
+	 (LAP (DEPI () ,(fix:- (fix:xor (fix:and i #b11111) #b10000) #b10000)
+		    ,p ,len ,t)))
+	((and (= len scheme-type-width)
+	      (fits-in-5-bits-signed? (- i (1+ max-type-code))))
+	 (LAP (DEPI () ,(- i (1+ max-type-code)) ,p ,len ,t)))
+	;;((machine-register-containing-value-satifying
+	;;  (lambda (v) (and (fix:fixnum? v)
+	;;		   (= i (fix:and v max-type-code)))))
+	;; => (lambda (reg)
+	;;      (LAP (DEP () ,reg ,p ,len ,t))))
+	((= i quad-mask-value)
+	 (LAP (DEP () ,regnum:quad-bitmask ,p ,len ,t)))
+	(else
+	 (LAP ,@(load-immediate i regnum:addil-result)
+	      (DEP () ,regnum:addil-result ,p ,len ,t)))))
 
 (define (load-offset d b t)
   (cond ((and (zero? d) (= b t))
@@ -480,12 +513,43 @@ MIT in each case. |#
 (define-integrable (object->datum src tgt)
   (LAP (ZDEP () ,src 31 ,scheme-datum-width ,tgt)))
 
+(define (adjust-type from to reg)
+  ;; FROM is either a typecode if it is known that reg has that typecode,
+  ;; else it is #F.  TO is a constant desired typecode
+  (cond ((eqv? from to)
+	 (LAP))
+	((or (false? from)
+	     (fits-in-5-bits-signed? to)
+	     (and (= scheme-type-width 6)
+		  (<= (- max-type-code 15) to max-type-code)))
+	 (deposit-immediate TO
+			    (-1+ scheme-type-width)
+			    scheme-type-width
+			    reg))
+	(;; the msb is the same in both so we dont need to change it and the
+	 ;; remaining bits can be set with a single DEPI
+	 ;; this happens with values of the form #01xxxx
+	 (and (= scheme-type-width 6)
+	      (fix:= 0 (fix:and (fix:xor from to) #b100000)))
+	 (deposit-immediate (fix:and TO #b011111)
+			    (-1+ scheme-type-width)
+			    (-1+ scheme-type-width)
+			    reg))
+	(;; If the lsb is the same in both we can just set the msbs
+	 (and (= scheme-type-width 6)
+	      (fix:= 0 (fix:and (fix:xor from to) #b000001)))
+	 (deposit-immediate (fix:lsh TO -1)
+			    (- scheme-type-width 2)
+			    (-1+ scheme-type-width)
+			    reg))
+	(else
+	 (deposit-immediate TO
+			    (-1+ scheme-type-width)
+			    scheme-type-width
+			    reg))))
+	 
 (define-integrable (object->address reg)
-  (LAP (DEP ()
-	    ,regnum:quad-bitmask
-	    ,(-1+ scheme-type-width)
-	    ,scheme-type-width
-	    ,reg)))
+  (adjust-type #F quad-mask-value reg))
 
 (define-integrable (object->type src tgt)
   (LAP (EXTRU () ,src ,(-1+ scheme-type-width) ,scheme-type-width ,tgt)))
@@ -523,9 +587,21 @@ MIT in each case. |#
      (rtl:register-number expression))
     ((CONSTANT)
      (let ((object (rtl:constant-value expression)))
-       (and (zero? (object-type object))
-	    (zero? (object-datum object))
-	    0)))
+       (cond ((and (zero? (object-type object))
+		   (zero? (object-datum object)))
+	      0)
+	     ((eq? object #F)
+	      regnum:false-value)
+	     ((eq? object '())
+	      regnum:empty-list)
+	     (else
+	      false))))
+    ((MACHINE-CONSTANT)
+     (let ((value (rtl:machine-constant-value expression)))
+       (cond ((zero? value)
+	      0)
+	     (else
+	      false))))
     ((CONS-POINTER)
      (and (let ((type (rtl:cons-pointer-type expression)))
 	    (and (rtl:machine-constant? type)
@@ -605,15 +681,17 @@ MIT in each case. |#
 
 (let-syntax ((define-codes
 	       (macro (start . names)
-		 (define (loop names index)
+		 (define (loop names index assocs)
 		   (if (null? names)
-		       '()
+		       '() ;;`((DEFINE CODE:COMPILER-XXX-ALIST ',assocs))
 		       (cons `(DEFINE-INTEGRABLE
 				,(symbol-append 'CODE:COMPILER-
 						(car names))
 				,index)
-			     (loop (cdr names) (1+ index)))))
-		 `(BEGIN ,@(loop names start)))))
+			     (loop (cdr names) (1+ index)
+				   (cons (cons index (car names)) assocs)))))
+		 `(BEGIN ,@(loop names start '())))))
+  ;; Remember to duplicate changes to this list to the copy in dassm1.scm
   (define-codes #x012
     primitive-apply primitive-lexpr-apply
     apply error lexpr-apply link
@@ -626,7 +704,8 @@ MIT in each case. |#
     set! define lookup-apply primitive-error
     quotient remainder modulo
     reflect-to-interface interrupt-continuation-2
-    compiled-code-bkpt compiled-closure-bkpt))
+    compiled-code-bkpt compiled-closure-bkpt
+    new-interrupt-procedure))
 
 (define-integrable (invoke-interface-ble code)
   ;; Jump to scheme-to-interface-ble
@@ -642,15 +721,17 @@ MIT in each case. |#
 
 (let-syntax ((define-hooks
 	       (macro (start . names)
-		 (define (loop names index)
+		 (define (loop names index assocs)
 		   (if (null? names)
-		       '()
+		       '() ;;`((DEFINE HOOK:COMPILER-XXX-ALIST ',assocs))
 		       (cons `(DEFINE-INTEGRABLE
 				,(symbol-append 'HOOK:COMPILER-
 						(car names))
 				,index)
-			     (loop (cdr names) (+ 8 index)))))
-		 `(BEGIN ,@(loop names start)))))
+			     (loop (cdr names) (+ 8 index)
+				   (cons (cons index (car names)) assocs)))))
+		 `(BEGIN ,@(loop names start '())))))
+  ;; Remember to copy this list to dassm1.scm if you change it.
   (define-hooks 100
     store-closure-code
     store-closure-entry			; newer version of store-closure-code.
@@ -699,7 +780,13 @@ MIT in each case. |#
     compiled-code-bkpt
     compiled-closure-bkpt
     copy-closure-pattern
-    copy-multiclosure-pattern))
+    copy-multiclosure-pattern
+    closure-entry-bkpt-hook
+    interrupt-procedure/new
+    interrupt-continuation/new
+    quotient
+    remainder
+    interpreter-call))
 
 ;; There is a NOP here because otherwise the return address would have 
 ;; to be adjusted by the hook code.  This gives more flexibility to the
@@ -718,7 +805,7 @@ MIT in each case. |#
   (LAP (BLE (N) (OFFSET ,hook 4 ,regnum:scheme-to-interface-ble))))
 
 (define (require-registers! . regs)
-  (let ((code (apply clear-registers! regs)))
+  (let ((code (apply clean-registers! regs)))
     (need-registers! regs)
     code))
 
@@ -730,8 +817,8 @@ MIT in each case. |#
 			(if third (list regnum:third-arg) '())
 			(if fourth (list regnum:fourth-arg) '()))))
 	(load-reg
-	 (lambda (reg arg)
-	   (if reg (load-machine-register! reg arg) (LAP)))))
+	 (lambda (arg reg)
+	   (if arg (load-machine-register! arg reg) (LAP)))))
     (let ((load-regs
 	   (LAP ,@(load-reg first regnum:first-arg)
 		,@(load-reg second regnum:second-arg)
@@ -740,3 +827,24 @@ MIT in each case. |#
       (LAP ,@clear-regs
 	   ,@load-regs
 	   ,@(clear-map!)))))
+
+(define (%load-interface-args! first second third fourth)
+  (let* ((load-reg
+	  (lambda (arg reg)
+	    (if arg
+		(load-machine-register! arg reg)
+		(clean-registers! reg))))
+	 (load-one (load-reg first regnum:first-arg))
+	 (load-two (load-reg second regnum:second-arg))
+	 (load-three (load-reg third regnum:third-arg))
+	 (load-four (load-reg fourth regnum:fourth-arg)))
+    (LAP ,@load-one
+	 ,@load-two
+	 ,@load-three
+	 ,@load-four)))
+
+(define (->machine-register source machine-reg)
+  (let ((code (load-machine-register! source machine-reg)))
+    ;; Prevent it from being allocated again.
+    (need-register! machine-reg)
+    code))
