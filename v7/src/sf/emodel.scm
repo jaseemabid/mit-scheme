@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/emodel.scm,v 3.2 1987/03/13 04:12:19 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/emodel.scm,v 3.2.1.1 1987/07/01 16:51:03 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -45,13 +45,15 @@ MIT in each case. |#
 	     (if (block/parent block)
 		 (block/unsafe! (block/parent block))))))
 
-(define (block/lookup-name block name)
+(define (block/lookup-name block name intern?)
   (let search ((block block))
     (or (variable/assoc name (block/bound-variables block))
 	(let ((parent (block/parent block)))
-	  (if (not parent)
-	      (variable/make&bind! block name)
-	      (search parent))))))
+	  (cond ((not (null? parent))
+		 (search parent))
+		(intern?
+		 (variable/make&bind! block name))
+		(else #f))))))
 
 (define (block/lookup-names block names)
   (map (lambda (name)
