@@ -30,7 +30,7 @@ Technology nor of any adaptation thereof in any advertising,
 promotional, or sales literature without prior written consent from
 MIT in each case. */
 
-/* $Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/utils.c,v 9.24 1987/04/21 15:22:08 cph Exp $ */
+/* $Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/utils.c,v 9.24.1.1 1987/06/19 16:11:56 jinx Exp $ */
 
 /* This file contains utilities for interrupts, errors, etc. */
 
@@ -293,7 +293,7 @@ signal_interrupt_from_primitive ()
 }
 
 void
-special_interrupt_from_primitive(local_mask)
+specl_interrupt_from_primitive(local_mask)
      int local_mask;
 {
   Back_Out_Of_Primitive();
