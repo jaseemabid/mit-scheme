@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: defstr.scm,v 14.37.2.3 2002/01/17 21:42:58 cph Exp $
+$Id: defstr.scm,v 14.37.2.4 2002/01/18 21:30:19 cph Exp $
 
 Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -458,7 +458,7 @@ differences:
   (lambda (option context)
     (one-optional-argument option
       (lambda ()
-	`(NAMED ,(default-type-name context)))
+	`(NAMED))
       (lambda (arg)
 	`(NAMED ,(if (false-expression? arg context)
 		     #f
