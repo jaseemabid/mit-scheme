@@ -1,6 +1,6 @@
 ### -*- Fundamental -*-
 ###
-###     $Id: makefile.wcc,v 1.13.2.1 2000/11/27 05:58:01 cph Exp $
+###     $Id: makefile.wcc,v 1.13.2.1.2.1 2000/12/02 05:54:59 cph Exp $
 ###
 ###     Copyright (c) 1992-2000 Massachusetts Institute of Technology
 ###
@@ -454,7 +454,7 @@ NTTERM_H = ntterm.h $(OSTERM_H)
 NTTOP_H = nttop.h $(OSTOP_H)
 NTTRAP_H = nttrap.h
 OBJECT_H = object.h
-OBSTACK_H = obstack.h ansidecl.h
+OBSTACK_H = obstack.h $(CONFIG_H)
 OPTION_H = option.h ansidecl.h
 OSCTTY_H = osctty.h $(OS_H)
 OSENV_H = osenv.h $(OS_H)
@@ -467,7 +467,7 @@ OSTERM_H = osterm.h $(OS_H)
 OSTOP_H = ostop.h $(OS_H)
 OSTTY_H = ostty.h $(OS_H)
 OS_H = os.h $(CONFIG_H)
-OUTF_H = outf.h ansidecl.h
+OUTF_H = outf.h $(CONFIG_H)
 PRENAME_H = prename.h
 PRIMS_H = prims.h ansidecl.h
 PRIM_H = prim.h
@@ -547,7 +547,8 @@ primutl.obj: primutl.c $(SCHEME_H) $(PRIMS_H) $(OS_H) $(USRDEF_H) &
 	$(PRENAME_H) $(SYSCALL_H) $(AVLTREE_H) $(CMPGC_H)
 prmcon.obj: prmcon.c $(SCHEME_H) $(PRIMS_H) $(PRMCON_H)
 ptrvec.obj: ptrvec.c $(OUTF_H) $(DSTACK_H)
-purutl.obj: purutl.c $(SCHEME_H) $(PRIMS_H) $(GCCODE_H) $(ZONES_H)
+purutl.obj: purutl.c $(SCHEME_H) $(PRIMS_H) $(GCCODE_H) $(ZONES_H) &
+	$(CMPINT_H)
 regex.obj: regex.c $(SCHEME_H) $(SYNTAX_H) $(REGEX_H)
 rgxprim.obj: rgxprim.c $(SCHEME_H) $(PRIMS_H) $(EDWIN_H) $(SYNTAX_H) $(REGEX_H)
 step.obj: step.c $(SCHEME_H) $(PRIMS_H)
@@ -621,6 +622,8 @@ nttty.obj: nttty.c $(NT_H) $(OSTTY_H) $(OSENV_H) $(NTIO_H) $(NTTERM_H) &
 ntasutl.obj: ntasutl.asm
 
 missing.obj: missing.c $(CONFIG_H)
+
+findprim.$(OBJ): findprim.c $(CONFIG_H)
 
 bintopsb.obj: bintopsb.c $(PSBMAP_H) $(LIMITS_H) $(LOAD_C) $(BLTDEF_H) &
 	$(TRAP_H)

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prosproc.c,v 1.18.2.1 2000/11/27 05:57:57 cph Exp $
+$Id: prosproc.c,v 1.18.2.1.2.1 2000/12/02 05:53:09 cph Exp $
 
 Copyright (c) 1990-2000 Massachusetts Institute of Technology
 
@@ -38,7 +38,7 @@ DEFUN (arg_process, (argument_number), int argument_number)
   return (process);
 }
 
-#if defined(__OS2__) && defined(__IBMC__)
+#if !defined(environ) && defined(__OS2__) && defined(__IBMC__)
 #  define environ _environ
 #endif
 extern char ** environ;

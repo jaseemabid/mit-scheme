@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: lookup.h,v 9.51.2.1 2000/11/27 05:57:55 cph Exp $
+$Id: lookup.h,v 9.51.2.1.2.1 2000/12/02 05:51:53 cph Exp $
 
 Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
@@ -30,6 +30,8 @@ extern long
   EXFUN (deep_lookup_end, (SCHEME_OBJECT *, SCHEME_OBJECT *)),
   EXFUN (deep_assignment_end,
 	 (SCHEME_OBJECT *, SCHEME_OBJECT *, SCHEME_OBJECT, Boolean));
+
+extern long EXFUN (recache_uuo_links, (SCHEME_OBJECT, SCHEME_OBJECT));
 
 extern SCHEME_OBJECT
   unbound_trap_object[],
@@ -148,7 +150,7 @@ extern SCHEME_OBJECT
 
 #define verify(type_code, variable, code, label)
 #define verified_offset(variable, code)		code
-#undef DECLARE_LOCK
+/* #undef DECLARE_LOCK */
 #define setup_lock(handle, cell)
 #define remove_lock(ignore)
 #define setup_locks(hand1, cel1, hand2, cel2)

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: primutl.c,v 9.72.2.1 2000/11/27 05:57:57 cph Exp $
+$Id: primutl.c,v 9.72.2.1.2.1 2000/12/02 05:53:00 cph Exp $
 
 Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
@@ -37,6 +37,16 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "avltree.h"
 #include "cmpgc.h"
 #include <ctype.h>
+
+extern PTR EXFUN (malloc, (size_t));
+extern PTR EXFUN (realloc, (PTR, size_t));
+
+#ifdef STDC_HEADERS
+#  include <string.h>
+#else
+   extern PTR EXFUN (memcpy, (PTR, CONST PTR, size_t));
+   extern char * EXFUN (strcpy, (char *, CONST char *));
+#endif
 
 extern SCHEME_OBJECT * load_renumber_table;
 
@@ -114,11 +124,6 @@ DEFUN (strcmp_ci, (s1, s2), fast char * s1 AND fast char * s2)
   diff = (*s1 - *s2);
   return ((diff == 0) ? 0 : ((diff > 0) ? 1 : -1));
 }
-
-extern PTR EXFUN (malloc, (size_t));
-extern PTR EXFUN (realloc, (PTR, size_t));
-extern PTR EXFUN (memcpy, (PTR, CONST PTR, size_t));
-extern char * EXFUN (strcpy, (char *, CONST char *));
 
 SCHEME_OBJECT
 DEFUN_VOID (Prim_unimplemented)

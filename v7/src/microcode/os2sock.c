@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2sock.c,v 1.14 1999/10/28 03:53:51 cph Exp $
+$Id: os2sock.c,v 1.14.4.1 2000/12/02 05:52:25 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright (c) 1990-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,6 +27,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
    using TCP/IP 4.1, but this code was designed for TCP/IP 4.0.  */
 #define TCPV40HDRS
 
+#include "scheme.h"
+#include "prims.h"
+#include "osscheme.h"
 #include "os2.h"
 #include "uxsock.h"
 

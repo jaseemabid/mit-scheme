@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.74.2.1 2000/11/27 05:57:58 cph Exp $
+$Id: utils.c,v 9.74.2.1.2.1 2000/12/02 05:53:29 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -27,6 +27,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "history.h"
 #include "cmpint.h"
 #include "syscall.h"
+
+#ifdef __OS2__
+extern void OS2_handle_attention_interrupt (void);
+#endif
 
 /* Helper procedures for Setup_Interrupt, which follows. */
 
@@ -119,7 +123,6 @@ DEFUN (Setup_Interrupt, (masked_interrupts), long masked_interrupts)
 #ifdef __OS2__
   if ((1 << interrupt_number) == INT_Global_1)
     {
-      extern void OS2_handle_attention_interrupt ();
       OS2_handle_attention_interrupt ();
       abort_to_interpreter (PRIM_POP_RETURN);
     }
@@ -270,8 +273,6 @@ DEFUN_VOID (back_out_of_primitive)
    interpreter and reenter.
    Note: This is called only from the macro PRIMITIVE_CANONICALIZE_CONTEXT,
    so that the work can be divided between them if it is an issue. */
-
-extern void EXFUN (canonicalize_primitive_context, (void));
 
 void
 DEFUN_VOID (canonicalize_primitive_context)
@@ -491,7 +492,6 @@ DEFUN (arg_real_in_range, (arg_number, lower_limit, upper_limit),
 Boolean
 DEFUN (interpreter_applicable_p, (object), fast SCHEME_OBJECT object)
 {
-  extern void compiled_entry_type ();
  tail_recurse:
   switch (OBJECT_TYPE (object))
     {
@@ -1076,8 +1076,6 @@ DEFUN (Translate_To_Point, (Target), SCHEME_OBJECT Target)
 
 #ifndef __OS2__
 
-extern SCHEME_OBJECT EXFUN (Compiler_Get_Fixed_Objects, (void));
-
 SCHEME_OBJECT
 DEFUN_VOID (Compiler_Get_Fixed_Objects)
 {
@@ -1088,8 +1086,8 @@ DEFUN_VOID (Compiler_Get_Fixed_Objects)
 }
 
 extern SCHEME_OBJECT EXFUN (Re_Enter_Interpreter, (void));
-extern SCHEME_OBJECT EXFUN (C_call_scheme,
-			    (SCHEME_OBJECT, long, SCHEME_OBJECT *));
+extern SCHEME_OBJECT EXFUN
+  (C_call_scheme, (SCHEME_OBJECT, long, SCHEME_OBJECT *));
 
 #ifdef __WIN32__
 #  include <windows.h>

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.95.2.3.2.3 2000/12/01 21:52:07 cph Exp $
+$Id: bchmmg.c,v 9.95.2.3.2.4 2000/12/02 05:51:05 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -237,9 +237,6 @@ DEFUN (io_error_retry_p, (operation_name, noise),
 
 #else /* not __WIN32__ */
 #ifdef __OS2__
-
-#define INCL_WIN
-#include <os2.h>
 
 int
 io_error_retry_p (char * operation_name, char * noise)

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2term.c,v 1.3 1999/01/02 06:11:34 cph Exp $
+$Id: os2term.c,v 1.3.4.1 2000/12/02 05:52:27 cph Exp $
 
-Copyright (c) 1994, 1999 Massachusetts Institute of Technology
+Copyright (c) 1994, 1999, 2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
 #include "os2.h"
+#include "prims.h"
 
 unsigned int
 OS_terminal_get_ispeed (Tchannel channel)

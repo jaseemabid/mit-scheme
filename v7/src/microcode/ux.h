@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ux.h,v 1.73.2.1 2000/11/27 05:57:58 cph Exp $
+$Id: ux.h,v 1.73.2.1.2.1 2000/12/02 05:53:34 cph Exp $
 
 Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
@@ -353,7 +353,7 @@ typedef RETSIGTYPE (*Tsignal_handler) ();
 #  define MAXPATHLEN 1024
 #endif
 
-#ifdef __STDC__
+#ifdef HAVE_STDC
 #  define ALERT_CHAR '\a'
 #  define ALERT_STRING "\a"
 #else

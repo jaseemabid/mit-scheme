@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: config.h,v 1.1.2.1 2000/11/27 05:58:01 cph Exp $
+$Id: config.h,v 1.1.2.1.2.1 2000/12/02 05:54:35 cph Exp $
 
 Copyright (c) 2000 Massachusetts Institute of Technology
 
@@ -45,7 +45,7 @@ typedef long ssize_t;
 
 /* Define if your processor stores words with the most significant
    byte first (like Motorola and SPARC, unlike Intel and VAX).  */
-#undef WORDS_BIGENDIAN
+/* #undef WORDS_BIGENDIAN */
 
 /* Define if you have the floor function.  */
 #define HAVE_FLOOR 1
@@ -60,7 +60,7 @@ typedef long ssize_t;
 #define STDC_HEADERS 1
 
 /* Define if you have the <unistd.h> header file.  */
-#undef HAVE_UNISTD_H
+/* #undef HAVE_UNISTD_H */
 
 /* Define if you have the <fcntl.h> header file.  */
 #define HAVE_FCNTL_H 1

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: outf.c,v 1.11.2.1 2000/11/27 05:57:56 cph Exp $
+$Id: outf.c,v 1.11.2.1.2.1 2000/12/02 05:52:53 cph Exp $
 
 Copyright (c) 1993-2000 Massachusetts Institute of Technology
 
@@ -45,6 +45,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "scheme.h"
 
 #ifdef STDC_HEADERS
+#  include <string.h>
 #  include <stdarg.h>
 #  define VA_START(args, lastarg) va_start(args, lastarg)
 #  define VA_DCL

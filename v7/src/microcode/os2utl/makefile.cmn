@@ -1,6 +1,6 @@
 ### -*- Fundamental -*-
 ###
-### $Id: makefile.cmn,v 1.12.2.1 2000/11/27 05:58:01 cph Exp $
+### $Id: makefile.cmn,v 1.12.2.1.2.1 2000/12/02 05:54:11 cph Exp $
 ###
 ### Copyright (c) 1994-2000 Massachusetts Institute of Technology
 ###
@@ -312,7 +312,7 @@ LOOKUP_H = lookup.h
 MEMMAG_H = memmag.h
 MUL_C = mul.c $(CONFIG_H)
 OBJECT_H = object.h
-OBSTACK_H = obstack.h ansidecl.h
+OBSTACK_H = obstack.h $(CONFIG_H)
 OPTION_H = option.h ansidecl.h
 OS2API_H = os2api.h
 OS2CTHRD_H = os2cthrd.h
@@ -334,7 +334,7 @@ OSTERM_H = osterm.h $(OS_H)
 OSTOP_H = ostop.h $(OS_H)
 OSTTY_H = ostty.h $(OS_H)
 OS_H = os.h $(CONFIG_H)
-OUTF_H = outf.h ansidecl.h
+OUTF_H = outf.h $(CONFIG_H)
 PRENAME_H = prename.h
 PRIMS_H = prims.h ansidecl.h
 PRIM_H = prim.h
@@ -358,8 +358,9 @@ PSBMAP_H = psbmap.h $(CONFIG_H) $(TYPES_H) $(OBJECT_H) $(BIGNUM_H) \
 	$(BIGNMINT_H) $(SDATA_H) $(CONST_H) $(GCCODE_H) $(CMPTYPE_H) \
 	$(COMLIN_H)
 
-OS2_H = os2.h $(DSTACK_H) $(OSSCHEME_H) $(SYSCALL_H) $(OS2API_H) $(OS2MSG_H) \
-	$(OS2IO_H) $(OS2THRD_H) $(OS2CTTY_H) $(OS2CTHRD_H) $(OS2PM_H)
+OS2_H = os2.h $(CONFIG_H) $(DSTACK_H) $(OSSCHEME_H) $(SYSCALL_H) $(OS2API_H) \
+	$(OS2MSG_H) $(OS2IO_H) $(OS2THRD_H) $(OS2CTTY_H) $(OS2CTHRD_H) \
+	$(OS2PM_H)
 
 SCHEME_H = scheme.h $(CONFIG_H) $(DSTACK_H) $(OBSTACK_H) $(TYPES_H) \
 	$(CONST_H) $(OBJECT_H) $(INTRPT_H) $(CRITSEC_H) $(GC_H) $(SCODE_H) \
@@ -415,7 +416,8 @@ primutl.$(OBJ): primutl.c $(SCHEME_H) $(PRIMS_H) $(OS_H) $(USRDEF_H) \
 	$(PRENAME_H) $(SYSCALL_H) $(AVLTREE_H) $(CMPGC_H)
 prmcon.$(OBJ): prmcon.c $(SCHEME_H) $(PRIMS_H) $(PRMCON_H)
 ptrvec.$(OBJ): ptrvec.c $(OUTF_H) $(DSTACK_H)
-purutl.$(OBJ): purutl.c $(SCHEME_H) $(PRIMS_H) $(GCCODE_H) $(ZONES_H)
+purutl.$(OBJ): purutl.c $(SCHEME_H) $(PRIMS_H) $(GCCODE_H) $(ZONES_H) \
+	$(CMPINT_H)
 regex.$(OBJ): regex.c $(SCHEME_H) $(SYNTAX_H) $(REGEX_H)
 rgxprim.$(OBJ): rgxprim.c $(SCHEME_H) $(PRIMS_H) $(EDWIN_H) $(SYNTAX_H) \
 	$(REGEX_H)
@@ -427,7 +429,7 @@ sysprim.$(OBJ): sysprim.c $(SCHEME_H) $(PRIMS_H) $(OSTTY_H) $(OSTOP_H)
 term.$(OBJ): term.c $(SCHEME_H) $(OSTOP_H) $(OSIO_H) $(OSFS_H) $(OSFILE_H) \
 	$(EDWIN_H)
 tparam.$(OBJ): tparam.c ansidecl.h
-transact.$(OBJ): transact.c ansidecl.h $(OUTF_H) $(DSTACK_H)
+transact.$(OBJ): transact.c $(CONFIG_H) $(OUTF_H) $(DSTACK_H)
 utils.$(OBJ): utils.c $(SCHEME_H) $(PRIMS_H) $(WINDER_H) $(HISTORY_H) \
 	$(CMPINT_H) $(SYSCALL_H)
 vector.$(OBJ): vector.c $(SCHEME_H) $(PRIMS_H)
@@ -447,7 +449,7 @@ prostty.$(OBJ): prostty.c $(SCHEME_H) $(PRIMS_H) $(OSTTY_H) $(OSCTTY_H) \
 	$(OSFILE_H) $(OSIO_H)
 pruxsock.$(OBJ): pruxsock.c $(SCHEME_H) $(PRIMS_H) $(UXSOCK_H)
 pros2fs.$(OBJ): pros2fs.c $(SCHEME_H) $(PRIMS_H) $(OS2_H) $(OSFS_H)
-pros2io.$(OBJ): pros2io.c $(SCHEME_H) $(PRIMS_H) $(OS2_H) $(OSPROC_H)
+pros2io.$(OBJ): pros2io.c $(SCHEME_H) $(PRIMS_H) $(OS2_H) $(OS2PROC_H)
 pros2pm.$(OBJ): pros2pm.c $(SCHEME_H) $(PRIMS_H) $(OS2_H)
 
 fasdump.$(OBJ): fasdump.c $(SCHEME_H) $(PRIMS_H) $(OSSCHEME_H) $(OSIO_H) \
@@ -478,15 +480,18 @@ os2msg.$(OBJ): os2msg.c $(OS2_H)
 os2pipe.$(OBJ): os2pipe.c $(OS2_H)
 os2pm.$(OBJ): os2pm.c $(OS2_H) os2pm-id.h os2pm-mi.h os2pm-dc.h os2pm-rp.h
 os2pmcon.$(OBJ): os2pmcon.c $(OS2_H) $(OS2PMCON_H) $(VERSION_H)
-os2proc.$(OBJ): os2proc.c $(OS2_H) $(OSPROC_H)
-os2sock.$(OBJ): os2sock.c $(OS2_H) $(UXSOCK_H)
-os2term.$(OBJ): os2term.c $(OS2_H)
+os2proc.$(OBJ): os2proc.c $(OS2_H) $(OSPROC_H) $(OSENV_H)
+os2sock.$(OBJ): os2sock.c $(SCHEME_H) $(PRIMS_H) $(OSSCHEME_H) $(OS2_H) \
+	$(UXSOCK_H)
+os2term.$(OBJ): os2term.c $(OS2_H) $(PRIMS_H)
 os2thrd.$(OBJ): os2thrd.c $(OS2_H) $(PRIMS_H) $(ERRORS_H)
 os2top.$(OBJ): os2top.c $(SCHEME_H) $(OS2_H) $(OSTOP_H) $(OPTION_H)
 os2tty.$(OBJ): os2tty.c $(OS2_H) $(OSTTY_H)
 os2xcpt.$(OBJ): os2xcpt.c $(SCHEME_H) $(GCCODE_H) $(OS2_H)
 
 missing.$(OBJ): missing.c $(CONFIG_H)
+
+findprim.$(OBJ): findprim.c $(CONFIG_H)
 
 bintopsb.$(OBJ): bintopsb.c $(PSBMAP_H) $(LIMITS_H) $(LOAD_C) $(BLTDEF_H) \
 	$(TRAP_H)

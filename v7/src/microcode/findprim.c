@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: findprim.c,v 9.53.2.1 2000/11/27 05:57:54 cph Exp $
+$Id: findprim.c,v 9.53.2.1.2.1 2000/12/02 05:51:37 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -57,7 +57,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 /* Some utility imports and definitions. */
 
-#include "ansidecl.h"
+#include "config.h"
 #include <stdio.h>
 
 #define ASSUME_ANSIDECL
@@ -67,16 +67,14 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include <ctype.h>
 
-#ifdef __WIN32__
-#include <string.h>
+#ifdef STDC_HEADERS
+#  include <string.h>
 #else
-extern int EXFUN (strcmp, (CONST char *, CONST char *));
-extern int EXFUN (strlen, (CONST char *));
+   extern int EXFUN (strcmp, (CONST char *, CONST char *));
+   extern int EXFUN (strlen, (CONST char *));
 #endif
 
 typedef int boolean;
-#define TRUE 1
-#define FALSE 0
 
 #ifdef vms
 /* VMS version 3 has no void. */
@@ -152,7 +150,7 @@ char default_token_alternate [] = "DEFINE_PRIMITIVE";
 char built_in_token [] = "Built_In_Primitive";
 char external_token [] = "Define_Primitive";
 
-typedef pseudo_void (* TOKEN_PROCESSOR) ();
+typedef pseudo_void EXFUN ((* TOKEN_PROCESSOR), (void));
 TOKEN_PROCESSOR token_processors [4];
 
 char * the_kind;

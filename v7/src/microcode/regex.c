@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: regex.c,v 1.19.2.1 2000/11/27 05:57:57 cph Exp $
+$Id: regex.c,v 1.19.2.1.2.1 2000/12/02 05:53:15 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -495,10 +495,11 @@ DEFUN (re_compile_fastmap,
 } while (0)
 
 static Boolean
-beq_translate (scan1, scan2, length, translation)
-     fast unsigned char *scan1, *scan2;
-     fast long length;
-     fast unsigned char *translation;
+DEFUN (beq_translate, (scan1, scan2, length, translation),
+       unsigned char * scan1 AND
+       unsigned char * scan2 AND
+       long length AND
+       unsigned char * translation)
 {
   while ((length--) > 0)
     if ((TRANSLATE_CHAR (*scan1++)) != (TRANSLATE_CHAR (*scan2++)))

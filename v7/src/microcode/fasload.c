@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.87.2.1 2000/11/27 05:57:54 cph Exp $
+$Id: fasload.c,v 9.87.2.1.2.1 2000/12/02 05:51:31 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -46,17 +46,13 @@ static Tchannel load_channel;
 
 #include "load.c"
 
-#ifdef _POSIX_VERSION
-#  include <string.h>
-#else
-   extern int EXFUN (strlen, (const char *));
-   extern char * EXFUN (strcpy, (char *, const char *));
-#endif
-
 #ifdef STDC_HEADERS
 #  include <stdlib.h>
+#  include <string.h>
 #else
    extern char * EXFUN (malloc, (int));
+   extern int EXFUN (strlen, (const char *));
+   extern char * EXFUN (strcpy, (char *, const char *));
 #endif
 
 extern char * Error_Names [];

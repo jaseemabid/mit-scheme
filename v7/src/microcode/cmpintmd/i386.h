@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.31.2.1.2.1 2000/12/02 03:45:35 cph Exp $
+$Id: i386.h,v 1.31.2.1.2.2 2000/12/02 05:53:59 cph Exp $
 
 Copyright (c) 1992-2000 Massachusetts Institute of Technology
 
@@ -492,7 +492,7 @@ long i386_pc_displacement_relocation = 0;
 #  define HOOK_TO_SCHEME_OFFSET(hook) ((unsigned long) (hook))
 #endif
 
-#ifdef __STDC__
+#ifdef HAVE_STDC
 #  define STRINGIFY(x) #x
 #else
 #  define STRINGIFY(x) "x"

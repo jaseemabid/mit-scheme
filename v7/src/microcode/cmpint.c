@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.91.2.1 2000/11/27 05:57:53 cph Exp $
+$Id: cmpint.c,v 1.91.2.1.2.1 2000/12/02 05:51:23 cph Exp $
 
 Copyright (c) 1989-2000 Massachusetts Institute of Technology
 
@@ -283,7 +283,6 @@ extern C_UTILITY SCHEME_OBJECT
   EXFUN (compiled_block_debugging_info, (SCHEME_OBJECT block)),
   EXFUN (compiled_block_environment, (SCHEME_OBJECT block)),
   EXFUN (compiled_closure_to_entry, (SCHEME_OBJECT entry)),
-  * EXFUN (compiled_entry_to_block_address, (SCHEME_OBJECT entry)),
   EXFUN (compiled_entry_to_block, (SCHEME_OBJECT entry)),
   EXFUN (apply_compiled_from_primitive, (int)),
   EXFUN (compiled_with_interrupt_mask, (unsigned long,
@@ -300,30 +299,7 @@ extern C_UTILITY void
   EXFUN (compiler_reset, (SCHEME_OBJECT new_block)),
   EXFUN (store_variable_cache,
 	 (SCHEME_OBJECT extension, SCHEME_OBJECT block, long offset)),
-  EXFUN (compiled_entry_type, (SCHEME_OBJECT entry, long *buffer)),
   EXFUN (declare_compiled_code_block, (SCHEME_OBJECT block));  
-
-extern C_TO_SCHEME long
-  EXFUN (enter_compiled_expression, (void)),
-  EXFUN (apply_compiled_procedure, (void)),
-  EXFUN (return_to_compiled_code, (void)),
-  EXFUN (comp_link_caches_restart, (void)),
-  EXFUN (comp_op_lookup_trap_restart, (void)),
-  EXFUN (comp_interrupt_restart, (void)),
-  EXFUN (comp_assignment_trap_restart, (void)),
-  EXFUN (comp_cache_lookup_apply_restart, (void)),
-  EXFUN (comp_lookup_trap_restart, (void)),
-  EXFUN (comp_safe_lookup_trap_restart, (void)),
-  EXFUN (comp_unassigned_p_trap_restart, (void)),
-  EXFUN (comp_access_restart, (void)),
-  EXFUN (comp_reference_restart, (void)),
-  EXFUN (comp_safe_reference_restart, (void)),
-  EXFUN (comp_unassigned_p_restart, (void)),
-  EXFUN (comp_unbound_p_restart, (void)),
-  EXFUN (comp_assignment_restart, (void)),
-  EXFUN (comp_definition_restart, (void)),
-  EXFUN (comp_lookup_apply_restart, (void)),
-  EXFUN (comp_error_restart, (void));
 
 extern utility_table_entry utility_table[];
 
@@ -3193,7 +3169,7 @@ struct util_descriptor_s
   char * name;
 };
 
-#ifdef __STDC__
+#ifdef STDC_HEADERS
 #  define UTLD(name)  { ((PTR) name), #name }
 #else
 /* Hope that this works. */

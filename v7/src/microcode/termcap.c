@@ -139,11 +139,11 @@ int bufsize = 128;
 #  define PTR void *
 # else
 #  define PTR char *
-# endif /* __STDC__ */
-#endif /* PTR */
+# endif
+#endif
 
 #ifndef NULL
-#define NULL 0
+#  define NULL 0
 #endif
 
 static

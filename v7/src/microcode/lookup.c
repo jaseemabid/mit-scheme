@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: lookup.c,v 9.57.2.1 2000/11/27 05:57:55 cph Exp $
+$Id: lookup.c,v 9.57.2.1.2.1 2000/12/02 05:51:50 cph Exp $
 
 Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
@@ -29,6 +29,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "locks.h"
 #include "trap.h"
 #include "lookup.h"
+
+static void EXFUN (fix_references, (SCHEME_OBJECT *, SCHEME_OBJECT));
+static long EXFUN
+  (add_reference, (SCHEME_OBJECT *, SCHEME_OBJECT, SCHEME_OBJECT));
 
 /* NOTE:
    Although this code has been parallelized, it has not been
@@ -654,8 +658,6 @@ compiler_cache_assignment:
 
   if (saved_extension != SHARP_F)
   {
-    long recache_uuo_links ();
-
     if (fluid_lock_p)
     {
       /* Guarantee that there is a lock on the variable cache around
@@ -1761,9 +1763,6 @@ compiler_cache_retry:
    */
 
   {
-    void fix_references ();
-    long add_reference ();
-
     references = (FAST_MEMORY_REF (extension, TRAP_EXTENSION_REFERENCES));
 
     if (((kind == TRAP_REFERENCES_ASSIGNMENT) &&
@@ -1920,7 +1919,7 @@ DEFUN (compiler_cache_reference,
    pairs (pairs whose weakly held block has vanished).
  */
 
-void
+static void
 DEFUN (fix_references, (slot, extension),
        fast SCHEME_OBJECT * slot
        AND fast SCHEME_OBJECT extension)
@@ -1954,7 +1953,7 @@ DEFUN (fix_references, (slot, extension),
    "emptied" by the garbage collector.
  */
 
-long
+static long
 DEFUN (add_reference, (slot, block, offset),
        fast SCHEME_OBJECT * slot
        AND SCHEME_OBJECT block

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: nt.h,v 1.8.2.1 2000/11/27 05:57:56 cph Exp $
+$Id: nt.h,v 1.8.2.1.2.1 2000/12/02 05:51:56 cph Exp $
 
 Copyright (c) 1993-2000 Massachusetts Institute of Technology
 
@@ -76,13 +76,8 @@ extern enum windows_type NT_windows_type;
 #define MAXPATHLEN 128
 #endif
 
-#ifdef __STDC__
 #define ALERT_CHAR '\a'
 #define ALERT_STRING "\a"
-#else
-#define ALERT_CHAR '\007'
-#define ALERT_STRING "\007"
-#endif
 
 #ifndef GUI
   extern HANDLE  STDIN_HANDLE,  STDOUT_HANDLE,  STDERR_HANDLE;
