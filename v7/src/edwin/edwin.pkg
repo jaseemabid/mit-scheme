@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/edwin/edwin.pkg,v 1.4 1989/04/26 18:53:34 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/edwin/edwin.pkg,v 1.4.1.1 1989/06/19 22:53:32 markf Exp $
 
 Copyright (c) 1989 Massachusetts Institute of Technology
 
@@ -209,7 +209,10 @@ MIT in each case. |#
   (files "xterm")
   (parent (edwin))
   (export (edwin)
-	  X-display)
+	  X-display
+	  xterm-button)
+  (export (edwin window)
+	  max-button-number)
   (initialization (initialize-package!)))
 
 (define-package (edwin console-screen)
@@ -235,6 +238,9 @@ MIT in each case. |#
   (export ()
 	  edwin-set-display!)
   (export (edwin)
+	  button?
+	  button-upify
+	  button-downify
 	  editor-frame-select-cursor!
 	  editor-frame-select-window!
 	  editor-frame-selected-window
@@ -530,4 +536,8 @@ MIT in each case. |#
 
 (define-package (edwin tags)
   (files "tags")
+  (parent (edwin)))
+
+(define-package (edwin x-mouse)
+  (files "x-mouse")
   (parent (edwin)))
