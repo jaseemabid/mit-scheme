@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: findprim.c,v 9.53.2.1.2.1 2000/12/02 05:51:37 cph Exp $
+$Id: findprim.c,v 9.53.2.1.2.2 2000/12/02 06:07:43 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -68,8 +68,13 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include <ctype.h>
 
 #ifdef STDC_HEADERS
+#  include <stdlib.h>
 #  include <string.h>
 #else
+   extern void EXFUN (exit, (int));
+   extern PTR EXFUN (malloc, (int));
+   extern PTR EXFUN (realloc, (PTR, int));
+   extern void EXFUN (free, (PTR));
    extern int EXFUN (strcmp, (CONST char *, CONST char *));
    extern int EXFUN (strlen, (CONST char *));
 #endif
@@ -89,42 +94,29 @@ typedef int boolean;
 #define pseudo_void int
 #define pseudo_return return (0)
 
-extern void EXFUN (exit, (int));
-
-char *
-DEFUN (xmalloc, (length),
-       int length)
+PTR
+DEFUN (xmalloc, (length), unsigned long length)
 {
-  char * result;
-  extern PTR EXFUN (malloc, (int));
-
-  result = ((char *) (malloc (length)));
-  if (result == ((char *) 0))
+  PTR result = (malloc (length));
+  if (result == 0)
     {
-      fprintf (stderr, "malloc: unable to allocate %d bytes\n", length);
+      fprintf (stderr, "malloc: unable to allocate %ld bytes\n", length);
       exit (1);
     }
   return (result);
 }
 
-char *
-DEFUN (xrealloc, (ptr, length),
-       char * ptr AND
-       int length)
+PTR
+DEFUN (xrealloc, (ptr, length), PTR ptr AND unsigned long length)
 {
-  char * result;
-  extern PTR EXFUN (realloc, (void *, int));
-
-  result = ((char *) (realloc (ptr, length)));
-  if (result == ((char *) 0))
+  PTR result = (realloc (ptr, length));
+  if (result == 0)
     {
-      fprintf (stderr, "realloc: unable to allocate %d bytes\n", length);
+      fprintf (stderr, "realloc: unable to allocate %ld bytes\n", length);
       exit (1);
     }
   return (result);
 }
-
-extern void EXFUN (free, (void *));
 
 #define FIND_INDEX_LENGTH(index, size)					\
 {									\
