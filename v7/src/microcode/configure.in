@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_REVISION($Id: configure.in,v 1.1.2.1 2000/11/27 05:57:53 cph Exp $)dnl
+AC_REVISION($Id: configure.in,v 1.1.2.2 2000/11/28 03:41:48 cph Exp $)dnl
 AC_INIT(boot.c)
 AC_CONFIG_HEADER(config.h)
 
@@ -327,9 +327,10 @@ AC_CHECK_FUNCS(fcntl floor fpathconf frexp ftruncate)
 AC_CHECK_FUNCS(getcwd gethostbyname gethostname getlogin getpgrp)
 AC_CHECK_FUNCS(gettimeofday getwd grantpt)
 AC_CHECK_FUNCS(kill)
+AC_CHECK_FUNCS(lockf)
 AC_CHECK_FUNCS(memcpy mkdir mktime modf)
 AC_CHECK_FUNCS(nice)
-AC_CHECK_FUNCS(poll)
+AC_CHECK_FUNCS(poll prealloc)
 AC_CHECK_FUNCS(rename rmdir)
 AC_CHECK_FUNCS(select setitimer setpgrp setpgrp2 shmat sigaction)
 AC_CHECK_FUNCS(sighold socket statfs strchr strstr strtol strtoul)
