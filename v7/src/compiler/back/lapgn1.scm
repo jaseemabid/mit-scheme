@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: lapgn1.scm,v 4.16 1993/12/08 17:43:55 gjr Exp $
+$Id: lapgn1.scm,v 4.16.1.1 1994/03/30 21:10:57 gjr Exp $
 
-Copyright (c) 1987-1993 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -121,6 +121,27 @@ MIT in each case. |#
 	  (cgen-right (pnode-consequent-edge bblock))
 	  (cgen-right (pnode-alternative-edge bblock)))))
 
+  (define (delay-block bblock edge)
+    (let ((entry
+	   (or (assq bblock *pending-bblocks*)
+	       (let ((entry
+		      (cons bblock
+			    (list-transform-positive
+				(node-previous-edges bblock)
+			      edge-left-node))))
+		 (set! *pending-bblocks*
+		       (cons entry
+			     *pending-bblocks*))
+		 entry))))
+      (let ((dependencies (delq! edge (cdr entry))))
+	(if (not (null? dependencies))
+	    (set-cdr! entry dependencies)
+	    (begin
+	      (set! *pending-bblocks*
+		    (delq! entry *pending-bblocks*))
+	      (loop bblock
+		    (adjust-maps-at-merge! rgraph bblock)))))))
+
   (define (cgen-right edge)
     (let ((next (edge-next-node edge)))
       (if (and next (not (node-marked? next)))
@@ -142,32 +163,20 @@ MIT in each case. |#
 			(regset-difference (bblock-live-at-exit previous)
 					   (bblock-live-at-entry next)))))))
 		  (else
-		   (let ((entry
-			  (or (assq next *pending-bblocks*)
-			      (let ((entry
-				     (cons next
-					   (list-transform-positive
-					       previous
-					     edge-left-node))))
-				(set! *pending-bblocks*
-				      (cons entry
-					    *pending-bblocks*))
-				entry))))
-		     (let ((dependencies (delq! edge (cdr entry))))
-		       (if (not (null? dependencies))
-			   (set-cdr! entry dependencies)
-			   (begin
-			     (set! *pending-bblocks*
-				   (delq! entry *pending-bblocks*))
-			     (loop next (adjust-maps-at-merge! next))))))))))))
+		   (delay-block next edge)))))))
 
-  (loop (edge-right-node edge) (empty-register-map)))
+  (let ((bblock (edge-right-node edge)))
+    (if (not (there-exists? (node-previous-edges bblock) edge-left-node))
+	(loop bblock (empty-register-map))
+	(delay-block bblock edge))))
 
 (define (cgen-bblock bblock map)
   ;; This procedure is coded out of line to facilitate debugging.
   (node-mark! bblock)
   (fluid-let ((*current-bblock* bblock)
-	      (*register-map* map))
+	      (*register-map* map)
+	      (*preserved-registers* '())
+	      (*restored-registers* '()))
     (set-bblock-instructions! bblock
 			      (let loop ((rinst (bblock-instructions bblock)))
 				(if (rinst-next rinst)
@@ -178,57 +187,100 @@ MIT in each case. |#
     (set-bblock-register-map! bblock *register-map*)))
 
 (define (cgen-rinst rinst)
-  (let ((rtl (rinst-rtl rinst)))
-    ;; LOOP is for easy restart while debugging.
-    (let loop ()
-      (let ((match-result (lap-generator/match-rtl-instruction rtl)))
-	(if match-result
-	    (let ((dead-registers (rinst-dead-registers rinst)))
-	      (fluid-let ((*dead-registers* dead-registers)
-			  (*registers-to-delete* dead-registers)
-			  (*prefix-instructions* (LAP))
-			  (*suffix-instructions* (LAP))
-			  (*needed-registers* '()))
-		(let ((instructions (match-result)))
-		  (delete-dead-registers!)
-		  (LAP ,@(if *insert-rtl?*
-			     (LAP (COMMENT (RTL ,rtl)))
-			     (LAP))
-		       ,@*prefix-instructions*
-		       ,@instructions
-		       ,@*suffix-instructions*))))
-	    (begin (error "CGEN-RINST: No matching rules" rtl)
-		   (loop)))))))
-
-(define (adjust-maps-at-merge! bblock)
-  (let ((edges
-	 (list-transform-positive (node-previous-edges bblock)
-	   edge-left-node)))
-    (let ((maps
-	   (map
-	    (let ((live-registers (bblock-live-at-entry bblock)))
-	      (lambda (edge)
-		(register-map:keep-live-entries
-		 (bblock-register-map (edge-left-node edge))
-		 live-registers)))
-	    edges)))
-      (let ((target-map (merge-register-maps maps false)))
-	(for-each
-	 (lambda (class)
-	   (let ((instructions
-		  (coerce-map-instructions (cdar class) target-map)))
-	     (if (not (null? instructions))
-		 (let ((sblock (make-sblock instructions)))
-		   (node-mark! sblock)
-		   (edge-insert-snode! (caar class) sblock)
-		   (for-each (lambda (x)
-			       (let ((edge (car x)))
-				 (edge-disconnect-right! edge)
-				 (edge-connect-right! edge sblock)))
-			     (cdr class))))))
-	 (equivalence-classes (map cons edges maps)
-			      (lambda (x y) (map-equal? (cdr x) (cdr y)))))
-	target-map))))
+  (let loop ((rtl (rinst-rtl rinst))
+	     (dead-registers (rinst-dead-registers rinst)))
+    (let ((match-result (lap-generator/match-rtl-instruction rtl)))
+      (cond (match-result
+	     (fluid-let ((*dead-registers* dead-registers)
+			 (*registers-to-delete* dead-registers)
+			 (*prefix-instructions* (LAP))
+			 (*suffix-instructions* (LAP))
+			 (*needed-registers* '()))
+	       (let ((instructions (match-result)))
+		 (delete-dead-registers!)
+		 (LAP ,@(if *insert-rtl?*
+			    (LAP (COMMENT (RTL ,rtl)))
+			    (LAP))
+		      ,@*prefix-instructions*
+		      ,@instructions
+		      ,@*suffix-instructions*))))
+	    ;; The following presumes that PRESERVE and RESTORE do
+	    ;; not match, or, if they do, they are completely handled
+	    ;; by the back end.
+	    ((eq? (car rtl) 'PRESERVE)
+	     (preserve-register!
+	      (rtl:register-number (rtl:preserve-register rtl))
+	      (rtl:preserve-how rtl))
+	     (if *insert-rtl?*
+		 (LAP (COMMENT (RTL ,rtl)))
+		 (LAP)))
+	    ((eq? (car rtl) 'RESTORE)
+	     (cgen-restore rtl loop dead-registers))
+	    (else
+	     (error "CGEN-RINST: No matching rules" rtl)
+	     (loop rtl dead-registers))))))
+
+(define (cgen-restore rtl loop dead-registers)
+  (let ((restore-reg (rtl:restore-register rtl))
+	(restore-value (rtl:restore-value rtl)))
+    (call-with-values
+     (lambda ()
+       (restored-register-home (rtl:register-number restore-reg)))
+     (lambda (available? reg-where-desired)
+       (let ((instrs
+	      (cond (available?
+		     ;; Either has aliases or in register home.
+		     (LAP))
+		    ((not reg-where-desired)
+		     (loop `(ASSIGN ,restore-reg ,restore-value)
+			   dead-registers))
+		    (else
+		     (let ((instrs
+			    (LAP ,@(loop
+				    `(ASSIGN (REGISTER ,reg-where-desired)
+					     ,restore-value)
+				    dead-registers)
+				 ,@(loop
+				    `(ASSIGN ,restore-reg
+					     (REGISTER ,reg-where-desired))
+				    '()))))
+		       (release-register! reg-where-desired)
+		       instrs)))))
+	 (if *insert-rtl?*
+	     (LAP (COMMENT (RTL ,rtl))
+		  ,@instrs)
+	     instrs))))))
+
+(define (adjust-maps-at-merge! rgraph bblock)
+  (let* ((edges (list-transform-positive (node-previous-edges bblock)
+		  edge-left-node))
+	 (maps (map (let ((live-registers (bblock-live-at-entry bblock)))
+		      (lambda (edge)
+			(register-map:keep-live-entries
+			 (bblock-register-map (edge-left-node edge))
+			 live-registers)))
+		    edges))
+	 (pairs (map cons edges maps))
+	 #|
+	 (target-map (merge-register-maps maps false))
+	 |#
+	 (target-map (choose-register-map rgraph pairs)))
+    (for-each
+     (lambda (class)
+       (let ((instructions
+	      (coerce-map-instructions (cdar class) target-map)))
+	 (if (not (null? instructions))
+	     (let ((sblock (make-sblock instructions)))
+	       (node-mark! sblock)
+	       (edge-insert-snode! (caar class) sblock)
+	       (for-each (lambda (x)
+			   (let ((edge (car x)))
+			     (edge-disconnect-right! edge)
+			     (edge-connect-right! edge sblock)))
+			 (cdr class))))))
+     (equivalence-classes pairs
+			  (lambda (x y) (map-equal? (cdr x) (cdr y)))))
+    target-map))
 
 (define (equivalence-classes objects predicate)
   (let ((find-class (association-procedure predicate car)))
@@ -242,6 +294,23 @@ MIT in each case. |#
 		(begin
 		  (set-cdr! class (cons (car objects) (cdr class)))
 		  (loop (cdr objects) classes))))))))
+
+(define (choose-register-map rgraph edges&maps)
+  ;; Choose the map corresponding to the "best" edge,
+  ;; and coerce the rest to that shape.
+  ;; For now, a very simple decision,
+  ;; plus, the labels are removed!!
+  rgraph				; ignored
+  (let ((non-continuations (list-transform-positive edges&maps
+			     (lambda (edge&map)
+			       (let* ((edge (car edge&map))
+				      (bblock (edge-left-node edge)))
+				 (for-all? (node-previous-edges bblock)
+				   edge-left-node))))))
+    (register-map:without-labels
+     (cdr (car (if (null? non-continuations)
+		   edges&maps
+		   non-continuations))))))
 
 (define *cgen-rules* '())
 (define *assign-rules* '())

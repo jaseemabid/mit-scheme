@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: linear.scm,v 4.16 1993/12/08 19:30:58 gjr Exp $
+$Id: linear.scm,v 4.16.1.1 1994/03/30 21:11:42 gjr Exp $
 
-Copyright (c) 1987-1993 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -37,6 +37,8 @@ MIT in each case. |#
 
 (declare (usual-integrations))
 
+(define *strongly-heed-branch-preferences?* false)
+
 (define (bblock-linearize-lap bblock queue-continuations!)
   (define (linearize-bblock bblock)
     (LAP ,@(linearize-bblock-1 bblock)
@@ -95,7 +97,7 @@ MIT in each case. |#
 		    (bblock-label an))
 		 ,@(linearize-bblock cn))
 	    (linearize-pblock-1 pblock cn an))))
-
+
   (define (linearize-pblock-1 pblock cn an)
     (let ((finish
 	   (lambda (generator cn an)
@@ -129,8 +131,13 @@ MIT in each case. |#
 			      ,@consequent
 			      ,@(lap:make-label-statement jlabel)
 			      ,@(linearize-next cn))))))))))
+
+	(lap:mark-preferred-branch! pblock cn an)
 	(cond ((eq? cn an)
 	       (warn "bblock-linearize-lap: Identical branches" pblock)
+	       (unspecial))
+	      ((and *strongly-heed-branch-preferences?*
+		    (pnode/preferred-branch pblock))
 	       (unspecial))
 	      ((sblock? cn)
 	       (let ((cnn (find-next (snode-next cn))))
