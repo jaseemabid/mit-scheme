@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rcse2.scm,v 4.13 1990/01/18 22:47:49 cph Rel $
+$Id: rcse2.scm,v 4.13.1.1 1994/03/30 21:22:04 gjr Exp $
 
-Copyright (c) 1988, 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -34,6 +34,7 @@ MIT in each case. |#
 
 ;;;; RTL Common Subexpression Elimination
 ;;;  Based on the GNU C Compiler
+;; package: (compiler rtl-cse)
 
 (declare (usual-integrations))
 
@@ -46,8 +47,18 @@ MIT in each case. |#
   ;; and (2) a thunk which, when called, will insert the expression in
   ;; the hash table, returning the element.  Do not call the thunk if
   ;; the expression is volatile.
-  (let ((expression
-	 (expression-canonicalize (statement-expression statement))))
+  (let ((expression (statement-expression statement)))
+    (if (and (rtl:register? expression)
+	     (machine-register? (rtl:register-number expression)))
+	(begin
+	  (set-statement-expression! statement expression)
+	  (receiver true (lambda () (error "Insert source invoked"))))
+	(expression-replace!/1 expression set-statement-expression!
+			       statement receiver))))
+
+(define (expression-replace!/1 expression* set-statement-expression!
+			       statement receiver)
+  (let ((expression (expression-canonicalize expression*)))
     (full-expression-hash expression
       (lambda (hash volatile? in-memory?)
 	(let ((element
@@ -121,7 +132,7 @@ MIT in each case. |#
 		  (begin
 		    (set! hash-arg-in-memory? true)
 		    (continue expression))))
-	     ((BYTE-OFFSET)
+	     ((BYTE-OFFSET FLOAT-OFFSET)
 	      (set! hash-arg-in-memory? true)
 	      (continue expression))
 	     ((PRE-INCREMENT POST-INCREMENT)

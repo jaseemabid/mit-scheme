@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/debug.scm,v 4.13 1990/02/02 18:38:12 cph Rel $
+$Id: debug.scm,v 4.13.1.1 1994/03/30 21:15:53 gjr Exp $
 
-Copyright (c) 1988, 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -94,7 +94,11 @@ MIT in each case. |#
    (lambda ()
      (with-output-to-file (pathname-new-type (->pathname filename) "rtl")
        (lambda ()
-	 (for-each show-rtl-instruction (linearize-rtl *rtl-graphs*)))))))
+	 (for-each show-rtl-instruction
+		   (linearize-rtl *rtl-graphs*
+				  '()
+				  '()
+				  false)))))))
 
 (define (show-rtl rtl)
   (newline)
@@ -128,7 +132,11 @@ MIT in each case. |#
 (define (show-rtl-instruction rtl)
   (if (memq (car rtl)
 	    '(LABEL CONTINUATION-ENTRY CONTINUATION-HEADER IC-PROCEDURE-HEADER
-		    OPEN-PROCEDURE-HEADER PROCEDURE-HEADER CLOSURE-HEADER))
+		    OPEN-PROCEDURE-HEADER PROCEDURE-HEADER CLOSURE-HEADER
+		    ;; New stuff
+		    RETURN-ADDRESS PROCEDURE TRIVIAL-CLOSURE CLOSURE
+		    EXPRESSION
+		    ))
       (newline))
   (*show-instruction* rtl)
   (newline))
