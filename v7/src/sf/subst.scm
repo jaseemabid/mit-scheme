@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.6 1987/06/26 20:53:17 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.7 1987/06/30 07:03:14 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -124,8 +124,7 @@ MIT in each case. |#
 		 (lambda (new-expression)
 		   (integrate/expression operations environment new-expression))
 		 dont-integrate
-		 (reference/block operator)
-		 environment))
+		 (reference/block operator)))
 	  (else (error "Unknown operation" operation))))
       dont-integrate)))
 
@@ -305,7 +304,7 @@ MIT in each case. |#
 	  (let ((entry (assq name usual-integrations/expansion-alist)))
 	    (if entry
 		((cdr entry) operands identity-procedure
-			     dont-integrate false environment)
+			     dont-integrate false)
 		(dont-integrate)))))))
 
 (define (system-global-environment? expression)
