@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.3 2002/01/17 01:47:42 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.4 2002/01/17 16:53:38 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -52,7 +52,7 @@
 	  (call-with-values
 	      (lambda ()
 		(extract-definitions-from-body
-		 (classify/body-forms forms environment history
+		 (classify/body-forms forms environment environment history
 				      select-object)))
 	    (lambda (declaration-items body-items)
 	      (output/top-level-sequence
@@ -211,11 +211,17 @@
   (classify/subforms expressions environment null-syntactic-environment
 		     history selector))
 
-(define (classify/body forms environment history selector)
+(define (classify/body forms environment definition-environment history
+		       selector)
   (make-body-item history
-		  (classify/body-forms forms environment history selector)))
+		  (classify/body-forms forms
+				       environment
+				       definition-environment
+				       history
+				       selector)))
 
-(define (classify/body-forms forms environment history selector)
+(define (classify/body-forms forms environment definition-environment history
+			     selector)
   ;; Top-level syntactic definitions affect all forms that appear
   ;; after them, so classify FORMS in order.
   (let forms-loop ((forms forms) (selector selector) (body-items '()))
@@ -225,7 +231,7 @@
 	      (item->list
 	       (classify/subform (car forms)
 				 environment
-				 environment
+				 definition-environment
 				 history
 				 (selector/add-car selector))))
 	     (body-items body-items))

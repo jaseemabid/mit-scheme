@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: mit-syntax.scm,v 1.1.2.4 2002/01/17 01:49:20 cph Exp $
+;;; $Id: mit-syntax.scm,v 1.1.2.5 2002/01/17 16:53:35 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -138,6 +138,7 @@
       (values bvl
 	      (compile-body-item
 	       (classify/body body
+			      environment
 			      environment
 			      history
 			      select-body))))))
@@ -309,7 +310,15 @@
 	 (classifier->keyword
 	  (lambda (form environment definition-environment history)
 	    definition-environment
-	    (classify/let form environment history variable-binding-theory)))))
+	    (let ((body-environment
+		   (make-internal-syntactic-environment environment)))
+	      (classify/let-like form
+				 environment
+				 body-environment
+				 body-environment
+				 history
+				 variable-binding-theory
+				 output/let))))))
     (lambda (form rename compare)
       compare				;ignore
       (cond ((syntax-match? '(IDENTIFIER (* (IDENTIFIER EXPRESSION)) + FORM)
@@ -335,10 +344,20 @@
   (lambda (form environment definition-environment history)
     definition-environment
     (syntax-check '(KEYWORD (* (IDENTIFIER ? EXPRESSION)) + FORM) form history)
-    (classify/letrec (normalize-let-bindings form)
-		     environment
-		     history
-		     variable-binding-theory)))
+    (let ((body-environment (make-internal-syntactic-environment environment)))
+      (for-each (let ((item (make-reserved-name-item history)))
+		  (lambda (binding)
+		    (syntactic-environment/define body-environment
+						  (car binding)
+						  item)))
+		(cadr form))
+      (classify/let-like form
+			 body-environment
+			 body-environment
+			 body-environment
+			 history
+			 variable-binding-theory
+			 output/letrec))))
 
 (define (normalize-let-bindings form)
   `(,(car form) ,(map (lambda (binding)
@@ -347,12 +366,18 @@
 			    (list (car binding) (unassigned-expression))))
 		      (cadr form))
 		,@(cddr form)))
-
+
 (define-classifier 'LET-SYNTAX system-global-environment
   (lambda (form environment definition-environment history)
     definition-environment
     (syntax-check '(KEYWORD (* (IDENTIFIER EXPRESSION)) + FORM) form history)
-    (classify/let form environment history syntactic-binding-theory)))
+    (classify/let-like form
+		       environment
+		       definition-environment
+		       (make-internal-syntactic-environment environment)
+		       history
+		       syntactic-binding-theory
+		       output/let)))
 
 (define-er-macro-transformer 'LET*-SYNTAX system-global-environment
   (lambda (form rename compare)
@@ -363,33 +388,23 @@
   (lambda (form environment definition-environment history)
     definition-environment
     (syntax-check '(KEYWORD (* (IDENTIFIER EXPRESSION)) + FORM) form history)
-    (classify/letrec form environment history syntactic-binding-theory)))
+    (let ((body-environment (make-internal-syntactic-environment environment)))
+      (for-each (let ((item (make-reserved-name-item history)))
+		  (lambda (binding)
+		    (syntactic-environment/define body-environment
+						  (car binding)
+						  item)))
+		(cadr form))
+      (classify/let-like form
+			 body-environment
+			 definition-environment
+			 body-environment
+			 history
+			 syntactic-binding-theory
+			 output/letrec))))
 
-(define (classify/let form environment history binding-theory)
-  (classify/let-like form
-		     environment
-		     (make-internal-syntactic-environment environment)
-		     history
-		     binding-theory
-		     output/let))
-
-(define (classify/letrec form environment history binding-theory)
-  (let ((body-environment (make-internal-syntactic-environment environment)))
-    (for-each (let ((item (make-reserved-name-item history)))
-		(lambda (binding)
-		  (syntactic-environment/define body-environment
-						(car binding)
-						item)))
-	      (cadr form))
-    (classify/let-like form
-		       body-environment
-		       body-environment
-		       history
-		       binding-theory
-		       output/letrec)))
-
-(define (classify/let-like form environment body-environment history
-			   binding-theory output/let)
+(define (classify/let-like form environment definition-environment
+			   body-environment history binding-theory output/let)
   ;; Classify right-hand sides first, in order to catch references to
   ;; reserved names.  Then bind names prior to classifying body.
   (let* ((bindings
@@ -412,6 +427,7 @@
 	 (body
 	  (classify/body (cddr form)
 			 body-environment
+			 definition-environment
 			 history
 			 select-cddr)))
     (if (eq? binding-theory syntactic-binding-theory)
@@ -833,18 +849,22 @@
 							 history
 							 select-cdr)))))
 
-(define-compiler 'LOCAL-DECLARE system-global-environment
-  (lambda (form environment history)
+(define-classifier 'LOCAL-DECLARE system-global-environment
+  (lambda (form environment definition-environment history)
     (syntax-check '(KEYWORD (* (SYMBOL * DATUM)) + FORM) form history)
-    (output/local-declare (map-declaration-references (cadr form)
-						      environment
-						      history
-						      select-cadr)
-			  (compile-body-item
-			   (classify/body (cddr form)
-					  environment
-					  history
-					  select-cddr)))))
+    (let ((body
+	   (classify/body (cddr form)
+			  environment
+			  definition-environment
+			  history
+			  select-cddr)))
+      (make-expression-item history
+	(lambda ()
+	  (output/local-declare (map-declaration-references (cadr form)
+							    environment
+							    history
+							    select-cadr)
+				(compile-body-item body)))))))
 
 (define (map-declaration-references declarations environment history selector)
   (select-map (lambda (declaration selector)
