@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: edwin.pkg,v 1.114 1993/01/12 19:06:35 gjr Exp $
+$Id: edwin.pkg,v 1.114.1.1 1993/01/18 17:31:59 gjr Exp $
 
-Copyright (c) 1989-1993 Massachusetts Institute of Technology
+Copyright (c) 1989-1992 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -815,7 +815,6 @@ MIT in each case. |#
 
 ;;;; This is the variant used under DOS
 
-#|
 (define-package (edwin process)
   (file-case os-type
     ((unix) "process")
@@ -828,10 +827,10 @@ MIT in each case. |#
 	  initialize-processes!			; always present
 	  process-list				; always present
 	  subprocesses-available?))		; always present
-|#
 
 ;;;; This is the variant used under Unix/X
 
+#|
 (define-package (edwin process)
   (file-case os-type
     ((unix) "process")
@@ -1108,7 +1107,7 @@ MIT in each case. |#
 	  edwin-variable$rmail-primary-inbox-list
 	  edwin-variable$rmail-reply-with-re
 	  rmail-spool-directory))
-#|
+
 (define-package (edwin bochser)
   (files "bochser"
 	 "bochsmod")
