@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/instr1.scm,v 1.61.1.2 1987/06/11 08:42:29 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/instr1.scm,v 1.61.1.3 1987/06/25 10:38:05 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -37,48 +37,7 @@ MIT in each case. |#
 
 (declare (usual-integrations))
 
-;;;; Effective Addressing
-
-(define (make-effective-address keyword mode register extension categories)
-  (vector ea-tag keyword mode register extension categories))
-
-(define (effective-address? object)
-  (and (vector? object)
-       (not (zero? (vector-length object)))
-       (eq? (vector-ref object 0) ea-tag)))
-
-(define ea-tag
-  "Effective-Address")
-
-(define-integrable (ea-keyword ea)
-  (vector-ref ea 1))
-
-(define-integrable (ea-mode ea)
-  (vector-ref ea 2))
-
-(define-integrable (ea-register ea)
-  (vector-ref ea 3))
-
-(define-integrable (ea-extension ea)
-  (vector-ref ea 4))
-
-(define-integrable (ea-categories ea)
-  (vector-ref ea 5))
-
 ;;;; Effective Address transformers and description database
-
-(define-ea-transformer ea-all)
-
-(define-ea-transformer ea-d (DATA))
-(define-ea-transformer ea-a (ALTERABLE))
-(define-ea-transformer ea-c (CONTROL))
-
-(define-ea-transformer ea-d&a (DATA ALTERABLE))
-(define-ea-transformer ea-c&a (CONTROL ALTERABLE))
-(define-ea-transformer ea-m&a (MEMORY ALTERABLE))
-
-(define-ea-transformer ea-d&-& (DATA) (&))
-(define-ea-transformer ea-all-A () (A))
 
 (define-ea-database
   ((D (? r)) (DATA ALTERABLE) #b000 r)
@@ -142,152 +101,19 @@ MIT in each case. |#
   ((& (? i))
    (DATA MEMORY) #b111 #b100
    (output-immediate-data immediate-size i)))
-
-;;;; Effective Address Extensions
 
-(define-integrable (output-16bit-offset o)
-  (EXTENSION-WORD (16 o SIGNED)))
+(define-ea-transformer ea-all)
 
-(define-integrable (output-16bit-relative l)
-  (EXTENSION-WORD (16 `(- ,l *PC*) SIGNED)))
+(define-ea-transformer ea-d (DATA))
+(define-ea-transformer ea-a (ALTERABLE))
+(define-ea-transformer ea-c (CONTROL))
 
-(define-integrable (output-offset-index-register xtype xr s o)
-  (EXTENSION-WORD (1 xtype)
-		  (3 xr)
-		  (1 s)
-		  (3 #b000)
-		  (8 o SIGNED)))
+(define-ea-transformer ea-d&a (DATA ALTERABLE))
+(define-ea-transformer ea-c&a (CONTROL ALTERABLE))
+(define-ea-transformer ea-m&a (MEMORY ALTERABLE))
 
-(define-integrable (output-relative-index-register xtype xr s l)
-  (EXTENSION-WORD (1 xtype)
-		  (3 xr)
-		  (1 s)
-		  (3 #b000)
-		  (8 `(- ,l *PC*) SIGNED)))
-
-(define-integrable (output-16bit-address a)
-  (EXTENSION-WORD (16 a)))
-
-(define-integrable (output-32bit-address a)
-  (EXTENSION-WORD (32 a)))
-
-(define (output-immediate-data immediate-size i)
-  (case immediate-size
-    ((B)
-     (EXTENSION-WORD (8 #b00000000)
-		     (8 i SIGNED)))
-    ((W)
-     (EXTENSION-WORD (16 i SIGNED)))
-    ((L)
-     (EXTENSION-WORD (32 i SIGNED)))
-    (else
-     (error "OUTPUT-IMMEDIATE-DATA: illegal immediate size"
-	    immediate-size))))
-
-;;; New stuff for 68020
-
-;; (? index-register-type da)
-;; (? index-size wl)
-;; (? scale-factor bwlq)
-;; (? base-displacement-size nwl)
-;; (? outer-displacement-size nwl)
-
-(define (output-brief-format-extension-word immediate-size
-					    index-register-type index-register
-					    index-size scale-factor
-					    displacement)
-  (EXTENSION-WORD (1 index-register-type)
-		  (3 index-register)
-		  (1 index-size)
-		  (2 scale-factor)
-		  (1 #b0)
-		  (8 displacement SIGNED)))
-
-(define (output-full-format-extension-word immediate-size
-					   index-register-type index-register
-					   index-size scale-factor
-					   base-suppress? index-suppress?
-					   base-displacement-size
-					   base-displacement
-					   memory-indirection-type
-					   outer-displacement-size
-					   outer-displacement)
-  (EXTENSION-WORD (1 index-register-type)
-		  (3 index-register)
-		  (1 index-size)
-		  (2 scale-factor)
-		  (1 #b1)
-		  (1 (if base-suppress? #b1 #b0))
-		  (1 (if index-suppress? #b1 #b0))
-		  (2 base-displacement-size)
-		  (1 #b0)
-		  (3 (case memory-indirection-type
-		       ((#F) #b000)
-		       ((PRE) outer-displacement-size)
-		       ((POST)
-			(+ #b100 outer-displacement-size)))))
-  (output-displacement base-displacement-size base-displacement)
-  (output-displacement outer-displacement-size outer-displacement))
-
-(define (output-displacement size displacement)
-  (case size
-    ((1))
-    ((2) (EXTENSION-WORD (16 displacement SIGNED)))
-    ((3) (EXTENSION-WORD (32 displacement SIGNED)))))
-
-(define-integrable (output-@D-indirect register)
-  (EXTENSION-WORD (1 #b0)		;index register = data
-		  (3 register)
-		  (1 #b1)		;index size = longword
-		  (2 #b00)		;scale factor = 1
-		  (1 #b1)
-		  (1 #b1)		;suppress base register
-		  (1 #b0)		;don't suppress index register
-		  (2 #b01)		;null base displacement
-		  (1 #b0)
-		  (3 #b000)		;no memory indirection
-		  ))
-
-(define (output-@DO-indirect register displacement)
-  (EXTENSION-WORD (1 #b0)		;index register = data
-		  (3 register)
-		  (1 #b1)		;index size = 32 bits
-		  (2 #b00)		;scale factor = 1
-		  (1 #b1)
-		  (1 #b1)		;suppress base register
-		  (1 #b0)		;don't suppress index register
-		  (2 #b10)		;base displacement size = 16 bits
-		  (1 #b0)
-		  (3 #b000)		;no memory indirection
-		  (16 displacement SIGNED)))
-
-;;;; Operand Syntaxers.
-
-(define (immediate-words data size)
-  (case size
-    ((B) (immediate-byte data))
-    ((W) (immediate-word data))
-    ((L) (immediate-long data))
-    (else (error "IMMEDIATE-WORD: Illegal size" size))))
-
-(define-integrable (immediate-byte data)
-  `(GROUP ,(make-bit-string 8 0)
-	  ,(syntax-evaluation data coerce-8-bit-signed)))
-
-(define-integrable (immediate-word data)
-  (syntax-evaluation data coerce-16-bit-signed))
-
-(define-integrable (immediate-long data)
-  (syntax-evaluation data coerce-32-bit-signed))
-
-(define-integrable (relative-word address)
-  (syntax-evaluation `(- ,address *PC*) coerce-16-bit-signed))
-
-(define-integrable (offset-word data)
-  (syntax-evaluation data coerce-16-bit-signed))
-
-(define-integrable (output-bit-string bit-string)
-  bit-string)
+(define-ea-transformer ea-d&-& (DATA) (&))
+(define-ea-transformer ea-all-A () (A))
 
 ;;;; Special purpose transformers
 
@@ -315,19 +141,3 @@ MIT in each case. |#
   (D0 . 0) (D1 . 1) (D2 . 2) (D3 . 3) (D4 . 4) (D5 . 5) (D6 . 6) (D7 . 7)
   (A0 . 8) (A1 . 9) (A2 . 10) (A3 . 11) (A4 . 12) (A5 . 13)
   (A6 . 14) (A7 . 15))
-
-;; Auxiliary procedure for register list transformers
-
-(define (encode-register-list reg-list encoding)
-  (let ((bit-string (make-bit-string 16 #!FALSE)))
-    (define (loop regs)
-      (if (null? regs)
-	  bit-string
-	  (let ((place (assq (car regs) encoding)))
-	    (if (null? place)
-		#F
-		(begin
-		  (bit-string-set! bit-string (cdr place))
-		  (loop (cdr regs)))))))
-    (loop reg-list)))
-   (WORD (16 expression SIGNED))))
