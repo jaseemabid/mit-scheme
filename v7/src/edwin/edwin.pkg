@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: edwin.pkg,v 1.141 1993/10/26 21:23:00 cph Exp $
+$Id: edwin.pkg,v 1.141.1.1 1993/11/16 01:05:00 adams Exp $
 
 Copyright (c) 1989-1993 Massachusetts Institute of Technology
 
@@ -895,7 +895,6 @@ MIT in each case. |#
 
 ;;;; This is the variant used under DOS and NT (for now)
 
-#|
 (define-package (edwin process)
   (file-case os-type
     ((dos nt)  "dosproc"))
@@ -914,10 +913,10 @@ MIT in each case. |#
   (file-case os-type
     ((dos) "doscom" "dosshell"))
   (parent (edwin)))
-|#
 
 ;;;; This is the variant used under Unix/X
 
+#|
 (define-package (edwin process)
   (file-case os-type
     ((unix) "process")
@@ -1196,6 +1195,7 @@ MIT in each case. |#
 	  edwin-variable$rmail-primary-inbox-list
 	  edwin-variable$rmail-reply-with-re
 	  rmail-spool-directory))
+|#
 
 #|
 (define-package (edwin bochser)
