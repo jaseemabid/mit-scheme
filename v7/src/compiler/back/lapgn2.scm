@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/lapgn2.scm,v 1.9.1.1 1988/12/06 22:43:19 arthur Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/lapgn2.scm,v 1.9.1.2 1989/05/11 17:26:46 arthur Exp $
 
-Copyright (c) 1987, 1988 Massachusetts Institute of Technology
+Copyright (c) 1987, 1988, 1989 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -310,6 +310,12 @@ MIT in each case. |#
 	      (register->register-transfer register temp))
 	     temp))
        (load-alias-register! register type))))
+(define (float-register-reference register)
+  (register-reference
+   (if (machine-register? register)
+       register
+       (load-alias-register! register 'FLOAT))))
+
 (define (load-machine-register! source-register machine-register)
   (if (machine-register? source-register)
       (if (eqv? source-register machine-register)
