@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: switch.scm,v 4.24 1994/02/02 03:39:50 adams Exp $
+$Id: switch.scm,v 4.24.1.1 1994/03/30 21:16:29 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994  Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -55,8 +55,9 @@ MIT in each case. |#
 (define compiler:analyze-side-effects? true)
 (define compiler:cse? true)
 (define compiler:open-code-primitives? true)
-(define compiler:generate-rtl-files? false)
-(define compiler:generate-lap-files? false)
+(define compiler:generate-kmp-files? true)
+(define compiler:generate-rtl-files? true)
+(define compiler:generate-lap-files? true)
 (define compiler:intersperse-rtl-in-lap? true)
 (define compiler:generate-range-checks? false)
 (define compiler:generate-type-checks? false)
@@ -65,7 +66,6 @@ MIT in each case. |#
 (define compiler:use-multiclosures? true)
 (define compiler:coalescing-constant-warnings? true)
 (define compiler:cross-compiling? false)
-;; This only works in the C back end, right now
 (define compiler:compress-top-level? false)
 (define compiler:avoid-scode? true)
 
@@ -74,7 +74,12 @@ MIT in each case. |#
 ;; generates a valid fixnum.  If false, the compiler will ensure that
 ;; the result of a fixnum operation is a fixnum, although it may be an
 ;; incorrect result for screw cases.
+
 (define compiler:assume-safe-fixnums? true)
+
+;;
+(define compiler:generate-trap-on-null-valued-conditional? false)
+
 
 ;; The switch COMPILER:OPEN-CODE-FLOATING-POINT-ARITHMETIC? is in machin.scm.
 
