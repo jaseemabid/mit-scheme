@@ -1,14 +1,15 @@
 #| -*-Scheme-*-
 
-$Id: edwin.pkg,v 1.184 1996/03/21 16:52:41 adams Exp $
+$Id: edwin.pkg,v 1.184.1.1 1998/10/19 00:09:12 cph Exp $
 
 Copyright (c) 1989-95 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
-Computer Science.  Permission to copy this software, to redistribute
-it, and to use it for any purpose is granted, subject to the following
-restrictions and understandings.
+Computer Science.  Permission to copy and modify this software, to
+redistribute either the original software or a modified version, and
+to use this software for any purpose is granted, subject to the
+following restrictions and understandings.
 
 1. Any copy made of this software must include this copyright notice
 in full.
@@ -124,6 +125,8 @@ MIT in each case. |#
 	  make-output-buffer
 	  output-buffer/drain-block
 	  output-buffer/write-substring-block)
+  (import (runtime load)
+	  simple-option-parser)
   (export (edwin class-macros)
 	  class-instance-transforms)
   (export ()
