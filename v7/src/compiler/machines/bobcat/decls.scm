@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 1.9.1.1 1987/06/25 10:50:39 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 1.9.1.2 1987/07/01 20:50:49 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -112,19 +112,69 @@ MIT in each case. |#
 (define filenames/dependency-group/lap-syn2
   (filename/append "machines/bobcat" "lapgen"))
 
+(define filenames/dependency-group/lap-syn3
+  (filename/append "machines/bobcat" "rules1" "rules2" "rules3" "rules4"))
+
+(define filenames/dependency-group/lap-syn4
+  (append filenames/dependency-group/lap-syn2 filenames/dependency-group/lap-syn3))
+
+(file-dependency/integration/join filenames/dependency-group/lap-syn3
+				  filenames/dependency-group/lap-syn2)
+
+(file-dependency/integration/join filenames/dependency-group/lap-syn4
+				  (append
+				   (filename/append "machines/bobcat" "machin")
+				   (filename/append "base" "utils")))
+
 (file-dependency/integration/join (append filenames/dependency-group/lap-syn1
-					  filenames/dependency-group/lap-syn2)
+					  filenames/dependency-group/lap-syn4)
 				  (filename/append "back-end" "insseq"))
 
 (file-dependency/integration/join (append filenames/dependency-group/lap
-					  filenames/dependency-group/lap-syn2)
+					  filenames/dependency-group/lap-syn4)
 				  (filename/append "machines/bobcat" "insutl"))
-
-(file-dependency/expansion/join filenames/dependency-group/lap-syn2
-				'((->LAP-INSTRUCTIONS
-				   (access ->lap-instructions-expander
-					   lap-syntax-package
-					   compiler-package))))
+
+(file-dependency/expansion/join filenames/dependency-group/lap-syn4
+				'((LAP:SYNTAX-INSTRUCTION
+				   (ACCESS LAP:SYNTAX-INSTRUCTION-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (INSTRUCTION->INSTRUCTION-SEQUENCE
+				   (ACCESS INSTRUCTION->INSTRUCTION-SEQUENCE-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (SYNTAX-EVALUATION
+				   (ACCESS SYNTAX-EVALUATION-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (CONS-SYNTAX
+				   (ACCESS CONS-SYNTAX-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (OPTIMIZE-GROUP-EARLY
+				   (ACCESS OPTIMIZE-GROUP-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (EA-KEYWORD-EARLY
+				   (ACCESS EA-KEYWORD-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (EA-MODE-EARLY
+				   (ACCESS EA-MODE-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (EA-REGISTER-EARLY
+				   (ACCESS EA-REGISTER-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (EA-EXTENSION-EARLY
+				   (ACCESS EA-EXTENSION-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))
+				  (EA-CATEGORIES-EARLY
+				   (ACCESS EA-CATEGORIES-EXPANDER
+					   LAP-SYNTAX-PACKAGE
+					   COMPILER-PACKAGE))))
 
 ;;;; Syntax dependencies
 
@@ -142,7 +192,7 @@ MIT in each case. |#
 			  "rgproc" "rgrval" "rgstmt" "rlife" "rtlgen")
 	 (filename/append "back-end"
 			  "asmmac" "block" "insseq" "lapgen"
-			  "laptop" "regmap" "symtab")
+			  "laptop" "regmap" "symtab" "syntax")
 	 (filename/append "machines/bobcat" "insmac" "machin"))
  compiler-syntax-table)
 
@@ -155,3 +205,4 @@ MIT in each case. |#
  (append (filename/append "machines/bobcat" "insutl" "instr1" "instr2" "instr3")
 	 (filename/append "machines/spectrum" "instrs"))
  assembler-syntax-table)
+
