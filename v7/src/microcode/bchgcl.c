@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcl.c,v 9.50.4.1 2000/11/29 21:40:56 cph Exp $
+$Id: bchgcl.c,v 9.50.4.2 2000/11/30 04:38:27 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -45,7 +45,7 @@ DEFUN (transport_vector_tail, (free, free_end, tail),
        SCHEME_OBJECT * free_end AND
        SCHEME_OBJECT * tail)
 {
-  unsigned long n_words = (free - free_end);
+  unsigned long n_words = (free_end - free);
   free = (dump_and_reset_free_buffer (free, 0));
   {
     unsigned long n_blocks = (n_words >> gc_buffer_shift);
