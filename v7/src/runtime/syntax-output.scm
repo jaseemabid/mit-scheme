@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-output.scm,v 1.1.2.6 2002/01/19 05:38:50 cph Exp $
+;;; $Id: syntax-output.scm,v 1.1.2.7 2002/01/31 05:12:26 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -40,7 +40,15 @@
   (make-assignment name value))
 
 (define (output/top-level-definition name value)
-  (make-definition name value))
+  (make-definition name
+		   (if (lambda? value)
+		       (lambda-components* value
+			 (lambda (name required optional rest body)
+			   (if (eq? name lambda-tag:unnamed)
+			       (make-lambda* pattern required optional rest
+					     body)
+			       value)))
+		       value)))
 
 (define (output/top-level-syntax-definition name value)
   (make-definition name (make-macro-reference-trap-expression value)))
