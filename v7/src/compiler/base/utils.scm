@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.92 1987/11/21 18:43:08 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.92.1.1 1987/12/09 00:51:37 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -309,35 +309,48 @@ MIT in each case. |#
 
 ;;; Disgusting hack to replace microcode implementation.
 
+(define unsafe-primitive-procedures
+  (let-syntax ((primitives
+		(macro names
+		  `'(,@(map (lambda (spec)
+			      (if (pair? spec)
+				  (apply make-primitive-procedure spec)
+				  (make-primitive-procedure spec)))
+			    names)))))
+    (primitives scode-eval
+		apply
+		force
+		error-procedure
+		within-control-point
+		call-with-current-continuation
+		non-reentrant-call-with-current-continuation
+		with-threaded-continuation
+		with-interrupt-mask
+		with-interrupts-reduced
+		execute-at-new-state-point
+		translate-to-state-point
+		set-current-history!
+		with-history-disabled
+		garbage-collect
+		primitive-purify
+		primitive-impurify
+		primitive-fasdump
+		dump-band
+		load-band
+		(primitive-eval-step 3)
+		(primitive-apply-step 3)
+		(primitive-return-step 2)
+		(dump-world 1)
+		(complete-garbage-collect 1)
+		(with-saved-fluid-bindings 1)
+		(global-interrupt 3)
+		(get-work 1)
+		(master-gc-loop 1)
+		)))
+		  
 (define (primitive-procedure-safe? object)
   (and (primitive-type? (ucode-type primitive) object)
-       (not (memq object
-		  (let-syntax ((primitives
-				(macro names
-				  `'(,@(map make-primitive-procedure names)))))
-		    (primitives call-with-current-continuation
-				non-reentrant-call-with-current-continuation
-				scode-eval
-				apply
-				garbage-collect
-				primitive-fasdump
-				set-current-history!
-				with-history-disabled
-				force
-				primitive-purify
-				;;complete-garbage-collect
-				dump-band
-				primitive-impurify
-				with-threaded-continuation
-				within-control-point
-				with-interrupts-reduced
-				primitive-eval-step
-				primitive-apply-step
-				primitive-return-step
-				execute-at-new-state-point
-				translate-to-state-point
-				with-interrupt-mask
-				error-procedure))))))
+       (not (memq object unsafe-primitive-procedures))))
 
 ;;;; Special Compiler Support
 
