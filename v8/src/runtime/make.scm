@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/runtime/make.scm,v 14.25 1990/11/15 23:27:03 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/runtime/make.scm,v 14.25.1.1 1991/08/26 23:21:44 cph Exp $
 
-Copyright (c) 1988, 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1988-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -356,7 +356,6 @@ MIT in each case. |#
    (RUNTIME)
    (RUNTIME X-GRAPHICS)
    (RUNTIME STARBASE-GRAPHICS)
-   (RUNTIME SUBPROCESS)
    ;; Emacs -- last because it grabs the kitchen sink.
    (RUNTIME EMACS-INTERFACE)))
 
