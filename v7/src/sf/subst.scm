@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.2 1987/06/26 16:56:59 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.3 1987/06/26 18:21:01 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -114,12 +114,12 @@ MIT in each case. |#
 				      operands))
 	     dont-integrate))
 	  ((EXPAND)
-	   (info operator
-		 operands
+	   (info operands
 		 (lambda (new-expression)
 		   (integrate/expression operations environment new-expression))
-		 #| identity-procedure |#
-		 dont-integrate))
+		 dont-integrate
+		 (reference/block operator)
+		 environment))
 	  (else (error "Unknown operation" operation))))
       dont-integrate)))
 
