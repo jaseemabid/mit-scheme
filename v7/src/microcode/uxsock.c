@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/uxsock.c,v 1.2 1990/11/08 11:11:38 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/uxsock.c,v 1.2.1.1 1991/08/23 22:55:21 cph Exp $
 
-Copyright (c) 1990 Massachusetts Institute of Technology
+Copyright (c) 1990-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -99,11 +99,10 @@ DEFUN (OS_get_host_by_name, (host_name), CONST char * host_name)
 #endif
 }
 
-#ifdef HAVE_UNIX_SOCKETS
-
 Tchannel
 DEFUN (OS_open_unix_stream_socket, (filename), CONST char * filename)
 {
+#ifdef HAVE_UNIX_SOCKETS
   int s;
   STD_UINT_SYSTEM_CALL ("socket", s, (UX_socket (AF_UNIX, SOCK_STREAM, 0)));
   {
@@ -114,9 +113,11 @@ DEFUN (OS_open_unix_stream_socket, (filename), CONST char * filename)
       ("connect", (UX_connect (s, (&address), (sizeof (address)))));
   }
   MAKE_CHANNEL (s, channel_type_unix_stream_socket, return);
+#else /* not HAVE_UNIX_SOCKETS */
+  error_unimplemented_primitive ();
+  return (NO_CHANNEL);
+#endif /* not HAVE_UNIX_SOCKETS */
 }
-
-#endif /* HAVE_UNIX_SOCKETS */
 
 #ifndef SOCKET_LISTEN_BACKLOG
 #define SOCKET_LISTEN_BACKLOG 5
@@ -147,20 +148,25 @@ DEFUN (OS_server_connection_accept, (channel, peer_host, peer_port),
 {
   static struct sockaddr_in address;
   int address_length = (sizeof (struct sockaddr_in));
-  int s =
-    (UX_accept
-     ((CHANNEL_DESCRIPTOR (channel)), (&address), (&address_length)));
-  if (s == (-1))
+  int s;
+
+  while ((s = (UX_accept ((CHANNEL_DESCRIPTOR (channel)),
+			  (&address),
+			  (&address_length))))
+	 < 0)
     {
+      if (errno != EINTR)
+	{
 #ifdef EAGAIN
-      if (errno == EAGAIN)
-	return (NO_CHANNEL);
+	  if (errno == EAGAIN)
+	    return (NO_CHANNEL);
 #endif
 #ifdef EWOULDBLOCK
-      if (errno == EWOULDBLOCK)
-	return (NO_CHANNEL);
+	  if (errno == EWOULDBLOCK)
+	    return (NO_CHANNEL);
 #endif
-      error_system_call (errno, "accept");
+	  error_system_call (errno, "accept");
+	}
     }
   if (peer_host != 0)
     {
@@ -173,5 +179,61 @@ DEFUN (OS_server_connection_accept, (channel, peer_host, peer_port),
     (*peer_port) = (address . sin_port);
   MAKE_CHANNEL (s, channel_type_tcp_stream_socket, return);
 }
+
+#else /* not HAVE_SOCKETS */
 
-#endif /* HAVE_SOCKETS */
+Tchannel
+DEFUN (OS_open_tcp_stream_socket, (host, port), char * host AND int port)
+{
+  error_unimplemented_primitive ();
+  return (NO_CHANNEL);
+}
+
+int
+DEFUN (OS_get_service_by_name, (service_name, protocol_name),
+       CONST char * service_name AND
+       CONST char * protocol_name)
+{
+  error_unimplemented_primitive ();
+  return (-1);
+}
+
+unsigned int
+DEFUN_VOID (OS_host_address_length)
+{
+  error_unimplemented_primitive ();
+  return (0);
+}
+
+char **
+DEFUN (OS_get_host_by_name, (host_name), CONST char * host_name)
+{
+  error_unimplemented_primitive ();
+  return (0);
+}
+
+Tchannel
+DEFUN (OS_open_unix_stream_socket, (filename), CONST char * filename)
+{
+  error_unimplemented_primitive ();
+  return (NO_CHANNEL);
+}
+
+Tchannel
+DEFUN (OS_open_server_socket, (port), int port)
+{
+  error_unimplemented_primitive ();
+  return (NO_CHANNEL);
+}
+
+Tchannel
+DEFUN (OS_server_connection_accept, (channel, peer_host, peer_port),
+       Tchannel channel AND
+       char * peer_host AND
+       int * peer_port)
+{
+  error_unimplemented_primitive ();
+  return (NO_CHANNEL);
+}
+
+#endif /* not HAVE_SOCKETS */
