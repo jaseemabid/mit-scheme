@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: rules3.scm,v 4.41 1993/12/08 17:49:54 gjr Exp $
+$Id: rules3.scm,v 4.41.1.1 1994/03/30 21:19:29 gjr Exp $
 
-Copyright (c) 1988-1993 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -52,34 +52,38 @@ MIT in each case. |#
 	 ;; highest privilege level, and the privilege level will
 	 ;; not be changed by the BV instruction.
 	 (LDWM () (OFFSET 4 0 ,regnum:stack-pointer) ,temp)
-	 ,@(object->address temp)
-	 (BV (N) 0 ,temp))))
+	 ;; Originally was ,@(object->address temp) 
+	 ,@(entry->address temp)
+	 (BV (N) 0 ,temp))))  
+
+(define (%invocation:apply frame-size)
+  (case frame-size
+    ((1) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-1 4
+			      ,regnum:scheme-to-interface-ble))))
+    ((2) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-2 4
+			      ,regnum:scheme-to-interface-ble))))
+    ((3) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-3 4
+			      ,regnum:scheme-to-interface-ble))))
+    ((4) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-4 4
+			      ,regnum:scheme-to-interface-ble))))
+    ((5) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-5 4
+			      ,regnum:scheme-to-interface-ble))))
+    ((6) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-6 4
+			      ,regnum:scheme-to-interface-ble))))
+    ((7) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-7 4
+			      ,regnum:scheme-to-interface-ble))))
+    ((8) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-8 4
+			      ,regnum:scheme-to-interface-ble))))
+    (else
+     (LAP ,@(load-immediate frame-size regnum:second-arg)
+	  (BLE () (OFFSET ,hook:compiler-shortcircuit-apply 4
+			  ,regnum:scheme-to-interface-ble))))))
 
 (define-rule statement
   (INVOCATION:APPLY (? frame-size) (? continuation))
   continuation				;ignore
   (LAP ,@(clear-map!)
-       ,@(case frame-size
-	   ((1) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-1 4
-				     ,regnum:scheme-to-interface-ble))))
-	   ((2) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-2 4
-				     ,regnum:scheme-to-interface-ble))))
-	   ((3) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-3 4
-				     ,regnum:scheme-to-interface-ble))))
-	   ((4) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-4 4
-				     ,regnum:scheme-to-interface-ble))))
-	   ((5) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-5 4
-				     ,regnum:scheme-to-interface-ble))))
-	   ((6) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-6 4
-				     ,regnum:scheme-to-interface-ble))))
-	   ((7) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-7 4
-				     ,regnum:scheme-to-interface-ble))))
-	   ((8) (LAP (BLE () (OFFSET ,hook:compiler-shortcircuit-apply-8 4
-				     ,regnum:scheme-to-interface-ble))))
-	   (else
-	    (LAP ,@(load-immediate frame-size regnum:second-arg)
-		 (BLE () (OFFSET ,hook:compiler-shortcircuit-apply 4
-				 ,regnum:scheme-to-interface-ble)))))
+       ,@(%invocation:apply frame-size)
        (LDWM () (OFFSET 4 0 ,regnum:stack-pointer) ,regnum:first-arg)))
 
 (define-rule statement
@@ -181,7 +185,7 @@ MIT in each case. |#
        (WORD () (- ,(constant->label primitive) *PC*))))
 
 (let-syntax
-    ((define-special-primitive-invocation
+    ((define-old-optimized-primitive-invocation
        (macro (name)
 	 `(define-rule statement
 	    (INVOCATION:SPECIAL-PRIMITIVE
@@ -189,8 +193,8 @@ MIT in each case. |#
 	     (? continuation)
 	     ,(make-primitive-procedure name true))
 	    frame-size continuation
-	    (special-primitive-invocation
-	     ,(symbol-append 'CODE:COMPILER- name)))))
+	    (old-optimized-primitive-invocation
+	     ,(symbol-append 'HOOK:COMPILER- name)))))
 
      (define-optimized-primitive-invocation
        (macro (name)
@@ -222,28 +226,132 @@ MIT in each case. |#
   (define-optimized-primitive-invocation &=)
   (define-optimized-primitive-invocation &<)
   (define-optimized-primitive-invocation &>)
-  (define-optimized-primitive-invocation 1+)
-  (define-optimized-primitive-invocation -1+)
-  (define-optimized-primitive-invocation zero?)
-  (define-optimized-primitive-invocation positive?)
-  (define-optimized-primitive-invocation negative?)
-  (define-special-primitive-invocation quotient)
-  (define-special-primitive-invocation remainder)
+  (define-old-optimized-primitive-invocation 1+)
+  (define-old-optimized-primitive-invocation -1+)
+  (define-old-optimized-primitive-invocation zero?)
+  (define-old-optimized-primitive-invocation positive?)
+  (define-old-optimized-primitive-invocation negative?)
+  (define-optimized-primitive-invocation quotient)
+  (define-optimized-primitive-invocation remainder)
   (define-allocation-primitive vector-cons)
   (define-allocation-primitive string-allocate)
   (define-allocation-primitive floating-vector-cons))
+
+(define (preserving-regs clobbered-regs gen-suffix)
+  (let ((clean (apply require-registers! clobbered-regs)))
+    (LAP ,@clean
+	 ,@(call-with-values
+	    clear-map!/preserving
+	    (lambda (machine-regs pseudo-regs)
+	      (cond ((and (null? machine-regs) (null? pseudo-regs))
+		     (gen-suffix false))
+		    ((null? pseudo-regs)
+		     (gen-suffix (->mask machine-regs false false)))
+		    (else
+		     (call-with-values
+		      (lambda () (->bytes pseudo-regs))
+		      (lambda (gen-int-regs gen-float-regs)
+			(gen-suffix (->mask machine-regs
+					    gen-int-regs
+					    gen-float-regs)))))))))))
 
-(define (special-primitive-invocation code)
-  (LAP ,@(clear-map!)
-       ,@(invoke-interface code)))
+(define (->bytes pseudo-regs)
+  ;; (values gen-int-regs gen-float-regs)
+  (define (do-regs regs)
+    (bytes->uwords
+     (let* ((l (length regs))
+	    (bytes (reverse (cons (- l 1)
+				  (map register-renumber regs)))))
+       (append (let ((r (remainder (+ l 1) 4)))
+		 (if (zero? r)
+		     '()
+		     (make-list (- 4 r) 0)))
+	       bytes))))
+
+  (call-with-values
+   (lambda ()
+     (list-split pseudo-regs (lambda (reg)
+			       (eq? (pseudo-register-value-class reg)
+				    value-class=float))))
+   (lambda (float-regs int-regs)
+     (values (and (not (null? int-regs))
+		  (lambda () (do-regs int-regs)))
+	     (and (not (null? float-regs))
+		  (lambda () (do-regs float-regs)))))))
+
+(define (->mask machine-regs gen-int-regs gen-float-regs)
+  (let ((int-mask (make-bit-string 32 false))
+	(flo-mask (make-bit-string 32 false)))
+    (if gen-int-regs
+	(bit-string-set! int-mask (- 31 0)))
+    (if gen-float-regs
+	(bit-string-set! int-mask (- 31 1)))
+    (let loop ((regs machine-regs))
+      (cond ((not (null? regs))
+	     (let ((reg (car regs)))
+	       (if (< reg 32)
+		   (bit-string-set! int-mask (- 31 reg))
+		   (bit-string-set! flo-mask (- 31 (- reg 32))))
+	       (loop (cdr regs))))
+	    ((bit-string-zero? flo-mask)
+	     (lambda ()
+	       (LAP ,@(if gen-float-regs (gen-float-regs) (LAP))
+		    ,@(if gen-int-regs (gen-int-regs) (LAP))
+		    (UWORD () ,(bit-string->unsigned-integer int-mask)))))
+	    (else
+	     (bit-string-set! int-mask (- 31 31))
+	     (lambda ()
+	       (LAP ,@(if gen-float-regs (gen-float-regs) (LAP))
+		    (UWORD () ,(bit-string->unsigned-integer flo-mask))
+		    ,@(if gen-int-regs (gen-int-regs) (LAP))
+		    (UWORD () ,(bit-string->unsigned-integer int-mask)))))))))
+
+;; *** optimized-primitive-invocation and open-code-block-allocation
+;; skip the first instruction of the hook as a way of signalling
+;; that there are registers to preserve.  Eventually the convention
+;; can be changed, but this one is backwards compatible. ***
+
+(define *optimized-clobbered-regs*
+  (list g31 g2 g26 g25 g28 g29 fp4 fp5))
 
 (define (optimized-primitive-invocation hook)
+  (preserving-regs
+   *optimized-clobbered-regs*
+   (lambda (gen-preservation-info)
+     (if (not gen-preservation-info)
+	 (invoke-hook/no-return hook)
+	 (let ((label1 (generate-label))
+	       (label2 (generate-label)))
+	   (LAP (BLE () (OFFSET ,hook 4 ,regnum:scheme-to-interface-ble))
+		(LDO () (OFFSET (- (- ,label2 ,label1) ,*privilege-level*)
+				0 31)
+		     31)
+		(LABEL ,label1)
+		,@(gen-preservation-info)
+		(LABEL ,label2)))))))
+
+(define (old-optimized-primitive-invocation hook)
   (LAP ,@(clear-map!)
        ,@(invoke-hook/no-return hook)))
 
+(define *allocation-clobbered-regs*
+  (list g31 g2 g26 g25 g28 g29))
+
 (define (open-code-block-allocation name prim hook frame-size cont-label)
-  name frame-size cont-label			; ignored
-  (invoke-primitive prim hook))
+  name frame-size cont-label		; ignored
+  (preserving-regs
+   *allocation-clobbered-regs*
+   (lambda (gen-preservation-info)
+     (if (not gen-preservation-info)
+	 (invoke-primitive prim hook)
+	 (let ((label1 (generate-label))
+	       (label2 (generate-label)))
+	   (LAP (BLE () (OFFSET ,hook 4 ,regnum:scheme-to-interface-ble))
+		(ADDI () (- (- ,label2 ,label1) ,*privilege-level*) 31 31)
+		(LABEL ,label1)
+		,@(gen-preservation-info)
+		(LABEL ,label2)
+		(WORD () (- ,(constant->label prim) *PC*))))))))
 
 #|
 (define (open-code-block-allocation name prim hook frame-size cont-label)
@@ -300,7 +408,7 @@ MIT in each case. |#
 	     ((FLOATING-VECTOR-CONS)
 	      (LAP (LDW () (OFFSET 0 0 ,rsp) ,ra1)
 		   ;; (STW () 0 (OFFSET 0 0 ,rfp))
-		   (DEPI () #b100 31 3 ,rfp)
+		   (DEPI () #b100 31 3 ,rfp)  ; 8-byte alignment for elements
 		   (COPY () ,rfp ,rrv)
 		   ,@(object->datum ra1 ra1)
 		   (SH3ADD () ,ra1 ,rfp ,ra2)
@@ -768,19 +876,22 @@ MIT in each case. |#
 
 ;; Magic for compiled entries.
 
-(define compiled-entry-type-im5
-  (let* ((qr (integer-divide (ucode-type compiled-entry) 2))
-	 (immed (integer-divide-quotient qr)))
-    (if (or (not (= scheme-type-width 6))
-	    (not (zero? (integer-divide-remainder qr)))
-	    (not (<= 0 immed #x1F)))
-	(error "HPPA RTL rules3: closure header rule assumptions violated!"))
-    (if (<= immed #x0F)
-	immed
-	(- immed #x20))))
+;;(define compiled-entry-type-im5
+;;  (let* ((qr (integer-divide (ucode-type compiled-entry) 2))
+;;	 (immed (integer-divide-quotient qr)))
+;;    (if (or (not (= scheme-type-width 6))
+;;	    (not (zero? (integer-divide-remainder qr)))
+;;	    (not (<= 0 immed #x1F)))
+;;	(error "HPPA RTL rules3: closure header rule assumptions violated!"))
+;;    (if (<= immed #x0F)
+;;	immed
+;;	(- immed #x20))))
 
 (define-integrable (address->entry register)
-  (LAP (DEPI () ,compiled-entry-type-im5 4 5 ,register)))
+  (adjust-type quad-mask-value (ucode-type compiled-entry) register))
+
+(define-integrable (entry->address register)
+  (adjust-type (ucode-type compiled-entry) quad-mask-value register))
 
 ;;; New style closure consing using compiler-prepared and
 ;;; linker-maintained patterns
@@ -1058,10 +1169,11 @@ MIT in each case. |#
    (list regnum:first-arg regnum:second-arg
 	 regnum:third-arg regnum:fourth-arg)
    (lambda ()
-     (let ((segment (load-pc-relative-address environment-label 1 'CONSTANT)))
-       (LAP (LDW () ,reg:environment 2)
+     (let* ((temp (standard-temporary!))
+	    (segment (load-pc-relative-address environment-label 1 'CONSTANT)))
+       (LAP (LDW () ,reg:environment ,temp)
 	    ,@segment
-	    (STW () 2 (OFFSET 0 0 1))
+	    (STW () ,temp (OFFSET 0 0 1))
 	    ,@(load-pc-relative-address *block-label* regnum:second-arg 'CODE)
 	    ,@(load-pc-relative-address free-ref-label regnum:third-arg
 					'CONSTANT)
@@ -1080,13 +1192,14 @@ MIT in each case. |#
    (list regnum:first-arg regnum:second-arg
 	 regnum:third-arg regnum:fourth-arg)
    (lambda ()
-     (let ((segment (load-pc-relative code-block-label regnum:second-arg
-				      'CONSTANT)))
+     (let* ((temp (standard-temporary!))
+	    (segment (load-pc-relative code-block-label regnum:second-arg
+				       'CONSTANT)))
        (LAP ,@segment
 	    ,@(object->address regnum:second-arg)
-	    (LDW () ,reg:environment 2)
+	    (LDW () ,reg:environment ,temp)
 	    ,@(load-offset environment-offset regnum:second-arg 1)
-	    (STW () 2 (OFFSET 0 0 1))
+	    (STW () ,temp (OFFSET 0 0 1))
 	    ,@(load-offset free-ref-offset regnum:second-arg regnum:third-arg)
 	    ,@(load-immediate n-sections regnum:fourth-arg)
 	    ,@(invoke-interface-ble code:compiler-link)
@@ -1157,22 +1270,25 @@ MIT in each case. |#
 		  ,regnum:stack-pointer)))))
 
 (define (sections->bytes n-code-blocks n-sections)
-  (let walk ((bytes
-	      (append (vector->list n-sections)
-		      (let ((left (remainder n-code-blocks 4)))
-			(if (zero? left)
-			    '()
-			    (make-list (- 4 left) 0))))))
+  (bytes->uwords (append (vector->list n-sections)
+			 (let ((left (remainder n-code-blocks 4)))
+			   (if (zero? left)
+			       '()
+			       (make-list (- 4 left) 0))))))
+
+(define (bytes->uwords bytes)
+  ;; There must be a multiple of 4 bytes
+  (let walk ((bytes bytes))
     (if (null? bytes)
 	(LAP)
 	(let ((hi (car bytes))
 	      (midhi (cadr bytes))
 	      (midlo (caddr bytes))
 	      (lo (cadddr bytes)))
-	  (LAP (UWORD () ,(+ lo (* 256
-				   (+ midlo (* 256 (+ midhi (* 256 hi)))))))
+	  (LAP (UWORD ()
+		      ,(+ lo (* 256 (+ midlo (* 256 (+ midhi (* 256 hi)))))))
 	       ,@(walk (cddddr bytes)))))))
-
+
 (define (generate/constants-block constants references assignments
 				  uuo-links global-links static-vars)
   (let ((constant-info
@@ -1260,6 +1376,211 @@ MIT in each case. |#
       '()
       (inner (caar uuos) (cdar uuos))))
 
+;;;; New RTL
+
+(define-rule statement
+  (INVOCATION:REGISTER 0 #F (REGISTER (? reg))
+		       #F (MACHINE-CONSTANT (? nregs)))
+  nregs					; ignored
+  (let ((addr (standard-source! reg)))
+    (LAP ,@(clear-map!)
+	 (BV (N) 0 ,addr))))
+
+(define-rule statement
+  (INVOCATION:PROCEDURE 0 (? continuation) (? destination)
+			(MACHINE-CONSTANT (? nregs)))
+  nregs					; ignored
+  (LAP ,@(clear-map!)
+       ,@(if (not continuation)
+	     (LAP (B (N) (@PCR ,destination)))
+	     (LAP (BL () 19 (@PCR ,destination))
+		  (LDO () (OFFSET ,(- 4 *privilege-level*) 0 19) 19)))))
+
+(define-rule statement
+  (INVOCATION:NEW-APPLY (? frame-size) (? continuation)
+			(REGISTER (? dest)) (MACHINE-CONSTANT (? nregs)))
+  ;; *** For now, ignore nregs and use frame-size ***
+  nregs continuation
+  (let* ((obj (register-alias dest (register-type dest)))
+	 (prefix (if obj
+		     (LAP)
+		     (%load-machine-register! dest regnum:first-arg
+					      delete-dead-registers!)))
+	 (obj* (or obj regnum:first-arg)))
+    (need-register! obj)
+    (let ((addr (if untagged-entries? obj* (standard-temporary!)))
+	  (temp (standard-temporary!))
+	  (label (generate-label)))
+      (LAP ,@prefix
+	   ,@(clear-map!)
+	   ,@(object->type obj* temp)
+	   ,@(let ((tag (ucode-type compiled-entry)))
+	       (if (fits-in-5-bits-signed? tag)
+		   (LAP (COMIBN (<>) ,tag ,obj* (@PCR ,label)))
+		   (LAP (COMICLR (,=) ,tag ,obj* 0)
+			(B (N) (@PCR ,label)))))
+	   ,@(if untagged-entries?
+		 (LAP)
+		 (LAP (COPY () ,obj* ,addr)
+		      ,@(adjust-type (ucode-type compiled-entry)
+				     quad-mask-value
+				     addr)))
+	   (LDB () (OFFSET -3 0 ,addr) ,temp)
+	   (COMICLR (<>) ,frame-size ,temp 0)
+	   (BV (N) 0 ,addr)
+	   (LABEL ,label)
+	   ,@(copy obj* regnum:first-arg)
+	   ,@(%invocation:apply frame-size)
+	   (NOP ())))))
+
+(define-rule statement
+  (RETURN-ADDRESS (? label)
+		  (MACHINE-CONSTANT (? frame-size))
+		  (MACHINE-CONSTANT (? nregs)))
+  nregs					; ignored
+  (begin
+    (restore-registers!)
+    (make-external-label
+     (frame-size->code-word frame-size internal-continuation-code-word)
+     label)))
+
+(define-rule statement
+  (PROCEDURE (? label) (MACHINE-CONSTANT (? frame-size)))
+  (make-external-label (frame-size->code-word frame-size
+					      internal-continuation-code-word)
+		       label))
+
+(define-rule statement
+  (TRIVIAL-CLOSURE (? label)
+		   (MACHINE-CONSTANT (? min))
+		   (MACHINE-CONSTANT (? max)))
+  (make-external-label (make-procedure-code-word min max)
+		       label))
+
+(define-rule statement
+  (CLOSURE (? label) (MACHINE-CONSTANT (? frame-size)))
+  frame-size				; ignored
+  (LAP ,@(make-external-label internal-closure-code-word label)))
+
+(define-rule statement
+  (EXPRESSION (? label))
+  #|
+  ;; Prefix takes care of this
+  (LAP ,@(make-external-label expression-code-word label))
+  |#
+  label					; ignored
+  (LAP))
+
+(define-rule statement
+  (INTERRUPT-CHECK:PROCEDURE (? intrpt) (? heap) (? stack) (? label)
+			     (MACHINE-CONSTANT (? nregs)))
+  (generate-interrupt-check/new
+   intrpt heap stack
+   (lambda (interrupt-label)
+     (let ((ret-add-label (generate-label)))
+       (LAP (LABEL ,interrupt-label)
+	    (LDI () ,nregs 1)
+	    ,@(invoke-hook hook:compiler-interrupt-procedure/new)
+	    (LABEL ,ret-add-label)
+	    (WORD () (- (- ,label ,ret-add-label) ,*privilege-level*)))))))
+
+(define-rule statement
+  (INTERRUPT-CHECK:CONTINUATION (? intrpt) (? heap) (? stack) (? label)
+				(MACHINE-CONSTANT (? nregs)))
+  (generate-interrupt-check/new
+   intrpt heap
+   (and (= nregs 0) stack)		; real continuations need no check
+   (lambda (interrupt-label)
+     (let ((ret-add-label (generate-label)))
+       (LAP (LABEL ,interrupt-label)
+	    #| (LDI () ,nregs 1) |#
+	    (LDI ()
+		 ,(if (= nregs 0)
+		      code:compiler-interrupt-procedure
+		      code:compiler-interrupt-continuation)
+		 28)
+	    ,@(invoke-hook hook:compiler-interrupt-continuation/new)
+	    (LABEL ,ret-add-label)
+	    (WORD () (- (- ,label ,ret-add-label) ,*privilege-level*)))))))
+
+(define-rule statement
+  (INTERRUPT-CHECK:CLOSURE (? intrpt) (? heap) (? stack)
+			   (MACHINE-CONSTANT (? nregs)))
+  nregs					; ignored
+  (generate-interrupt-check/new
+   intrpt heap stack
+   (lambda (interrupt-label)
+     (LAP (LABEL ,interrupt-label)
+	  ,@(address->entry g25)
+	  (STWM () ,g25 (OFFSET -4 0 ,regnum:stack-pointer))
+	  ,@(invoke-interface code:compiler-interrupt-closure)))))
+
+(define-rule statement
+  (INTERRUPT-CHECK:SIMPLE-LOOP (? intrpt) (? heap) (? stack)
+			       (? loop-label) (? header-label)
+			       (MACHINE-CONSTANT (? nregs)))
+  loop-label				; ignored
+  (generate-interrupt-check/new
+   intrpt heap stack
+   (lambda (interrupt-label)
+     (let ((ret-add-label (generate-label)))
+       (LAP (LABEL ,interrupt-label)
+	    (LDI () ,nregs 1)
+	    ,@(invoke-hook hook:compiler-interrupt-procedure/new)
+	    (LABEL ,ret-add-label)
+	    (WORD () (- (- ,header-label ,ret-add-label)
+			,*privilege-level*)))))))
+
+(define (generate-interrupt-check/new intrpt heap stack generate-stub)
+  ;; This does not check the heap because it is assumed that there is
+  ;; a large buffer at the end of the heap.  As long as the code can't
+  ;; loop without checking, which is what intrpt guarantees, there
+  ;; is no need to check.
+  heap					; ignored
+  (let* ((interrupt-label (generate-label))
+	 (heap-check? intrpt)
+	 (stack-check? (and stack compiler:generate-stack-checks?))
+	 (need-interrupt-code (lambda ()
+				(add-end-of-block-code!
+				 (lambda ()
+				   (generate-stub interrupt-label))))))
+    (cond ((and heap-check? stack-check?)
+	   (need-interrupt-code)
+	   (LAP (LDW () ,reg:stack-guard 1)
+		(COMB (>=) ,regnum:free-pointer ,regnum:memtop-pointer
+		      (@PCR ,interrupt-label))
+		(COMB (<=) ,regnum:stack-pointer 1 (@PCR ,interrupt-label))
+		(LDW () ,reg:memtop ,regnum:memtop-pointer)))
+	  (heap-check?
+	   (need-interrupt-code)
+	   (LAP (COMB (>=) ,regnum:free-pointer ,regnum:memtop-pointer
+		      (@PCR ,interrupt-label))
+		(LDW () ,reg:memtop ,regnum:memtop-pointer)))
+	  (stack-check?
+	   (need-interrupt-code)
+	   (LAP (LDW () ,reg:stack-guard 1)
+		(COMBN (<=) ,regnum:stack-pointer 1 (@PCR ,interrupt-label))))
+	  (else
+	   (LAP)))))
+
+(define-rule statement
+  (ASSIGN (REGISTER (? dst)) (ALIGN-FLOAT (REGISTER (? src))))
+  (let ((dst (standard-move-to-target! src dst)))
+    (LAP
+     ;; The STW instruction would make the heap parsable forwards
+     ;; (STW () 0 (OFFSET 0 0 ,dst))
+     (DEPI () #b100 31 3 ,dst))))
+
+;; *** For now ***
+
+(define-rule statement
+  (ASSIGN (REGISTER (? target)) (STATIC-CELL (? name)))
+  (***unimplemented-rtl***
+   `(ASSIGN (REGISTER ,target) (STATIC-CELL ,name))))
+
+(define (***unimplemented-rtl*** inst)
+  (error "Unimplemented RTL statement" inst))   
+
 ;;; Local Variables: ***
 ;;; eval: (put 'declare-constants 'scheme-indent-hook 2) ***
 ;;; End: ***
