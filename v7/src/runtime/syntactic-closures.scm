@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.10 2002/01/22 16:53:59 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.11 2002/01/22 17:03:37 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -284,8 +284,12 @@
       (if (not (list-of-type? free-names identifier?))
 	  (error:wrong-type-argument free-names "list of identifiers"
 				     'MAKE-SYNTACTIC-CLOSURE))
-      ;; LOOKUP-IDENTIFIER assumes this optimization:
-      (if (memq form free-names)
+      (if (or (memq form free-names)	;LOOKUP-IDENTIFIER assumes this.
+	      (and (syntactic-closure? form)
+		   (null? (syntactic-closure/free-names form)))
+	      (not (or (syntactic-closure? form)
+		       (pair? form)
+		       (symbol? form))))
 	  form
 	  (constructor environment free-names form)))))
 
