@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/osscheme.h,v 1.3 1991/03/01 00:55:17 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/osscheme.h,v 1.3.1.1 1991/08/24 01:42:21 cph Exp $
 
 Copyright (c) 1990-91 Massachusetts Institute of Technology
 
@@ -38,6 +38,7 @@ MIT in each case. */
 #include "os.h"
 
 extern Tchannel EXFUN (arg_channel, (int arg_number));
+extern Tchannel EXFUN (arg_channel_old, (int arg_number));
 
 extern int option_emacs_subprocess;
 
