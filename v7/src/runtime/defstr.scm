@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: defstr.scm,v 14.37.2.4 2002/01/18 21:30:19 cph Exp $
+$Id: defstr.scm,v 14.37.2.5 2002/01/26 13:07:40 cph Exp $
 
 Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -848,7 +848,7 @@ differences:
 (define (make-constructor structure name lambda-list generate-body)
   (let ((tag-expression (structure/tag-expression structure)))
     (if (eq? (structure/type structure) 'RECORD)
-	(let ((tag (generate-synthetic-identifier 'TAG)))
+	(let ((tag (make-synthetic-identifier 'TAG)))
 	  `(DEFINE ,name
 	     (LET ((,tag (RECORD-TYPE-DISPATCH-TAG ,tag-expression)))
 	       (NAMED-LAMBDA (,name ,@lambda-list)

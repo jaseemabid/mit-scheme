@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.12 2002/01/26 13:06:52 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.13 2002/01/26 13:08:07 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -325,7 +325,7 @@
   (and (syntactic-closure? object)
        (identifier? (syntactic-closure/form object))))
 
-(define (generate-synthetic-identifier identifier)
+(define (make-synthetic-identifier identifier)
   (close-syntax identifier null-syntactic-environment))
 
 (define (identifier->symbol identifier)
