@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-Copyright (c) 1987 Massachusetts Institute of Technology
+Copyright (c) 1987, 1988 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -30,14 +30,14 @@ Technology nor of any adaptation thereof in any advertising,
 promotional, or sales literature without prior written consent from
 MIT in each case. */
 
-/* $Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/Attic/version.h,v 10.2.1.2 1987/12/08 04:38:36 cph Exp $
+/* $Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/Attic/version.h,v 10.2.1.3 1988/12/19 22:44:29 cph Exp $
 
 This file contains version information for the microcode. */
 
 /* Scheme system release version */
 
 #ifndef RELEASE
-#define RELEASE		"6.1.1"
+#define RELEASE		"6.1.2"
 #endif
 
 /* Microcode release version */
