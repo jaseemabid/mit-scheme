@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/copy.scm,v 3.5 1987/05/09 00:50:09 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/copy.scm,v 3.5.1.1 1987/06/30 06:48:59 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -42,17 +42,22 @@ MIT in each case. |#
   (fluid-let ((root-block block)
 	      (copy/variable/free copy/variable/free/intern)
 	      (copy/declarations copy/declarations/intern))
-    (copy/expression root-block
-		     (environment/rebind block (environment/make) uninterned)
-		     expression)))
+    (let ((environment (environment/rebind block (environment/make) uninterned)))
+      ;; Is this right?
+      (block/set-environment! block environment)
+      (copy/expression root-block
+		       environment
+		       expression))))
 
 (define (copy/external/extern expression)
   (fluid-let ((root-block (block/make false false))
 	      (copy/variable/free copy/variable/free/extern)
 	      (copy/declarations copy/declarations/extern))
-    (let ((expression
-	   (copy/expression root-block (environment/make) expression)))
-      (return-2 root-block expression))))
+    (let ((environment (environment/make)))
+      (block/set-environment! root-block environment)
+      (let ((expression
+	     (copy/expression root-block environment expression)))
+	(return-2 root-block expression)))))
 
 (define (copy/expressions block environment expressions)
   (map (lambda (expression)
@@ -71,10 +76,12 @@ MIT in each case. |#
 
 (define (copy/quotation quotation)
   (fluid-let ((root-block false))
-    (let ((block (quotation/block quotation)))
+    (let ((block (quotation/block quotation))
+	  (environment (environment/make)))
+      (block/set-environment! block environment)
       (quotation/make block
 		      (copy/expression block
-				       (environment/make)
+				       environment
 				       (quotation/expression quotation))))))
 
 (define (copy/block parent environment block)
@@ -85,6 +92,7 @@ MIT in each case. |#
 		  (variable/make result (variable/name variable)))
 		old-bound)))
       (let ((environment (environment/bind environment old-bound new-bound)))
+	(block/set-environment! result environment)
 	(block/set-bound-variables! result new-bound)
 	(block/set-declarations!
 	 result
