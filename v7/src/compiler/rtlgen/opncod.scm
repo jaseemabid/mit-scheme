@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/opncod.scm,v 4.7.1.2 1988/06/13 05:20:57 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/opncod.scm,v 4.7.1.3 1988/06/13 05:24:15 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -490,7 +490,7 @@ MIT in each case. |#
 		   #| SYSTEM-HUNK3-SET-CXR0! |#)
       0)
     (define/set! '(SET-CDR!
-		   #| SYSTEM-PAIR-SET-CDR! #|
+		   #| SYSTEM-PAIR-SET-CDR! |#
 		   #| SYSTEM-HUNK3-SET-CXR1! |#)
       1)
     (define/set! '(#| SYSTEM-HUNK3-SET-CXR2! |#)
