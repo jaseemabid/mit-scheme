@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/usiexp.scm,v 3.3 1987/05/09 20:30:12 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/usiexp.scm,v 3.3.1.1 1987/06/25 10:23:20 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -317,3 +317,18 @@ MIT in each case. |#
   (map cons
        usual-integrations/expansion-names
        usual-integrations/expansion-values))
+
+;;; Scode->Scode expanders
+
+(define (scode->scode-expander scode-expander)
+  (lambda (operands if-expanded if-not-expanded)
+    (scode-expander
+     (map (access cgen/external-with-declarations package/cgen)
+	  operands)
+     (lambda (scode-expression)
+       (if-expanded
+	(transmit-values ((access transform/top-level package/transform)
+			  scode-expression)
+			 (lambda (block expression)
+			   expression))))
+     if-not-expanded)))
