@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcl.c,v 9.50.4.6 2000/12/04 05:58:40 cph Exp $
+$Id: bchgcl.c,v 9.50.4.7 2000/12/04 20:49:14 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -23,6 +23,24 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include "scheme.h"
 #include "bchgcc.h"
+
+#define MAYBE_DUMP_FREE(free)						\
+{									\
+  if (free >= free_buffer_top)						\
+    DUMP_FREE (free);							\
+}
+
+#define DUMP_FREE(free)							\
+  free = (dump_and_reset_free_buffer (free, 0))
+
+#define MAYBE_DUMP_SCAN(scan)						\
+{									\
+  if (scan >= scan_buffer_top)						\
+    DUMP_SCAN (scan);							\
+}
+
+#define DUMP_SCAN(scan)							\
+  scan = (dump_and_reload_scan_buffer (scan, 0))
 
 #define TRANSPORT_VECTOR(new_address, free, old_start, n_words)		\
 {									\
@@ -46,7 +64,7 @@ DEFUN (transport_vector_tail, (free, free_end, tail),
        SCHEME_OBJECT * tail)
 {
   unsigned long n_words = (free_end - free);
-  free = (dump_and_reset_free_buffer (free, 0));
+  DUMP_FREE (free);
   {
     unsigned long n_blocks = (n_words >> gc_buffer_shift);
     if (n_blocks > 0)
@@ -64,7 +82,9 @@ DEFUN (transport_vector_tail, (free, free_end, tail),
 }
 
 SCHEME_OBJECT *
-DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
+DEFUN (gc_loop,
+       (scan, free_ptr, new_address_ptr, low_heap, gc_mode,
+	require_normal_end),
        SCHEME_OBJECT * scan AND
        SCHEME_OBJECT ** free_ptr AND
        SCHEME_OBJECT ** new_address_ptr AND
@@ -80,7 +100,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
       if (scan >= scan_buffer_top)
 	{
 	  if (scan == scan_buffer_top)
-	    scan = (dump_and_reload_scan_buffer (scan, 0));
+	    DUMP_SCAN (scan);
 	  else
 	    {
 	      sprintf
@@ -101,13 +121,11 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 	  if (object == (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, scan)))
 	    /* Does this ever happen?  */
 	    goto end_gc_loop;
-	  {
-	    sprintf (gc_death_message_buffer,
-		     "gc_loop: broken heart (0x%lx) in scan",
-		     object);
-	    gc_death (TERM_BROKEN_HEART, gc_death_message_buffer, scan, free);
-	    /*NOTREACHED*/
-	  }
+	  sprintf (gc_death_message_buffer,
+		   "gc_loop: broken heart (0x%lx) in scan",
+		   object);
+	  gc_death (TERM_BROKEN_HEART, gc_death_message_buffer, scan, free);
+	  /*NOTREACHED*/
 	  break;
 
 	case TC_CHARACTER:
@@ -137,8 +155,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 	    else
 	      {
 		(*free++) = (old_start[0]);
-		if (free >= free_buffer_top)
-		  free = (dump_and_reset_free_buffer (free, 0));
+		MAYBE_DUMP_FREE (free);
 		(*scan++) = (OBJECT_NEW_ADDRESS (object, new_address));
 		(*old_start) = (MAKE_BROKEN_HEART (new_address));
 		new_address += 1;
@@ -204,8 +221,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 	      {
 		(*free++) = (old_start[0]);
 		(*free++) = (old_start[1]);
-		if (free >= free_buffer_top)
-		  free = (dump_and_reset_free_buffer (free, 0));
+		MAYBE_DUMP_FREE (free);
 		(*scan++) = (OBJECT_NEW_ADDRESS (object, new_address));
 		(*old_start) = (MAKE_BROKEN_HEART (new_address));
 		new_address += 2;
@@ -230,15 +246,14 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 	    SCHEME_OBJECT * old_start = (OBJECT_ADDRESS (object));
 	    if (old_start < low_heap)
 	      scan += 1;
-	    else if (BROKEN_HEART_P (old_start[0]))
+	    else if (BROKEN_HEART_P (*old_start))
 	      (*scan++) = (MAKE_OBJECT_FROM_OBJECTS (object, (*old_start)));
 	    else
 	      {
 		(*free++) = (old_start[0]);
 		(*free++) = (old_start[1]);
 		(*free++) = (old_start[2]);
-		if (free >= free_buffer_top)
-		  free = (dump_and_reset_free_buffer (free, 0));
+		MAYBE_DUMP_FREE (free);
 		(*scan++) = (OBJECT_NEW_ADDRESS (object, new_address));
 		(*old_start) = (MAKE_BROKEN_HEART (new_address));
 		new_address += 3;
@@ -264,8 +279,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 		(*free++) = (old_start[1]);
 		(*free++) = (old_start[2]);
 		(*free++) = (old_start[3]);
-		if (free >= free_buffer_top)
-		  free = (dump_and_reset_free_buffer (free, 0));
+		MAYBE_DUMP_FREE (free);
 		(*scan++) = (OBJECT_NEW_ADDRESS (object, new_address));
 		(*old_start) = (MAKE_BROKEN_HEART (new_address));
 		new_address += 4;
@@ -383,8 +397,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 		      = (MAKE_OBJECT_FROM_OBJECTS (weak_car, Weak_Chain));
 		    Weak_Chain = object;
 		  }
-		if (free >= free_buffer_top)
-		  free = (dump_and_reset_free_buffer (free, 0));
+		MAYBE_DUMP_FREE (free);
 		(*scan++) = (OBJECT_NEW_ADDRESS (object, new_address));
 		(*old_start) = (MAKE_BROKEN_HEART (new_address));
 		new_address += 2;
@@ -395,8 +408,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 	case TC_MANIFEST_NM_VECTOR:
 	case TC_MANIFEST_SPECIAL_NM_VECTOR:
 	  scan += (1 + (OBJECT_DATUM (object)));
-	  if (scan >= scan_buffer_top)
-	    scan = (dump_and_reload_scan_buffer (scan, 0));
+	  MAYBE_DUMP_SCAN (scan);
 	  break;
 
 	case TC_REFERENCE_TRAP:
@@ -465,14 +477,12 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 			(*free++) = (old_start[1]);
 			(*free++) = (old_start[2]);
 			(*free++) = (old_start[3]);
-			if (free >= free_buffer_top)
-			  free = (dump_and_reset_free_buffer (free, 0));
+			MAYBE_DUMP_FREE (free);
 			(*scan++) = (ADDR_TO_SCHEME_ADDR (new_address));
 			(*old_start) = (MAKE_BROKEN_HEART (new_address));
 			new_address += 4;
 		      }
-		    if (scan >= scan_buffer_top)
-		      scan = (dump_and_reload_scan_buffer (scan, 0));
+		    MAYBE_DUMP_SCAN (scan);
 		    count -= 1;
 		  }
 	      }
@@ -564,20 +574,18 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 		    count -= 1;
 		  }
 		scan = (scan_buffer_top + delta);
-		if (scan >= scan_buffer_top)
-		  scan = (dump_and_reload_scan_buffer (scan, 0));
+		MAYBE_DUMP_SCAN (scan);
 		BCH_END_OPERATOR_RELOCATION (scan);
 	      }
 	      break;
 
 	    case CLOSURE_PATTERN_LINKAGE_KIND:
 	      scan += (1 + (READ_CACHE_LINKAGE_COUNT (object)));
-	      if (scan >= scan_buffer_top)
-		scan = (dump_and_reload_scan_buffer (scan, 0));
+	      MAYBE_DUMP_SCAN (scan);
 	      break;
 
 	    default:
-	      gc_death (TERM_EXIT, "GC: Unknown compiler linkage kind.",
+	      gc_death (TERM_EXIT, "gc_loop: Unknown compiler linkage kind.",
 			scan, free);
 	      /*NOTREACHED*/
 	      break;
@@ -680,8 +688,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
 		count -= 1;
 	      }
 	    scan = ((SCHEME_OBJECT *) closure_end);
-	    if (scan >= scan_buffer_top)
-	      scan = (dump_and_reload_scan_buffer (scan, 0));
+	    MAYBE_DUMP_SCAN (scan);
 	    BCH_END_CLOSURE_RELOCATION (scan);
 	  }
 	  break;
