@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/rtlgen.scm,v 4.8 1988/08/29 23:16:12 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/rtlgen.scm,v 4.8.1.1 1988/09/14 06:36:33 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -139,13 +139,15 @@ MIT in each case. |#
 	      ((REGISTER)
 	       (rtl:make-assignment (continuation/register continuation)
 				    (rtl:make-fetch register:value)))
-	      ((VALUE)
+	      ((VALUE PREDICATE)
 	       (if (continuation/ever-known-operator? continuation)
 		   (rtl:make-assignment (continuation/register continuation)
 					(rtl:make-fetch register:value))
 		   (make-null-cfg)))
+	      ((EFFECT)
+	       (make-null-cfg))
 	      (else
-	       (make-null-cfg)))
+	       (error "Illegal continuation type" continuation)))
 	    (generate/node node))))
       (lambda (rgraph entry-edge)
 	(make-rtl-continuation rgraph label entry-edge)))))
