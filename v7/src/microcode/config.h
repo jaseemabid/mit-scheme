@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: config.h,v 9.83 1993/11/08 06:14:41 gjr Exp $
+$Id: config.h,v 9.83.1.1 1998/07/19 20:40:21 cph Exp $
 
-Copyright (c) 1987-1993 Massachusetts Institute of Technology
+Copyright (c) 1987-98 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -460,11 +460,17 @@ extern unsigned long winnt_address_delta;
 #endif
 #endif
 
-#if defined(sony) || defined(_IRIX4)
+#if defined(sony) || defined(_IRIX)
 #define HAS_FLOOR
 #define HAS_FREXP
 #define HAS_MODF
 #endif
+
+#if defined(_IRIX6) && defined(HAS_COMPILER_SUPPORT) && !defined(NATIVE_CODE_IS_C)
+extern void * irix_heap_malloc (long);
+#define HEAP_MALLOC irix_heap_malloc
+#endif
+
 
 /* Heap resides in data space which begins at 0x10000000. This is
    kludged by the definitions below, and is still considered
