@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcl.c,v 9.50.4.3 2000/11/30 05:23:47 cph Exp $
+$Id: bchgcl.c,v 9.50.4.4 2000/12/01 20:29:20 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -177,8 +177,8 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode),
 	case TC_UNINTERNED_SYMBOL:
 	  if (gc_mode == PURE_COPY)
 	    {
-	      SCHEME_OBJECT object = (MEMORY_REF (object, SYMBOL_NAME));
-	      SCHEME_OBJECT * old_start = (OBJECT_ADDRESS (object));
+	      SCHEME_OBJECT name = (MEMORY_REF (object, SYMBOL_NAME));
+	      SCHEME_OBJECT * old_start = (OBJECT_ADDRESS (name));
 	      if ((old_start < low_heap)
 		  || (BROKEN_HEART_P (*old_start)))
 		scan += 1;
@@ -186,7 +186,7 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode),
 		{
 		  unsigned long n_words = (1 + (OBJECT_DATUM (*old_start)));
 		  TRANSPORT_VECTOR (new_address, free, old_start, n_words);
-		  (*scan++) = (OBJECT_NEW_ADDRESS (object, new_address));
+		  (*scan++) = (OBJECT_NEW_ADDRESS (name, new_address));
 		  (*old_start) = (MAKE_BROKEN_HEART (new_address));
 		  new_address += n_words;
 		}
