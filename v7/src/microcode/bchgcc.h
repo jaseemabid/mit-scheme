@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcc.h,v 9.60.2.2 2000/11/28 05:07:50 cph Exp $
+$Id: bchgcc.h,v 9.60.2.3 2000/11/29 21:25:14 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -429,7 +429,7 @@ do {									\
   Old = (SCHEME_ADDR_TO_ADDR (Temp));					\
   if (Old < low_heap)							\
     continue;								\
-  Compiled_BH (in_gc_p, continue);					\
+  RAW_COMPILED_BH (in_gc_p, continue);					\
   {									\
     SCHEME_OBJECT * Saved_Old = Old;					\
 									\
