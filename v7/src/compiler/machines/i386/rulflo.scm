@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulflo.scm,v 1.16.1.2 1992/02/19 22:33:33 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulflo.scm,v 1.16.1.3 1992/02/20 07:12:42 jinx Exp $
 $MC68020-Header: /scheme/src/compiler/machines/bobcat/RCS/rules1.scm,v 4.36 1991/10/25 06:49:58 cph Exp $
 
 Copyright (c) 1992 Massachusetts Institute of Technology
@@ -87,7 +87,8 @@ MIT in each case. |#
 (define-rule statement
   ;; convert a flonum object address to a floating-point number
   (ASSIGN (REGISTER (? target)) (@ADDRESS->FLOAT (REGISTER (? source))))
-  (let* ((source (source-register-reference source))
+  (let* ((source (or (register-alias source 'GENERAL)
+		     (load-alias-register! source 'GENERAL)))
 	 (target (flonum-target! target)))
     (LAP (FLD D (@RO B ,source 4))
 	 (FSTP (ST ,(1+ target))))))
