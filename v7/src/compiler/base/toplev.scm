@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: toplev.scm,v 4.52.1.1 1994/03/30 21:16:39 gjr Exp $
+$Id: toplev.scm,v 4.52.1.2 1994/11/26 19:21:41 gjr Exp $
 
 Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
@@ -264,7 +264,7 @@ MIT in each case. |#
 	      (*lap-output-port* lap-output-port)
 	      (*kmp-output-port* kmp-output-port)
 	      (compiler:generate-lap-files? true)
-	      (*use-debugging-info?* false)
+	      (*use-debugging-info?* true)
 	      (*argument-registers* (rtlgen/argument-registers))
 	      (available-machine-registers
 	       ;; Order is important!
