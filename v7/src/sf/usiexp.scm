@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/usiexp.scm,v 3.3.1.4 1987/06/26 18:23:29 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/usiexp.scm,v 3.3.1.5 1987/06/26 18:54:54 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -63,11 +63,12 @@ MIT in each case. |#
 
 (define (pairwise-test-inverse inverse-expansion)
   (lambda (operands if-expanded if-not-expanded block environment)
-    (inverse-expansion operator
-		       operands
+    (inverse-expansion operands
       (lambda (expression)
 	(if-expanded (make-combination not (list expression))))
-      if-not-expanded)))
+      if-not-expanded
+      block
+      environment)))
 
 (define =-expansion
   (pairwise-test (make-primitive-procedure '&=) zero? zero?))
@@ -131,11 +132,12 @@ MIT in each case. |#
 	    ((null? (cdr operands))
 	     (expand (constant/make identity) (car operands)))
 	    (else
-	     (inverse-expansion operator
-				(cdr operands)
+	     (inverse-expansion (cdr operands)
 	       (lambda (expression)
 		 (expand (car operands) expression))
-	       if-not-expanded))))))
+	       if-not-expanded
+	       block
+	       environment))))))
 
 (define --expansion
   (right-accumulation-inverse 0 +-expansion
@@ -186,7 +188,7 @@ MIT in each case. |#
 		       (cons*-expansion-loop (cdr operands))))))
 	      (else (if-not-expanded)))))))
 
-(define (cons*-expansion operator operands if-expanded if-not-expanded)
+(define (cons*-expansion operands if-expanded if-not-expanded block environment)
   (let ((n (length operands)))
     (cond ((zero? n) (error "CONS*-EXPANSION: No arguments!"))
 	  ((< n 9) (if-expanded (cons*-expansion-loop operands)))
@@ -199,12 +201,12 @@ MIT in each case. |#
 			(list (car rest)
 			      (cons*-expansion-loop (cdr rest))))))
 
-(define (list-expansion operator operands if-expanded if-not-expanded)
+(define (list-expansion operands if-expanded if-not-expanded block environment)
   (if (< (length operands) 9)
       (if-expanded (list-expansion-loop operands))
       (if-not-expanded)))
 
-(define (vector-expansion operator operands if-expanded if-not-expanded)
+(define (vector-expansion operands if-expanded if-not-expanded block environment)
   (if (< (length operands) 9)
       (if-expanded (make-combination list->vector
 				     (list (list-expansion-loop operands))))
@@ -269,7 +271,8 @@ MIT in each case. |#
 
 ;;;; Miscellaneous
 
-(define (make-string-expansion operator operands if-expanded if-not-expanded)
+(define (make-string-expansion operands if-expanded if-not-expanded
+			       block environment)
   (let ((n (length operands)))
     (cond ((zero? n)
 	   (error "MAKE-STRING-EXPANSION: No arguments"))
@@ -278,7 +281,8 @@ MIT in each case. |#
 	  (else
 	   (if-not-expanded)))))
 
-(define (identity-procedure-expansion operator operands if-expanded if-not-expanded)
+(define (identity-procedure-expansion operands if-expanded if-not-expanded
+				      block environment)
   (if (not (= (length operands) 1))
       (error "IDENTITY-PROCEDURE-EXPANSION: wrong number of arguments"
 	     (length operands)))
