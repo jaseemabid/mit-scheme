@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/insmac.scm,v 1.118.1.1 1987/06/11 08:40:42 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/insmac.scm,v 1.118.1.2 1987/06/25 11:01:40 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -204,5 +204,4 @@ MIT in each case. |#
 		 false
 		 `((EA-EXTENSION ,expression) '())))
       (else
-       (error "EXPAND-DESCRIPTOR: Badly-formed descriptor" descriptor)))))
        (error "EXPAND-DESCRIPTOR: Badly-formed descriptor" descriptor)))))
