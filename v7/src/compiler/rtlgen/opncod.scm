@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/opncod.scm,v 4.22 1988/11/06 14:40:14 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/opncod.scm,v 4.22.2.1 1988/12/06 22:40:36 arthur Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
