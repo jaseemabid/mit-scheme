@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/switch.scm,v 4.4.1.1 1988/06/09 17:43:45 markf Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/switch.scm,v 4.4.1.2 1988/06/13 05:18:32 cph Exp $
 
-Copyright (c) 1987 Massachusetts Institute of Technology
+Copyright (c) 1988 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -49,7 +49,7 @@ MIT in each case. |#
 (define compiler:cse? true)
 (define compiler:open-code-primitives? true)
 (define compiler:generate-rtl-files? false)
-(define compiler:generate-range-checks? true)
+(define compiler:generate-range-checks? false)
 
 ;;; Nary switches
 
