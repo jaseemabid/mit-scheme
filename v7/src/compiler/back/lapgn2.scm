@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/lapgn2.scm,v 1.9 1988/11/07 13:57:02 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/lapgn2.scm,v 1.9.1.1 1988/12/06 22:43:19 arthur Exp $
 
 Copyright (c) 1987, 1988 Massachusetts Institute of Technology
 
