@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rcserq.scm,v 4.5 1989/08/10 11:39:35 cph Rel $
+$Id: rcserq.scm,v 4.5.1.1 1994/03/30 21:22:37 gjr Exp $
 
-Copyright (c) 1988, 1989 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -34,6 +34,7 @@ MIT in each case. |#
 
 ;;;; RTL Common Subexpression Elimination: Register/Quantity Abstractions
 ;;;  Based on the GNU C Compiler
+;;; package: (compiler rtl-cse)
 
 (declare (usual-integrations))
 
@@ -61,12 +62,14 @@ MIT in each case. |#
 (define *next-quantity-number*)
 
 (define (register-tables/make n-registers)
-  (vector (make-vector n-registers)
-	  (make-vector n-registers)
-	  (make-vector n-registers)
-	  (make-vector n-registers)
-	  (make-vector n-registers)
-	  (make-vector n-registers)))
+  (vector (make-vector n-registers)	; quantity
+	  (make-vector n-registers)	; next equivalent
+	  (make-vector n-registers)	; previous equivalent
+	  (make-vector n-registers)	; expression
+	  (make-vector n-registers)	; tick
+	  (make-vector n-registers)	; in table
+	  (make-vector n-registers)	; preserved?
+	  ))
 
 (define (register-tables/reset! register-tables)
   (vector-fill! (vector-ref register-tables 0) false)
@@ -80,7 +83,8 @@ MIT in each case. |#
 		    register
 		    (rtl:make-machine-register register)))))
   (vector-fill! (vector-ref register-tables 4) 0)
-  (vector-fill! (vector-ref register-tables 5) -1))
+  (vector-fill! (vector-ref register-tables 5) -1)
+  (vector-fill! (vector-ref register-tables 6) false))
 
 (define (register-tables/copy register-tables)
   (vector (vector-map (vector-ref register-tables 0)
@@ -91,43 +95,99 @@ MIT in each case. |#
 	  (vector-copy (vector-ref register-tables 2))
 	  (vector-copy (vector-ref register-tables 3))
 	  (vector-copy (vector-ref register-tables 4))
-	  (vector-copy (vector-ref register-tables 5))))
+	  (vector-copy (vector-ref register-tables 5))
+	  (vector-copy (vector-ref register-tables 6))))
 
+(define (register-tables/restore! register-tables)
+  ;; Nothing is preserved.
+  (vector-fill! (vector-ref register-tables 6) false))
+
+(define-integrable (%register-quantity tables register)
+  (vector-ref (vector-ref tables 0) register))
+
+(define-integrable (%set-register-quantity! tables register quantity)
+  (vector-set! (vector-ref tables 0) register quantity))
+
+(define-integrable (%register-next-equivalent tables register)
+  (vector-ref (vector-ref tables 1) register))
+
+(define-integrable
+  (%set-register-next-equivalent! tables register next-equivalent)
+  (vector-set! (vector-ref tables 1) register next-equivalent))
+
+(define-integrable (%register-previous-equivalent tables register)
+  (vector-ref (vector-ref tables 2) register))
+
+(define-integrable
+  (%set-register-previous-equivalent! tables register previous-equivalent)
+  (vector-set! (vector-ref tables 2) register previous-equivalent))
+
+(define-integrable (%register-expression tables register)
+  (vector-ref (vector-ref tables 3) register))
+
+(define-integrable (%set-register-expression! tables register expression)
+  (vector-set! (vector-ref tables 3) register expression))
+
+(define-integrable (%register-tick tables register)
+  (vector-ref (vector-ref tables 4) register))
+
+(define-integrable (%set-register-tick! tables register tick)
+  (vector-set! (vector-ref tables 4) register tick))
+
+(define-integrable (%register-in-table tables register)
+  (vector-ref (vector-ref tables 5) register))
+
+(define-integrable (%set-register-in-table! tables register in-table)
+  (vector-set! (vector-ref tables 5) register in-table))
+
+(define-integrable (%register-preserved? tables register)
+  (vector-ref (vector-ref tables 6) register))
+
+(define-integrable (%set-register-preserved?! tables register state)
+  (vector-set! (vector-ref tables 6) register state))
+
 (define *register-tables*)
 
 (define-integrable (register-quantity register)
-  (vector-ref (vector-ref *register-tables* 0) register))
+  (%register-quantity *register-tables* register))
 
 (define-integrable (set-register-quantity! register quantity)
-  (vector-set! (vector-ref *register-tables* 0) register quantity))
+  (%set-register-quantity! *register-tables* register quantity))
 
 (define-integrable (register-next-equivalent register)
-  (vector-ref (vector-ref *register-tables* 1) register))
+  (%register-next-equivalent *register-tables* register))
 
 (define-integrable (set-register-next-equivalent! register next-equivalent)
-  (vector-set! (vector-ref *register-tables* 1) register next-equivalent))
+  (%set-register-next-equivalent! *register-tables* register next-equivalent))
 
 (define-integrable (register-previous-equivalent register)
-  (vector-ref (vector-ref *register-tables* 2) register))
+  (%register-previous-equivalent *register-tables* register))
 
 (define-integrable
   (set-register-previous-equivalent! register previous-equivalent)
-  (vector-set! (vector-ref *register-tables* 2) register previous-equivalent))
+  (%set-register-previous-equivalent! *register-tables*
+				      register previous-equivalent))
 
 (define-integrable (register-expression register)
-  (vector-ref (vector-ref *register-tables* 3) register))
+  (%register-expression *register-tables* register))
 
 (define-integrable (set-register-expression! register expression)
-  (vector-set! (vector-ref *register-tables* 3) register expression))
+  (%set-register-expression! *register-tables* register expression))
 
 (define-integrable (register-tick register)
-  (vector-ref (vector-ref *register-tables* 4) register))
+  (%register-tick *register-tables* register))
 
 (define-integrable (set-register-tick! register tick)
-  (vector-set! (vector-ref *register-tables* 4) register tick))
+  (%set-register-tick! *register-tables* register tick))
 
 (define-integrable (register-in-table register)
-  (vector-ref (vector-ref *register-tables* 5) register))
+  (%register-in-table *register-tables* register))
 
 (define-integrable (set-register-in-table! register in-table)
-  (vector-set! (vector-ref *register-tables* 5) register in-table))
+  (%set-register-in-table! *register-tables* register in-table))
+
+(define (register-preserved? register)
+  (%register-preserved? *register-tables* register))
+
+(define (set-register-preserved?! register state)
+  (%set-register-preserved?! *register-tables* register state))

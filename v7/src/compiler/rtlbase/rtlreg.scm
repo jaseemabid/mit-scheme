@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlreg.scm,v 4.5 1990/01/18 22:45:43 cph Rel $
+$Id: rtlreg.scm,v 4.5.1.1 1994/03/30 21:21:11 gjr Exp $
 
-Copyright (c) 1987, 1988, 1990 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -126,6 +126,9 @@ MIT in each case. |#
 (define (pseudo-register-known-value register)
   (vector-ref (rgraph-register-known-values *current-rgraph*) register))
 
+(define (pseudo-register-known-expression register)
+  (vector-ref (rgraph-register-known-expressions *current-rgraph*) register))
+
 (define (register-value-class register)
   (if (machine-register? register)
       (machine-register-value-class register)
@@ -135,3 +138,8 @@ MIT in each case. |#
   (if (machine-register? register)
       (machine-register-known-value register)
       (pseudo-register-known-value register)))
+
+(define (register-known-expression register)
+  (if (machine-register? register)
+      #F
+      (pseudo-register-known-expression register)))
