@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlexp.scm,v 4.8 1988/09/02 15:01:08 markf Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtlexp.scm,v 4.8.1.1 1988/10/20 18:44:13 markf Exp $
 
 Copyright (c) 1987, 1988 Massachusetts Institute of Technology
 
@@ -67,6 +67,8 @@ MIT in each case. |#
 	      OBJECT->ADDRESS
 	      OBJECT->DATUM
 	      OBJECT->FIXNUM
+	      ADDRESS->FIXNUM
+	      FIXNUM->ADDRESS
 	      OBJECT->TYPE
 	      OFFSET-ADDRESS
 	      VARIABLE-CACHE))))
@@ -152,7 +154,7 @@ MIT in each case. |#
 (define (rtl:expand-statement statement expander finish)
   (let loop ((subexpressions (cdr statement)) (new-subexpressions '()))
     (if (null? subexpressions)
-	(finish (reverse new-subexpressions))
+	(finish (reverse! new-subexpressions))
 	(expander (car subexpressions)
 	  (lambda (new-subexpression)
 	    (loop (cdr subexpressions)
