@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rlife.scm,v 1.60 1988/12/15 17:27:22 cph Rel $
+$Id: rlife.scm,v 1.60.1.1 1994/03/30 21:23:38 gjr Exp $
 
-Copyright (c) 1987 Massachusetts Institute of Technology
+Copyright (c) 1987-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -34,6 +34,7 @@ MIT in each case. |#
 
 ;;;; RTL Register Lifetime Analysis
 ;;;  Based on the GNU C Compiler
+;; package: (compiler rtl-optimizer lifetime-analysis)
 
 (declare (usual-integrations))
 
@@ -60,7 +61,7 @@ MIT in each case. |#
     (for-each (lambda (bblock)
 		(set-bblock-new-live-at-exit! bblock false))
 	      (rgraph-bblocks rgraph))))
-
+
 (define (walk-bblocks bblocks)
   (let ((changed? false))
     (define (loop first-pass?)
@@ -74,11 +75,12 @@ MIT in each case. |#
 			     (regset-copy! (bblock-live-at-entry bblock)
 					   (bblock-live-at-exit bblock))
 			     (propagate-block bblock)
-			     (for-each-previous-node bblock
-			       (lambda (bblock*)
-				 (regset-union!
-				  (bblock-new-live-at-exit bblock*)
-				  (bblock-live-at-entry bblock)))))))
+			     (for-each-previous-node
+			      bblock
+			      (lambda (bblock*)
+				(regset-union!
+				 (bblock-new-live-at-exit bblock*)
+				 (bblock-live-at-entry bblock)))))))
 		bblocks)
       (if changed?
 	  (begin (set! changed? false)
@@ -89,6 +91,14 @@ MIT in each case. |#
 		      (propagate-block&delete! bblock))
 		    bblocks)))
     (loop true)))
+
+(define (regset-population-count regset)
+  (let ((result 0))
+    (for-each-regset-member regset
+			    (lambda (index)
+			      (set! result (+ result 1))
+			      index))
+    result))
 
 (define (propagate-block bblock)
   (propagation-loop bblock
@@ -106,10 +116,11 @@ MIT in each case. |#
   (propagation-loop bblock
     (lambda (dead live rinst)
       (let ((rtl (rinst-rtl rinst))
-	    (old (bblock-live-at-entry bblock)))
+	    (old (bblock-live-at-entry bblock))
+	    (new (bblock-live-at-exit bblock)))
 	(if (rtl:invocation? rtl)
 	    (for-each-regset-member old register-crosses-call!))
-	(if (instruction-dead? rtl old)
+	(if (instruction-dead? rtl old new)
 	    (set-rinst-rtl! rinst false)
 	    (begin
 	      (update-live-registers! old dead live rtl bblock rinst)
@@ -157,13 +168,20 @@ MIT in each case. |#
 				       (rinst-dead-registers rinst)))
 				(increment-register-n-deaths! register))))))
 	(rtl:for-each-subexpression expression loop)))
-  (if (and (rtl:assign? rtl)
-	   (rtl:register? (rtl:assign-address rtl)))
-      (if (let ((register (rtl:register-number (rtl:assign-address rtl))))
-	    (or (machine-register? register)
-		(regset-member? needed register)))
-	  (loop (rtl:assign-expression rtl)))
-      (rtl:for-each-subexpression rtl loop)))
+  (cond ((and (rtl:assign? rtl)
+	      (rtl:register? (rtl:assign-address rtl)))
+	 (if (let ((register (rtl:register-number (rtl:assign-address rtl))))
+	       (or (machine-register? register)
+		   (regset-member? needed register)))
+	     (let ((expr (rtl:assign-expression rtl)))
+	       (and (not (rtl:restore? expr))
+		    (loop expr)))))
+	((or (rtl:preserve? rtl)
+	     (rtl:restore? rtl))
+	 ;; ignored at this stage
+	 unspecific)
+	(else
+	 (rtl:for-each-subexpression rtl loop))))
 
 (define (record-register-reference register bblock)
   (let ((bblock* (register-bblock register)))
@@ -173,15 +191,24 @@ MIT in each case. |#
 	   (set-register-bblock! register 'NON-LOCAL)))
     (increment-register-n-refs! register)))
 
-(define (instruction-dead? rtl needed)
-  (and (rtl:assign? rtl)
-       (let ((address (rtl:assign-address rtl)))
-	 (and (rtl:register? address)
-	      (let ((register (rtl:register-number address)))
-		(and (pseudo-register? register)
-		     (not (regset-member? needed register))))))
-       (not (rtl:expression-contains? (rtl:assign-expression rtl)
-				      rtl:volatile-expression?))))
+(define (instruction-dead? rtl needed computed)
+  (cond ((rtl:assign? rtl)
+	 (and (let ((address (rtl:assign-address rtl)))
+		(and (rtl:register? address)
+		     (let ((register (rtl:register-number address)))
+		       (and (pseudo-register? register)
+			    (not (regset-member? needed register))))))
+	      (not (rtl:expression-contains? (rtl:assign-expression rtl)
+					     rtl:volatile-expression?))))
+	((rtl:preserve? rtl)
+	 (let ((reg (rtl:register-number (rtl:preserve-register rtl))))
+	   (and (pseudo-register? reg)
+		(not (regset-member? computed reg)))))
+	((rtl:restore? rtl)
+	 (let ((reg (rtl:register-number (rtl:restore-register rtl))))
+	   (not (regset-member? needed reg))))
+	(else
+	 false)))
 
 (define (interesting-register? expression)
   (and (rtl:register? expression)
