@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.95.2.3.2.2 2000/12/01 20:59:25 cph Exp $
+$Id: bchmmg.c,v 9.95.2.3.2.3 2000/12/01 21:52:07 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -2117,9 +2117,6 @@ DEFUN (open_gc_file, (size, unlink_p),
 
 #define CONSTANT_SPACE_FUDGE	128
 
-extern void EXFUN (reset_allocator_parameters, (void));
-extern Boolean EXFUN (update_allocator_parameters, (SCHEME_OBJECT *));
-
 Boolean
 DEFUN (update_allocator_parameters, (ctop), SCHEME_OBJECT * ctop)
 {
@@ -3256,10 +3253,13 @@ void
 DEFUN (GC, (weak_pair_transport_initialized_p),
        int weak_pair_transport_initialized_p)
 {
-  SCHEME_OBJECT
-    * root, * result, * end_of_constant_area,
-    the_precious_objects, * root2,
-    * free_buffer, * block_start, * saved_ctop;
+  SCHEME_OBJECT * root;
+  SCHEME_OBJECT * end_of_constant_area;
+  SCHEME_OBJECT the_precious_objects;
+  SCHEME_OBJECT * root2;
+  SCHEME_OBJECT * free_buffer;
+  SCHEME_OBJECT * block_start;
+  SCHEME_OBJECT * saved_ctop;
   long skip_length;
 
   saved_ctop = Constant_Top;
@@ -3267,7 +3267,7 @@ DEFUN (GC, (weak_pair_transport_initialized_p),
       && (update_allocator_parameters (Free_Constant)))
     Constant_Top = saved_ctop;
 
-  if (! weak_pair_transport_initialized_p)
+  if (!weak_pair_transport_initialized_p)
     initialize_weak_pair_transport (Stack_Bottom);
 
   free_buffer = (initialize_free_buffer ());
@@ -3287,54 +3287,41 @@ DEFUN (GC, (weak_pair_transport_initialized_p),
 
   Free += (GC_relocate_root (&free_buffer));
 
-  result
-    = (gc_loop ((CONSTANT_AREA_START ()), &free_buffer, &Free,
-		Constant_Top, NORMAL_GC));
-  if (result != end_of_constant_area)
   {
-    outf_fatal ("\n%s (GC): The Constant Space scan ended too early.\n",
-		scheme_program_name);
-    Microcode_Termination (TERM_EXIT);
-    /*NOTREACHED*/
+    SCHEME_OBJECT * new_scan
+      = (gc_loop ((CONSTANT_AREA_START ()), (&free_buffer), (&Free),
+		  Constant_Top, NORMAL_GC, 0));
+    if (new_scan != end_of_constant_area)
+      {
+	gc_death (TERM_EXIT, "gc_loop ended too early", new_scan, free_buffer);
+	/*NOTREACHED*/
+      }
   }
 
-  result
-    = (gc_loop (((initialize_scan_buffer (block_start)) + skip_length),
-		&free_buffer, &Free, Constant_Top, NORMAL_GC));
-  if (free_buffer != result)
   {
-    outf_fatal ("\n%s (GC): The Heap scan ended too early.\n",
-		scheme_program_name);
-    Microcode_Termination (TERM_EXIT);
-    /*NOTREACHED*/
+    SCHEME_OBJECT * scan
+      = (gc_loop (((initialize_scan_buffer (block_start)) + skip_length),
+		  (&free_buffer), (&Free), Constant_Top, NORMAL_GC, 1));
+
+    root2 = Free;
+    (*free_buffer++) = the_precious_objects;
+    Free += 1;
+    if (free_buffer >= free_buffer_top)
+      free_buffer = (dump_and_reset_free_buffer (free_buffer, 0));
+
+    gc_loop (scan, (&free_buffer), (&Free), Constant_Top, NORMAL_GC, 1);
   }
 
-  root2 = Free;
-  *free_buffer++ = the_precious_objects;
-  Free += (free_buffer - result);
-  if (free_buffer >= free_buffer_top)
-    free_buffer = (dump_and_reset_free_buffer (free_buffer, 0));
-
-  result = (gc_loop (result, &free_buffer, &Free, Constant_Top, NORMAL_GC));
-  if (free_buffer != result)
-  {
-    outf_fatal ("\n%s (GC): The Precious Object scan ended too early.\n",
-		scheme_program_name);
-    Microcode_Termination (TERM_EXIT);
-    /*NOTREACHED*/
-  }
-  end_transport (NULL);
+  end_transport (0);
   fix_weak_chain_1 (Constant_Top);
 
   /* Load new space into memory. */
-
   final_reload (block_start, (Free - block_start), "new space");
-  fix_weak_chain_2 ();
 
+  fix_weak_chain_2 ();
   GC_end_root_relocation (root, root2);
   Constant_Top = saved_ctop;
   SET_CONSTANT_TOP ();
-  return;
 }
 
 /* (GARBAGE-COLLECT SLACK)

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcl.c,v 9.50.4.4 2000/12/01 20:29:20 cph Exp $
+$Id: bchgcl.c,v 9.50.4.5 2000/12/01 21:52:03 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -64,12 +64,13 @@ DEFUN (transport_vector_tail, (free, free_end, tail),
 }
 
 SCHEME_OBJECT *
-DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode),
+DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode, require_normal_end),
        SCHEME_OBJECT * scan AND
        SCHEME_OBJECT ** free_ptr AND
        SCHEME_OBJECT ** new_address_ptr AND
        SCHEME_OBJECT * low_heap AND
-       gc_mode_t gc_mode)
+       gc_mode_t gc_mode AND
+       int require_normal_end)
 {
   SCHEME_OBJECT * free = (*free_ptr);
   SCHEME_OBJECT * new_address = (*new_address_ptr);
@@ -719,5 +720,10 @@ DEFUN (gc_loop, (scan, free_ptr, new_address_ptr, gc_mode),
  end_gc_loop:
   (*free_ptr) = free;
   (*new_address_ptr) = new_address;
+  if (require_normal_end && (scan != free))
+    {
+      gc_death (TERM_BROKEN_HEART, "gc_loop ended too early", scan, free);
+      /*NOTREACHED*/
+    }
   return (scan);
 }

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchpur.c,v 9.67.2.2.2.2 2000/12/01 20:59:28 cph Exp $
+$Id: bchpur.c,v 9.67.2.2.2.3 2000/12/01 21:52:10 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -33,229 +33,9 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "prims.h"
 #include "bchgcc.h"
 #include "zones.h"
-
-/* This is not paranoia!
-   The two words in the header may overflow the free buffer.
- */
 
-static SCHEME_OBJECT *
-DEFUN (purify_header_overflow, (free_buffer), SCHEME_OBJECT * free_buffer)
-{
-  long delta;
-  SCHEME_OBJECT * scan_buffer;
-
-  delta = (free_buffer - free_buffer_top);
-  free_buffer = (dump_and_reset_free_buffer (free_buffer, 0));
-  scan_buffer = (dump_and_reload_scan_buffer (scan_buffer_top, 0));
-  if ((scan_buffer + delta) != free_buffer)
-  {
-    gc_death (TERM_EXIT,
-	      "purify: scan and free do not meet at the end",
-	      (scan_buffer + delta), free_buffer);
-    /*NOTREACHED*/
-  }
-  return (free_buffer);
-}
-
-static void
-DEFUN (purify, (object, pure_p),
-       SCHEME_OBJECT object AND Boolean pure_p)
-{
-  long length, pure_length, delta;
-  SCHEME_OBJECT
-    * result, * free_buffer_ptr,
-    * old_free_const, * block_start,
-    * scan_start, * new_free_const, * pending_scan,
-    * root, * root2, the_precious_objects;
-  struct saved_scan_state scan_state;
-  extern Boolean EXFUN (update_allocator_parameters, (SCHEME_OBJECT *));
-
-  run_pre_gc_hooks ();
-  STACK_SANITY_CHECK ("PURIFY");
-  initialize_weak_pair_transport (Stack_Bottom);
-  free_buffer_ptr = (initialize_free_buffer ());
-  Terminate_Old_Stacklet ();
-  SEAL_CONSTANT_SPACE ();
-  the_precious_objects = (Get_Fixed_Obj_Slot (Precious_Objects));
-
-  Constant_Top = Free_Constant;
-  old_free_const = Free_Constant;
-  new_free_const = old_free_const;
-  block_start = ((SCHEME_OBJECT *) (ALIGN_DOWN_TO_IO_PAGE (old_free_const)));
-  delta = (old_free_const - block_start);
-
-  free_buffer_ptr += delta;
-  new_free_const += 2;
-  * free_buffer_ptr++ = SHARP_F;	/* Pure block header. */
-  * free_buffer_ptr++ = object;
-  if (free_buffer_ptr >= free_buffer_top)
-    free_buffer_ptr = (dump_and_reset_free_buffer (free_buffer_ptr, 0));
-
-  if (! pure_p)
-    pure_length = 3;
-  else
-  {
-    scan_start = ((initialize_scan_buffer (block_start)) + delta);
-    result
-      = (gc_loop (scan_start, (&free_buffer_ptr), (&new_free_const),
-		  Constant_Top, PURE_COPY));
-    if (result != free_buffer_ptr)
-      gc_death (TERM_BROKEN_HEART,
-		"purify: pure copy ended too early",
-		result, free_buffer_ptr);
-      /*NOTREACHED*/
-    pure_length = ((new_free_const - old_free_const) + 1);
-  }
-
-  * free_buffer_ptr++ =
-    (pure_p
-     ? (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, new_free_const))
-     : (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1)));
-  * free_buffer_ptr++ = (MAKE_OBJECT (CONSTANT_PART, pure_length));
-  new_free_const += 2;
-  if (free_buffer_ptr >= free_buffer_top)
-    free_buffer_ptr = (purify_header_overflow (free_buffer_ptr));
-
-  scan_start = ((initialize_scan_buffer (block_start)) + delta);
-  if (!pure_p)
-    result
-      = (gc_loop (scan_start, (&free_buffer_ptr), (&new_free_const),
-		  Constant_Top, NORMAL_GC));
-  else
-  {
-    SCHEME_OBJECT * pure_area_limit = (new_free_const - 2);
-    result
-      = (gc_loop (scan_start, (&free_buffer_ptr), (&new_free_const),
-		  Constant_Top, CONSTANT_COPY));
-    if ((*result) != (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, pure_area_limit)))
-      gc_death (TERM_BROKEN_HEART,
-		"purify: constant forwarding ended too early",
-		result, free_buffer_ptr);
-    (*result) = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1));
-    result
-      = (gc_loop ((result + 2), (&free_buffer_ptr), (&new_free_const),
-		  Constant_Top, NORMAL_GC));
-  }
-
-  if (result != free_buffer_ptr)
-    gc_death (TERM_BROKEN_HEART, "purify: constant copy ended too early",
-	      result, free_buffer_ptr);
-    /*NOTREACHED*/
-
-  pending_scan = result;
-  new_free_const += 2;
-  length = (new_free_const - old_free_const);
-  * free_buffer_ptr++ = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1));
-  * free_buffer_ptr++ = (MAKE_OBJECT (END_OF_BLOCK, (length - 1)));
-  if (free_buffer_ptr >= free_buffer_top)
-    free_buffer_ptr = (dump_and_reset_free_buffer (free_buffer_ptr, 0));
-
-  Free_Constant = new_free_const;
-  if (! (update_allocator_parameters (Free_Constant)))
-    gc_death (TERM_NO_SPACE, "purify: object too large", NULL, NULL);
-    /*NOTREACHED*/
-
-  while (! (FLOATING_ALIGNED_P (Free_Constant)))
-  {
-    *free_buffer_ptr++ = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, 0));
-    Free_Constant++;
-  }
-
-  if (Constant_Top > Free_Constant)
-  {
-    /* This assumes that the distance between the new constant space
-       and the new free constant is smaller than a bufferfull.
-     */
-
-    long bump = (Constant_Top - Free_Constant);
-
-    *free_buffer_ptr = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR,
-				     (bump - 1)));
-    free_buffer_ptr += bump;
-    if (free_buffer_ptr >= free_buffer_top)
-      free_buffer_ptr = (dump_and_reset_free_buffer (free_buffer_ptr, 0));
-  }
-
-  while (! (FLOATING_ALIGNED_P (Free)))
-  {
-    *free_buffer_ptr++ = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, 0));
-    Free++;
-  }
-
-  root = Free;
-  Free += (GC_relocate_root (&free_buffer_ptr));
-
-  save_scan_state ((&scan_state), pending_scan);
-  set_fixed_scan_area (0, Highest_Allocated_Address);
-
-  result
-    = (gc_loop ((CONSTANT_AREA_START ()), (&free_buffer_ptr), (&Free),
-		old_free_const, NORMAL_GC));
-  if (result != old_free_const)
-  {
-    outf_fatal ("\n%s (purify): The Constant Space scan ended too early.\n",
-		scheme_program_name);
-    Microcode_Termination (TERM_EXIT);
-    /*NOTREACHED*/
-  }
-
-  pending_scan = (restore_scan_state (&scan_state));
-
-  result
-    = (gc_loop (pending_scan, (&free_buffer_ptr), (&Free),
-		old_free_const, NORMAL_GC));
-  if (free_buffer_ptr != result)
-  {
-    outf_fatal ("\n%s (GC): The Heap scan ended too early.\n",
-		scheme_program_name);
-    Microcode_Termination (TERM_EXIT);
-    /*NOTREACHED*/
-  }
-
-  root2 = Free;
-  *free_buffer_ptr++ = the_precious_objects;
-  Free += (free_buffer_ptr - result);
-  if (free_buffer_ptr >= free_buffer_top)
-    free_buffer_ptr = (dump_and_reset_free_buffer (free_buffer_ptr, 0));
-
-  result
-    = (gc_loop (result, (&free_buffer_ptr), (&Free),
-		old_free_const, NORMAL_GC));
-  if (free_buffer_ptr != result)
-  {
-    outf_fatal ("\n%s (GC): The Precious Object scan ended too early.\n",
-		scheme_program_name);
-    Microcode_Termination (TERM_EXIT);
-    /*NOTREACHED*/
-  }
-  end_transport (NULL);
-  fix_weak_chain_1 (old_free_const);
-
-  /* Load new space into memory carefully to prevent the shared
-     buffer from losing any values.
-   */
-
-  {
-    long counter;
-
-    for (counter = 0; counter < delta; counter++)
-      scan_buffer_bottom[counter] = block_start[counter];
-
-    final_reload (block_start, (Free - block_start), "new space");
-
-    for (counter = 0; counter < delta; counter++)
-      block_start[counter] = scan_buffer_bottom[counter];
-  }
-  fix_weak_chain_2 ();
-
-  GC_end_root_relocation (root, root2);
-
-  * old_free_const++ = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR,
-				     pure_length));
-  * old_free_const = (MAKE_OBJECT (PURE_PART, (length - 1)));
-  SEAL_CONSTANT_SPACE ();
-  run_post_gc_hooks ();
-}
+static void EXFUN (purify, (SCHEME_OBJECT, Boolean));
+static SCHEME_OBJECT * EXFUN (purify_header_overflow, (SCHEME_OBJECT *));
 
 /* (PRIMITIVE-PURIFY OBJECT PURE? SAFETY-MARGIN)
 
@@ -271,8 +51,7 @@ DEFUN (purify, (object, pure_p),
 
    This primitive does not return normally.  It always escapes into
    the interpreter because some of its cached registers (eg. History)
-   have changed.  
-*/
+   have changed.  */
 
 DEFINE_PRIMITIVE ("PRIMITIVE-PURIFY", Prim_primitive_purify, 3, 3, 0)
 {
@@ -306,8 +85,10 @@ DEFINE_PRIMITIVE ("PRIMITIVE-PURIFY", Prim_primitive_purify, 3, 3, 0)
   RENAME_CRITICAL_SECTION ("purify daemon");
   daemon = (Get_Fixed_Obj_Slot (GC_Daemon));
   if (daemon == SHARP_F)
-    PRIMITIVE_ABORT (PRIM_POP_RETURN);
-    /*NOTREACHED*/
+    {
+      PRIMITIVE_ABORT (PRIM_POP_RETURN);
+      /*NOTREACHED*/
+    }
 
  Will_Push (2);
   STACK_PUSH (daemon);
@@ -315,5 +96,201 @@ DEFINE_PRIMITIVE ("PRIMITIVE-PURIFY", Prim_primitive_purify, 3, 3, 0)
  Pushed ();
   PRIMITIVE_ABORT (PRIM_APPLY);
   /*NOTREACHED*/
-  return (0);
+  return (UNSPECIFIC);
+}
+
+static void
+DEFUN (purify, (object, pure_p), SCHEME_OBJECT object AND Boolean pure_p)
+{
+  long length;
+  long pure_length;
+  long delta;
+  SCHEME_OBJECT * free_buffer_ptr;
+  SCHEME_OBJECT * old_free_const;
+  SCHEME_OBJECT * block_start;
+  SCHEME_OBJECT * new_free_const;
+  SCHEME_OBJECT * pending_scan;
+  SCHEME_OBJECT * root;
+  SCHEME_OBJECT * root2;
+  SCHEME_OBJECT the_precious_objects;
+
+  run_pre_gc_hooks ();
+  STACK_SANITY_CHECK ("PURIFY");
+  initialize_weak_pair_transport (Stack_Bottom);
+  free_buffer_ptr = (initialize_free_buffer ());
+  Terminate_Old_Stacklet ();
+  SEAL_CONSTANT_SPACE ();
+  the_precious_objects = (Get_Fixed_Obj_Slot (Precious_Objects));
+
+  Constant_Top = Free_Constant;
+  old_free_const = Free_Constant;
+  new_free_const = old_free_const;
+  block_start = ((SCHEME_OBJECT *) (ALIGN_DOWN_TO_IO_PAGE (old_free_const)));
+  delta = (old_free_const - block_start);
+
+  free_buffer_ptr += delta;
+  (*free_buffer_ptr++) = SHARP_F;	/* Pure block header. */
+  (*free_buffer_ptr++) = object;
+  new_free_const += 2;
+  if (free_buffer_ptr >= free_buffer_top)
+    free_buffer_ptr = (dump_and_reset_free_buffer (free_buffer_ptr, 0));
+
+  if (pure_p)
+    {
+      gc_loop (((initialize_scan_buffer (block_start)) + delta),
+	       (&free_buffer_ptr), (&new_free_const), Constant_Top,
+	       PURE_COPY, 1);
+      pure_length = ((new_free_const - old_free_const) + 1);
+    }
+  else
+    pure_length = 3;
+
+  (*free_buffer_ptr++)
+    = (pure_p
+       ? (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, new_free_const))
+       : (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1)));
+  (*free_buffer_ptr++) = (MAKE_OBJECT (CONSTANT_PART, pure_length));
+  new_free_const += 2;
+  if (free_buffer_ptr >= free_buffer_top)
+    free_buffer_ptr = (purify_header_overflow (free_buffer_ptr));
+
+  {
+    SCHEME_OBJECT * scan_start
+      = ((initialize_scan_buffer (block_start)) + delta);
+    if (pure_p)
+      {
+	SCHEME_OBJECT * pure_area_limit = (new_free_const - 2);
+	SCHEME_OBJECT * result
+	  = (gc_loop (scan_start, (&free_buffer_ptr), (&new_free_const),
+		      Constant_Top, CONSTANT_COPY, 0));
+	if ((*result)
+	    != (MAKE_POINTER_OBJECT (TC_BROKEN_HEART, pure_area_limit)))
+	  {
+	    gc_death (TERM_BROKEN_HEART, "gc_loop ended too early",
+		      result, free_buffer_ptr);
+	    /*NOTREACHED*/
+	  }
+	(*result) = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1));
+	scan_start = (result + 2);
+      }
+    pending_scan
+      = (gc_loop (scan_start, (&free_buffer_ptr), (&new_free_const),
+		  Constant_Top, NORMAL_GC, 1));
+  }
+
+  length = (new_free_const + 1 - old_free_const);
+  (*free_buffer_ptr++) = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1));
+  (*free_buffer_ptr++) = (MAKE_OBJECT (END_OF_BLOCK, length));
+  new_free_const += 2;
+  if (free_buffer_ptr >= free_buffer_top)
+    free_buffer_ptr = (dump_and_reset_free_buffer (free_buffer_ptr, 0));
+
+  Free_Constant = new_free_const;
+  if (!update_allocator_parameters (Free_Constant))
+    {
+      gc_death (TERM_NO_SPACE, "purify: object too large", NULL, NULL);
+      /*NOTREACHED*/
+    }
+  while (!FLOATING_ALIGNED_P (Free_Constant))
+    {
+      (*free_buffer_ptr++) = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, 0));
+      Free_Constant += 1;
+    }
+  if (Constant_Top > Free_Constant)
+    {
+      /* This assumes that the distance between the new constant space
+	 and the new free constant is smaller than a bufferful.  */
+      long bump = (Constant_Top - Free_Constant);
+      (*free_buffer_ptr)
+	= (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, (bump - 1)));
+      free_buffer_ptr += bump;
+      if (free_buffer_ptr >= free_buffer_top)
+	free_buffer_ptr = (dump_and_reset_free_buffer (free_buffer_ptr, 0));
+    }
+  while (!FLOATING_ALIGNED_P (Free))
+    {
+      (*free_buffer_ptr++) = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, 0));
+      Free += 1;
+    }
+
+  root = Free;
+  Free += (GC_relocate_root (&free_buffer_ptr));
+
+  {
+    struct saved_scan_state scan_state;
+    save_scan_state ((&scan_state), pending_scan);
+    set_fixed_scan_area (0, Highest_Allocated_Address);
+    {
+      SCHEME_OBJECT * result
+	= (gc_loop ((CONSTANT_AREA_START ()), (&free_buffer_ptr), (&Free),
+		    old_free_const, NORMAL_GC, 0));
+      if (result != old_free_const)
+	{
+	  gc_death (TERM_EXIT, "gc_loop ended too early",
+		    result, free_buffer_ptr);
+	  /*NOTREACHED*/
+	}
+    }
+    pending_scan = (restore_scan_state (&scan_state));
+  }
+
+  pending_scan
+    = (gc_loop (pending_scan, (&free_buffer_ptr), (&Free),
+		old_free_const, NORMAL_GC, 1));
+
+  root2 = Free;
+  (*free_buffer_ptr++) = the_precious_objects;
+  Free += 1;
+  if (free_buffer_ptr >= free_buffer_top)
+    free_buffer_ptr = (dump_and_reset_free_buffer (free_buffer_ptr, 0));
+
+  gc_loop (pending_scan, (&free_buffer_ptr), (&Free),
+	   old_free_const, NORMAL_GC, 1);
+
+  end_transport (0);
+  fix_weak_chain_1 (old_free_const);
+
+  /* Load new space into memory carefully to prevent the shared
+     buffer from losing any values.  */
+  {
+    unsigned long counter;
+
+    for (counter = 0; (counter < delta); counter += 1)
+      (scan_buffer_bottom[counter]) = (block_start[counter]);
+
+    final_reload (block_start, (Free - block_start), "new space");
+
+    for (counter = 0; (counter < delta); counter += 1)
+      (block_start[counter]) = (scan_buffer_bottom[counter]);
+  }
+
+  fix_weak_chain_2 ();
+  GC_end_root_relocation (root, root2);
+
+  (*old_free_const++)
+    = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, pure_length));
+  (*old_free_const) = (MAKE_OBJECT (PURE_PART, length));
+  SEAL_CONSTANT_SPACE ();
+  run_post_gc_hooks ();
+}
+
+/* This is not paranoia!
+   The two words in the header may overflow the free buffer.  */
+static SCHEME_OBJECT *
+DEFUN (purify_header_overflow, (free_buffer), SCHEME_OBJECT * free_buffer)
+{
+  long delta = (free_buffer - free_buffer_top);
+  free_buffer = (dump_and_reset_free_buffer (free_buffer, 0));
+  {
+    SCHEME_OBJECT * scan_buffer
+      = (dump_and_reload_scan_buffer (scan_buffer_top, 0));
+    if ((scan_buffer + delta) != free_buffer)
+      {
+	gc_death (TERM_EXIT,
+		  "purify: scan and free do not meet at the end",
+		  (scan_buffer + delta), free_buffer);
+	/*NOTREACHED*/
+      }
+  }
+  return (free_buffer);
 }

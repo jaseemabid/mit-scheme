@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcc.h,v 9.60.2.3.2.2 2000/12/01 20:59:21 cph Exp $
+$Id: bchgcc.h,v 9.60.2.3.2.3 2000/12/01 21:52:00 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -155,7 +155,7 @@ typedef enum { NORMAL_GC, PURE_COPY, CONSTANT_COPY } gc_mode_t;
 
 extern SCHEME_OBJECT * EXFUN
   (gc_loop, (SCHEME_OBJECT *, SCHEME_OBJECT **, SCHEME_OBJECT **,
-	     SCHEME_OBJECT *, gc_mode_t));
+	     SCHEME_OBJECT *, gc_mode_t, int));
 
 extern SCHEME_OBJECT
   * EXFUN (dump_and_reload_scan_buffer, (SCHEME_OBJECT *, Boolean *)),
@@ -185,6 +185,9 @@ extern char
 
 extern int
   EXFUN (swap_gc_file, (int));
+
+extern Boolean EXFUN (update_allocator_parameters, (SCHEME_OBJECT *));
+extern void EXFUN (reset_allocator_parameters, (void));
 
 /* Some utility macros */
 
