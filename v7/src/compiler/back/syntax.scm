@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/syntax.scm,v 1.14.1.1 1987/06/25 10:52:50 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/syntax.scm,v 1.14.1.2 1987/07/01 20:48:41 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -57,14 +57,15 @@ MIT in each case. |#
 		 (else
 		  (error "CONVERT-OUTPUT: Unknown directive" directive))))
 	 directives))
-  (internal (lap-instructions->directives directives)))
+  (internal (instruction-sequence->directives directives)))
 
-(define (syntax-instruction instruction)
+(define-export (lap:syntax-instruction instruction)
   (if (memq (car instruction) '(EQUATE SCHEME-OBJECT ENTRY-POINT LABEL))
-      (list instruction)
+      (directive->instruction-sequence instruction)
       (let ((match-result (instruction-lookup instruction)))
-	(or (and match-result (match-result))
-	    (error "SYNTAX-INSTRUCTION: Badly formed instruction"
+	(or (and match-result
+		 (instruction->instruction-sequence (match-result)))
+	    (error "LAP:SYNTAX-INSTRUCTION: Badly formed instruction"
 		   instruction)))))
 
 (define (instruction-lookup instruction)
@@ -94,7 +95,18 @@ MIT in each case. |#
       (coercion expression)
       (vector 'EVALUATION expression (coercion-size coercion) coercion)))
 
-(define optimize-group
+(define (optimize-group . components)
+  (optimize-group-internal components
+   (lambda (result make-group?)
+     (if make-group?
+	 `(GROUP ,@result)
+	 result))))
+
+;; For completeness
+
+(define optimize-group-early optimize-group)
+
+(define optimize-group-internal
   (let ()
     (define (loop1 components)
       (cond ((null? components) '())
@@ -115,11 +127,13 @@ MIT in each case. |#
 		   (cons (car components)
 			 (loop1 (cdr components)))))))
 
-    (lambda components
+    (lambda (components receiver)
       (let ((components (loop1 components)))
-	(cond ((null? components) (error "OPTIMIZE-GROUP: No components"))
-	      ((null? (cdr components)) (car components))
-	      (else `(GROUP ,@components)))))))
+	(cond ((null? components)
+	       (error "OPTIMIZE-GROUP: No components"))
+	      ((null? (cdr components))
+	       (receiver (car components) false))
+	      (else (receiver components true)))))))
 
 ;;;; Coercion Machinery
 
