@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.8 2002/01/18 17:56:26 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.9 2002/01/19 05:31:52 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -43,30 +43,21 @@
 
 (define (syntax* forms environment)
   (if (not (list? forms))
-      (error:wrong-type-argument forms "list" 'COMPILE/TOP-LEVEL))
-  (guarantee-syntactic-environment environment 'COMPILE/TOP-LEVEL)
+      (error:wrong-type-argument forms "list" 'SYNTAX*))
+  (guarantee-syntactic-environment environment 'SYNTAX*)
   (fluid-let ((*rename-suffix* 0))
-    (if (syntactic-environment/top-level-parent? environment)
-	(let* ((environment (make-top-level-syntactic-environment environment))
-	       (history (make-top-level-history forms environment)))
-	  (call-with-values
-	      (lambda ()
-		(extract-declarations-from-body
-		 (classify/body-forms forms environment environment history
-				      select-object)))
-	    (lambda (declaration-items body-items)
-	      (output/top-level-sequence
-	       (map declaration-item/text declaration-items)
-	       (map compile-item/top-level body-items)))))
-	(let ((history (make-top-level-history forms environment)))
-	  (output/sequence
-	   (select-map (lambda (form selector)
-			 (compile/subexpression form
-						environment
-						history
-						selector))
-		       forms
-		       select-object))))))
+    (if (syntactic-environment/top-level? environment)
+	(let ((environment (make-top-level-syntactic-environment environment)))
+	  (compile-body-items/top-level
+	   (classify/body-forms forms
+				environment
+				environment
+				(make-top-level-history forms environment)
+				select-object)))
+	(output/sequence
+	 (compile/expressions forms
+			      environment
+			      (make-top-level-history forms environment))))))
 
 (define (compile-item/top-level item)
   (if (binding-item? item)
@@ -81,6 +72,12 @@
 	     (compile-item/expression value))))
       (compile-item/expression item)))
 
+(define (compile-body-items/top-level body-items)
+  (call-with-values (lambda () (extract-declarations-from-body body-items))
+    (lambda (declaration-items body-items)
+      (output/top-level-sequence (map declaration-item/text declaration-items)
+				 (map compile-item/top-level body-items)))))
+
 (define (compile-item/expression item)
   (if (not (item? item))
       (error:wrong-type-argument item "item" 'COMPILE-ITEM/EXPRESSION))
@@ -105,9 +102,25 @@
 
 (define item-compilers '())
 
+(define (compile/expression expression environment history)
+  (compile-item/expression
+   (classify/expression expression environment history)))
+
+(define (compile/expressions expressions environment history)
+  (compile/subexpressions expressions environment history select-object))
+
 (define (compile/subexpression expression environment history selector)
   (compile-item/expression
    (classify/subexpression expression environment history selector)))
+
+(define (compile/subexpressions expressions environment history selector)
+  (select-map (lambda (expression selector)
+		(compile/subexpression expression
+				       environment
+				       history
+				       selector))
+	      expressions
+	      selector))
 
 ;;;; Classifier
 
@@ -352,10 +365,6 @@
   (or (top-level-syntactic-environment? object)
       (interpreter-environment? object)))
 
-(define (syntactic-environment/top-level-parent? object)
-  (or (syntactic-environment/top-level? object)
-      (null-syntactic-environment? object)))
-
 (define (lookup-identifier environment identifier)
   (let ((item (syntactic-environment/lookup environment identifier)))
     (cond (item
@@ -499,7 +508,8 @@
     (lambda (parent)
       (guarantee-syntactic-environment parent
 				       'MAKE-TOP-LEVEL-SYNTACTIC-ENVIRONMENT)
-      (if (not (syntactic-environment/top-level-parent? parent))
+      (if (not (or (syntactic-environment/top-level? parent)
+		   (null-syntactic-environment? parent)))
 	  (error:bad-range-argument parent "top-level syntactic environment"
 				    'MAKE-TOP-LEVEL-SYNTACTIC-ENVIRONMENT))
       (constructor parent '()))))
