@@ -1,6 +1,6 @@
 ### -*- Fundamental -*-
 ###
-### $Id: makefile.cmn,v 1.12.2.1.2.1 2000/12/02 05:54:11 cph Exp $
+### $Id: makefile.cmn,v 1.12.2.1.2.2 2000/12/04 01:55:08 cph Exp $
 ###
 ### Copyright (c) 1994-2000 Massachusetts Institute of Technology
 ###
@@ -258,7 +258,10 @@ breakup.exe: breakup.$(OBJ)
 wsize.exe: wsize.$(OBJ)
 ppband.exe: ppband.$(OBJ)
 
-clean :
+os2pm-dc.h os2pm-ed.h os2pm-id.h os2pm-mi.h os2pm-mt.h os2pm-rp.h: os2pm.scm
+	scheme -large < os2utl/mkos2pm.scm
+
+clean:
 	-del *.$(OBJ)
 	-del *.exe
 	-del *.res
