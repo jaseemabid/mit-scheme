@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/syntax.scm,v 1.14.1.2 1987/07/01 20:48:41 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/syntax.scm,v 1.14.1.3 1987/07/06 17:51:24 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -140,9 +140,9 @@ MIT in each case. |#
 (define (make-coercion-name coercion-type size)
   (string->symbol
    (string-append "COERCE-"
-		  (write-to-string size)
+		  (number->string size)
 		  "-BIT-"
-		  (write-to-string coercion-type))))
+		  (symbol->string coercion-type))))
 
 (define coercion-property-tag
   "Coercion")
