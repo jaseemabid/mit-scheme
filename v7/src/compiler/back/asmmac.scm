@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/asmmac.scm,v 1.2 1987/03/19 00:49:46 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/asmmac.scm,v 1.2.1.1 1987/06/10 21:25:24 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -50,10 +50,9 @@ MIT in each case. |#
   `(LIST
     ,@(map (lambda (case)
 	     (parse-rule (car case) (cdr case)
-	       (lambda (pattern names transformer qualifier actions)
+	       (lambda (pattern variables qualifier actions)
 		 `(CONS ',pattern
-			,(rule-result-expression names
-						 transformer
+			,(rule-result-expression variables
 						 qualifier
 						 (procedure pattern
 							    actions))))))
@@ -102,4 +101,5 @@ MIT in each case. |#
 	      ((null? (cdr components))
 	       (car components))
 	      (else
+	       `(OPTIMIZE-GROUP ,@components)))))))
 	       `(OPTIMIZE-GROUP ,@components)))))))
