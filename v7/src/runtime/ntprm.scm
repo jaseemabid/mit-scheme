@@ -1,14 +1,15 @@
 #| -*-Scheme-*-
 
-$Id: ntprm.scm,v 1.4 1996/04/09 20:13:30 adams Exp $
+$Id: ntprm.scm,v 1.4.1.1 1998/10/19 03:00:28 cph Exp $
 
-Copyright (c) 1992-96 Massachusetts Institute of Technology
+Copyright (c) 1992-98 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
-Computer Science.  Permission to copy this software, to redistribute
-it, and to use it for any purpose is granted, subject to the following
-restrictions and understandings.
+Computer Science.  Permission to copy and modify this software, to
+redistribute either the original software or a modified version, and
+to use this software for any purpose is granted, subject to the
+following restrictions and understandings.
 
 1. Any copy made of this software must include this copyright notice
 in full.
@@ -326,7 +327,8 @@ MIT in each case. |#
   ;; version, even if the VFAT driver is being used to provide long file names.
   (let* ((volume-info (nt-volume-info pathname))
 	 (fs-type     (nt-volume-info/file-system-name volume-info)))
-    (cond ((string-ci=? fs-type "VFAT")
+    (cond ((or (string-ci=? fs-type "VFAT")
+	       (string-ci=? fs-type "FAT32"))
 	   'VFAT)			; ``kind of''
 	  ((string-ci=? fs-type "FAT")
 	   #F)
