@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: macros.scm,v 4.22 2001/12/23 17:20:57 cph Exp $
+$Id: macros.scm,v 4.22.2.1 2002/01/16 23:10:01 cph Exp $
 
-Copyright (c) 1988-1999, 2001 Massachusetts Institute of Technology
+Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -59,15 +59,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 	   '())))))))
 
 (define-syntax define-export
-  (non-hygienic-macro-transformer
-   (lambda (pattern . body)
-     (parse-define-syntax pattern body
-       (lambda (name body)
-	 name
-	 `(SET! ,pattern ,@body))
-       (lambda (pattern body)
-	 `(SET! ,(car pattern)
-		(NAMED-LAMBDA ,pattern ,@body)))))))
+  (rsc-macro-transformer
+   (lambda (form environment)
+     (cond ((syntax-match? '(IDENTIFIER EXPRESSION) (cdr form))
+	    `(,(make-syntactic-closure environment '() 'SET!)
+	      ,@(cdr form)))
+	   ((syntax-match? '((IDENTIFIER . MIT-BVL) EXPRESSION) (cdr form))
+	    `(,(make-syntactic-closure environment '() 'SET!)
+	      ,(caadr form)
+	      (,(make-syntactic-closure environment '() 'NAMED-LAMBDA)
+	       ,@(cdr form))))
+	   (else
+	    (error "Ill-formed special form:" form))))))
 
 (define-syntax define-vector-slots
   (non-hygienic-macro-transformer
