@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.7 2002/01/18 05:35:37 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.8 2002/01/18 17:56:26 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -1132,8 +1132,8 @@
   (capture-expansion-history
    (lambda (history)
      (expander
-      (lambda (message irritant)
-	(syntax-error history message irritant))))))
+      (lambda rest
+	(apply syntax-error history rest))))))
 
 (define (flatten-body-items items)
   (append-map item->list items))

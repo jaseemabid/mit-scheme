@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-output.scm,v 1.1.2.4 2002/01/17 21:13:32 cph Exp $
+;;; $Id: syntax-output.scm,v 1.1.2.5 2002/01/18 17:56:31 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -23,9 +23,9 @@
 
 (declare (usual-integrations))
 
-(define (syntax-error history message irritant)
+(define (syntax-error history . rest)
   history				;ignore
-  (error message irritant))
+  (apply error rest))
 
 (define (transformer-eval expression environment)
   (eval expression environment))
