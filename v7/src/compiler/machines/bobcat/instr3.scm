@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/instr3.scm,v 1.9.1.1 1987/06/10 21:21:43 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/instr3.scm,v 1.9.1.2 1987/07/01 20:55:52 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -237,30 +237,17 @@ MIT in each case. |#
    (WORD (10 #b0100101011)
 	 (6 dea DESTINATION-EA))))
 
-(define-instruction MOVEQ
-  (((& (? data)) (D (? rx)))
-   (WORD (4 #b0111)
-	 (3 rx)
-	 (1 #b0)
-	 (8 data SIGNED))))
-
 (define-instruction MOVE
-  (((? s lw ssym) (? sea ea-all) (A (? rx)))	;MOVEA
-   (WORD (3 #b001)
-	 (1 s)
-	 (3 rx)
-	 (3 #b001)
-	 (6 sea SOURCE-EA ssym)))
-
   ((B (? sea ea-all-A) (? dea ea-d&a))
-   (WORD (2 #b00)
-	 (2 #b01)
+   (WORD (3 #b000)
+	 (1 #b1)
 	 (6 dea DESTINATION-EA-REVERSED)
 	 (6 sea SOURCE-EA 'B)))
 
-  (((? s lw ssym) (? sea ea-all) (? dea ea-d&a))
-   (WORD (2 #b00)
-	 (1 #b1)
+  ;; the following includes the MOVEA instruction
+
+  (((? s lw ssym) (? sea ea-all) (? dea ea-all))
+   (WORD (3 #b001)
 	 (1 s)
 	 (6 dea DESTINATION-EA-REVERSED)
 	 (6 sea SOURCE-EA ssym)))
@@ -285,6 +272,30 @@ MIT in each case. |#
    (WORD (13 #b0100111001100)
 	 (3 rx))))
 
+;; These are separated for efficiency, less rules to try
+
+(define-instruction MOVE/SIMPLE
+  ((B (? sea ea-all-A) (? dea ea-d&a))
+   (WORD (3 #b000)
+	 (1 #b1)
+	 (6 dea DESTINATION-EA-REVERSED)
+	 (6 sea SOURCE-EA 'B)))
+
+  ;; the following includes the MOVEA instruction
+
+  (((? s lw ssym) (? sea ea-all) (? dea ea-all))
+   (WORD (3 #b001)
+	 (1 s)
+	 (6 dea DESTINATION-EA-REVERSED)
+	 (6 sea SOURCE-EA ssym))))
+
+(define-instruction MOVEQ
+  (((& (? data)) (D (? rx)))
+   (WORD (4 #b0111)
+	 (3 rx)
+	 (1 #b0)
+	 (8 data SIGNED))))
+
 (define-instruction MOVEM
   (((? s wl) (? r @+reg-list) (? dea ea-c&a))
    (WORD (9 #b010010001)
@@ -347,5 +358,4 @@ MIT in each case. |#
 	 (1 s)
 	 (3 #b001)
 	 (3 ry))
-   (relative-word l)))
    (relative-word l)))
