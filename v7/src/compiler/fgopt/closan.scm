@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/closan.scm,v 4.4.1.1 1988/11/29 22:52:27 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/closan.scm,v 4.4.1.2 1988/12/12 21:28:04 cph Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -75,6 +75,7 @@ result, the analysis has been modified to force the closure-limit to
 
 (define-export (identify-closure-limits! procedures applications assignments)
   (for-each initialize-closure-limit! procedures)
+  (for-each initialize-combination-model! applications)
   (for-each close-passed-out! procedures)
   (for-each close-assignment-values! assignments)
   (close-application-elements! applications))
@@ -83,6 +84,12 @@ result, the analysis has been modified to force the closure-limit to
   (if (not (procedure-continuation? procedure))
       (set-procedure-closing-limit! procedure
 				    (procedure-closing-block procedure))))
+
+(define (initialize-combination-model! application)
+  (if (application/combination? application)
+      (set-combination/model!
+       application
+       (rvalue-known-value (combination/operator application)))))
 
 (define (close-passed-out! procedure)
   (if (and (not (procedure-continuation? procedure))
@@ -112,39 +119,39 @@ result, the analysis has been modified to force the closure-limit to
 ;; pointer to the code.
 
 (define (close-application-elements! applications)
-  (let loop ((applications applications)
-	     (potential-winners '()))
+  (let loop ((applications applications) (potential-winners '()))
     (if (null? applications)
 	(maybe-close-multiple-operators! potential-winners)
-	(let ((application (car applications)))
-	  (close-application-arguments! application)
-	  (let ((operator (application-operator application)))
-	    (cond ((not (application/combination? application))
-		   (loop (cdr applications) potential-winners))
-		  ((rvalue-passed-in? operator)
-		   (close-rvalue! operator false
-				  'APPLY-COMPATIBILITY application)
-		   (loop (cdr applications) potential-winners))
-		  ((or (rvalue-known-value operator)
-		       ;; Paranoia
-		       (and (null? (rvalue-values operator))
-			    (error "Operator has no values and not passed in"
-				   operator application)))
-		   (loop (cdr applications) potential-winners))
-		  (else
-		   (let ((class
-			  (compatibility-class (rvalue-values operator))))
-		     (if (not (eq? class 'APPLY-COMPATIBILITY))
-			 (set-combination/model!
-			  application
-			  (car (rvalue-values operator))))
-		     (if (eq? class 'POTENTIAL)
-			 (loop (cdr applications)
-			       (cons application potential-winners))
-			 (begin
-			   (close-rvalue! operator false class application)
-			   (loop (cdr applications)
-				 potential-winners)))))))))))
+	(loop
+	 (cdr applications)
+	 (let ((application (car applications)))
+	   (close-application-arguments! application)
+	   (let ((operator (application-operator application)))
+	     (cond ((or (not (application/combination? application))
+			(rvalue-known-value operator))
+		    potential-winners)
+		   ((rvalue-passed-in? operator)
+		    (close-rvalue! operator
+				   false
+				   'APPLY-COMPATIBILITY
+				   application)
+		    potential-winners)
+		   ((and (null? (rvalue-values operator))
+			 (error "Operator has no values and not passed in"
+				operator application))
+		    potential-winners)
+		   (else
+		    (let ((class
+			   (compatibility-class (rvalue-values operator))))
+		      (if (not (eq? class 'APPLY-COMPATIBILITY))
+			  (set-combination/model!
+			   application
+			   (car (rvalue-values operator))))
+		      (if (eq? class 'POTENTIAL)
+			  (cons application potential-winners)
+			  (begin
+			    (close-rvalue! operator false class application)
+			    potential-winners)))))))))))
 
 (define (with-procedure-arity proc receiver)
   (let ((req (length (procedure-required proc))))
@@ -238,9 +245,9 @@ result, the analysis has been modified to force the closure-limit to
 	   (let ((new-closing-limit false))
 	     (set-procedure-closing-limit! procedure new-closing-limit)
 	     (add-closure-reason! procedure reason1 reason2)
-	     (if (not (procedure-closure-block procedure))
+	     (if (not (procedure-closure-context procedure))
 		 ;; Force the procedure's type to CLOSURE.
-		 (set-procedure-closure-block! procedure true))
+		 (set-procedure-closure-context! procedure true))
 	     (close-callees! (procedure-block procedure)
 			     new-closing-limit
 			     procedure)))
