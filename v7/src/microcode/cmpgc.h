@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpgc.h,v 1.30.2.1 2000/11/27 05:57:53 cph Exp $
+$Id: cmpgc.h,v 1.30.2.2 2000/11/28 21:14:15 cph Exp $
 
 Copyright (c) 1989-2000 Massachusetts Institute of Technology
 
@@ -108,7 +108,7 @@ else
 
 #define RELOCATE_COMPILED_RAW_ADDRESS(addr, new_block, old_block)	\
   (ADDR_TO_SCHEME_ADDR							\
-   (RELOCATE_COMPILED_INTERNAL ((SCHEME_ADDR_TO_ADDR (Temp)),		\
+   (RELOCATE_COMPILED_INTERNAL ((SCHEME_ADDR_TO_ADDR (addr)),		\
 				new_block, old_block)))
 
 #define RELOCATE_COMPILED_ADDRESS(object, new_block, old_block)		\
