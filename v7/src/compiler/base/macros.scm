@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: macros.scm,v 4.22.2.2 2002/01/18 03:29:06 cph Exp $
+$Id: macros.scm,v 4.22.2.3 2002/01/18 05:34:16 cph Exp $
 
 Copyright (c) 1988-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -56,7 +56,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
      (cond ((syntax-match? '(IDENTIFIER EXPRESSION) (cdr form))
 	    `(,(make-syntactic-closure environment '() 'SET!)
 	      ,@(cdr form)))
-	   ((syntax-match? '((IDENTIFIER . MIT-BVL) EXPRESSION) (cdr form))
+	   ((syntax-match? '((IDENTIFIER . MIT-BVL) + EXPRESSION) (cdr form))
 	    `(,(make-syntactic-closure environment '() 'SET!)
 	      ,(caadr form)
 	      (,(make-syntactic-closure environment '() 'NAMED-LAMBDA)
