@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: intmod.scm,v 1.113 2001/02/27 17:49:36 cph Exp $
+;;; $Id: intmod.scm,v 1.113.2.1 2001/12/10 18:56:48 cph Exp $
 ;;;
 ;;; Copyright (c) 1986, 1989-2001 Massachusetts Institute of Technology
 ;;;
@@ -78,7 +78,8 @@ With two C-u's, creates a new REPL buffer with a new evaluation environment.
 					#f)
 		  repl-buffer))))
 	 (if (>= argument 16)
-	     (make-new (extend-ic-environment system-global-environment))
+	     (make-new
+	      (extend-interpreter-environment system-global-environment))
 	     (or (and (< argument 4) (current-repl-buffer* buffer))
 		 (make-new user-initial-environment))))))))
 
