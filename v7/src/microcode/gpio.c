@@ -1,6 +1,8 @@
 /* -*-C-*-
 
-Copyright (c) 1990 Massachusetts Institute of Technology
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/Attic/gpio.c,v 1.7.1.1 1991/08/23 22:33:18 cph Exp $
+
+Copyright (c) 1990-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -29,8 +31,6 @@ there shall be no use of the name of the Massachusetts Institute of
 Technology nor of any adaptation thereof in any advertising,
 promotional, or sales literature without prior written consent from
 MIT in each case. */
-
-/* $Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/Attic/gpio.c,v 1.7 1990/10/02 21:51:25 jinx Rel $ */
 
 /* Scheme primitives for GPIO */
 
@@ -144,9 +144,7 @@ DEFINE_PRIMITIVE ("GPIO-READ-STRING!", Prim_gpio_read_string, 4, 4, 0)
 
   while (1)
   {
-    long scr;
-    INTERRUPTABLE_EXTENT
-      (scr, (read (gpio_channel, data, count)));
+    long scr = (read (gpio_channel, data, count));
     if (scr < 0)
     {
       UX_prim_check_errno ("read");
@@ -172,9 +170,7 @@ DEFINE_PRIMITIVE ("GPIO-WRITE-STRING", Prim_gpio_write_string, 4, 4, 0)
 
   while (1)
   {
-    long scr;
-    INTERRUPTABLE_EXTENT
-      (scr, (write (gpio_channel, data, count)));
+    long scr = (write (gpio_channel, data, count));
     if (scr < 0)
     {
       UX_prim_check_errno ("write");
