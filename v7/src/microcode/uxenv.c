@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/uxenv.c,v 1.2 1990/10/01 22:42:02 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/uxenv.c,v 1.2.1.1 1991/07/30 22:11:19 jinx Exp $
 
 Copyright (c) 1990 Massachusetts Institute of Technology
 
@@ -72,7 +72,15 @@ DEFUN_VOID (OS_process_clock)
 {
   clock_t ct = (UX_SC_CLK_TCK ());
   struct tms buffer;
+#if 0
   STD_VOID_SYSTEM_CALL ("times", (UX_times (&buffer)));
+#else
+  /* Was STD_VOID_SYSTEM_CALL, but at least one version of Ultrix
+     returns negative numbers other than -1 when there are no errors.  */
+  while ((UX_times (&buffer)) == (-1))
+    if (errno != EINTR)
+      error_system_call (errno, "times");
+#endif
   return
     (((((buffer . tms_utime) - initial_process_clock) * 2000) + ct) /
      (2 * ct));
@@ -134,7 +142,17 @@ DEFUN_VOID (OS_real_time_clock)
   clock_t ct = (UX_SC_CLK_TCK ());
   struct tms buffer;
   clock_t t;
+  
+#if 0
   STD_UINT_SYSTEM_CALL ("times", t, (UX_times (&buffer)));
+#else
+  /* Was STD_VOID_SYSTEM_CALL, but at least one version of Ultrix
+     returns negative numbers other than -1 when there are no errors.  */
+  while ((t = (UX_times (&buffer))) == (-1))
+    if (errno != EINTR)
+      error_system_call (errno, "times");
+#endif
+
   return ((((t - initial_rtc) * 2000) + ct) / (2 * ct));
 }
 
