@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulflo.scm,v 1.16.1.1 1992/02/19 22:27:26 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/i386/rulflo.scm,v 1.16.1.2 1992/02/19 22:33:33 jinx Exp $
 $MC68020-Header: /scheme/src/compiler/machines/bobcat/RCS/rules1.scm,v 4.36 1991/10/25 06:49:58 cph Exp $
 
 Copyright (c) 1992 Massachusetts Institute of Technology
@@ -41,7 +41,7 @@ MIT in each case. |#
 ;; ****
 ;; Missing: 2 argument operations and predicates with non-trivial
 ;; constant arguments.
-;; Also missing with (OBJECT->FLOAT (REGISTER ...)) operands.
+;; Also missing with (@ADDRESS->FLOAT (OBJECT->FLOAT (REGISTER ...))) operands.
 ;; ****
 
 (define (flonum-source! register)
@@ -426,7 +426,7 @@ MIT in each case. |#
 (define-rule statement
   (ASSIGN (REGISTER (? target))
 	  (FLONUM-2-ARGS FLONUM-SUBTRACT
-			 (OBJECT->FLOAT (CONSTANT 0.))
+			 (@ADDRESS->FLOAT (OBJECT->ADDRESS (CONSTANT 0.)))
 			 (REGISTER (? source))
 			 (? overflow?)))
   overflow?				;ignore
@@ -443,7 +443,7 @@ MIT in each case. |#
   (ASSIGN (REGISTER (? target))
 	  (FLONUM-2-ARGS (? operation)
 			 (REGISTER (? source))
-			 (OBJECT->FLOAT (CONSTANT 1.))
+			 (@ADDRESS->FLOAT (OBJECT->ADDRESS (CONSTANT 1.)))
 			 (? overflow?)))
   (QUALIFIER (binary-flonum-arithmetic? operation))
   overflow?				;ignore
@@ -452,7 +452,7 @@ MIT in each case. |#
 (define-rule statement
   (ASSIGN (REGISTER (? target))
 	  (FLONUM-2-ARGS (? operation)
-			 (OBJECT->FLOAT (CONSTANT 1.))
+			 (@ADDRESS->FLOAT (OBJECT->ADDRESS (CONSTANT 1.)))
 			 (REGISTER (? source))
 			 (? overflow?)))
   (QUALIFIER (binary-flonum-arithmetic? operation))
@@ -485,24 +485,24 @@ MIT in each case. |#
 (define-rule predicate
   (FLONUM-PRED-2-ARGS (? predicate)
 		      (REGISTER (? source))
-		      (OBJECT->FLOAT (CONSTANT 0.)))
+		      (@ADDRESS->FLOAT (OBJECT->ADDRESS (CONSTANT 0.))))
   (flonum-compare-zero predicate source))
 
 (define-rule predicate
   (FLONUM-PRED-2-ARGS (? predicate)
-		      (OBJECT->FLOAT (CONSTANT 0.))
+		      (@ADDRESS->FLOAT (OBJECT->ADDRESS (CONSTANT 0.)))
 		      (REGISTER (? source)))
   (flonum-compare-zero (commute-flonum-predicate predicate) source))
 
 (define-rule predicate
   (FLONUM-PRED-2-ARGS (? predicate)
 		      (REGISTER (? source))
-		      (OBJECT->FLOAT (CONSTANT 1.)))
+		      (@ADDRESS->FLOAT (OBJECT->ADDRESS (CONSTANT 1.))))
   (flonum-compare-one predicate source))
 
 (define-rule predicate
   (FLONUM-PRED-2-ARGS (? predicate)
-		      (OBJECT->FLOAT (CONSTANT 1.))
+		      (@ADDRESS->FLOAT (OBJECT->ADDRESS (CONSTANT 1.)))
 		      (REGISTER (? source)))
   (flonum-compare-one (commute-flonum-predicate predicate) source))
 
