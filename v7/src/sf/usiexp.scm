@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/usiexp.scm,v 3.3.1.1 1987/06/25 10:23:20 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/usiexp.scm,v 3.3.1.2 1987/06/26 17:08:01 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -46,7 +46,7 @@ MIT in each case. |#
        (eq? (constant/value expression) constant)))
 
 (define (pairwise-test binary-predicate if-left-zero if-right-zero)
-  (lambda (operands if-expanded if-not-expanded)
+  (lambda (operator operands if-expanded if-not-expanded)
     (cond ((or (null? operands)
 	       (null? (cdr operands)))
 	   (error "Too few operands" operands))
@@ -62,8 +62,9 @@ MIT in each case. |#
 	   (if-not-expanded)))))
 
 (define (pairwise-test-inverse inverse-expansion)
-  (lambda (operands if-expanded if-not-expanded)
-    (inverse-expansion operands
+  (lambda (operator operands if-expanded if-not-expanded)
+    (inverse-expansion operator
+		       operands
       (lambda (expression)
 	(if-expanded (make-combination not (list expression))))
       if-not-expanded)))
@@ -86,7 +87,7 @@ MIT in each case. |#
 ;;;; N-ary Arithmetic Field Operations
 
 (define (right-accumulation identity make-binary)
-  (lambda (operands if-expanded if-not-expanded)
+  (lambda (operator operands if-expanded if-not-expanded)
     (let ((operands (delq identity operands)))
       (let ((n (length operands)))
 	(cond ((zero? n)
@@ -118,7 +119,7 @@ MIT in each case. |#
 	(make-combination &* (list x y))))))
 
 (define (right-accumulation-inverse identity inverse-expansion make-binary)
-  (lambda (operands if-expanded if-not-expanded)
+  (lambda (operator operands if-expanded if-not-expanded)
     (let ((expand
 	   (lambda (x y)
 	     (if-expanded
@@ -130,7 +131,8 @@ MIT in each case. |#
 	    ((null? (cdr operands))
 	     (expand (constant/make identity) (car operands)))
 	    (else
-	     (inverse-expansion (cdr operands)
+	     (inverse-expansion operator
+				(cdr operands)
 	       (lambda (expression)
 		 (expand (car operands) expression))
 	       if-not-expanded))))))
@@ -152,7 +154,7 @@ MIT in each case. |#
 ;;;; Miscellaneous Arithmetic
 
 (define (divide-component-expansion divide selector)
-  (lambda (operands if-expanded if-not-expanded)
+  (lambda (operator operands if-expanded if-not-expanded)
     (if-expanded
      (make-combination selector
 		       (list (make-combination divide operands))))))
@@ -173,7 +175,7 @@ MIT in each case. |#
 
 (define apply*-expansion
   (let ((apply-primitive (make-primitive-procedure 'APPLY)))
-    (lambda (operands if-expanded if-not-expanded)
+    (lambda (operator operands if-expanded if-not-expanded)
       (let ((n (length operands)))
 	(cond ((< n 2) (error "APPLY*-EXPANSION: Too few arguments" n))
 	      ((< n 10)
@@ -184,7 +186,7 @@ MIT in each case. |#
 		       (cons*-expansion-loop (cdr operands))))))
 	      (else (if-not-expanded)))))))
 
-(define (cons*-expansion operands if-expanded if-not-expanded)
+(define (cons*-expansion operator operands if-expanded if-not-expanded)
   (let ((n (length operands)))
     (cond ((zero? n) (error "CONS*-EXPANSION: No arguments!"))
 	  ((< n 9) (if-expanded (cons*-expansion-loop operands)))
@@ -197,12 +199,12 @@ MIT in each case. |#
 			(list (car rest)
 			      (cons*-expansion-loop (cdr rest))))))
 
-(define (list-expansion operands if-expanded if-not-expanded)
+(define (list-expansion operator operands if-expanded if-not-expanded)
   (if (< (length operands) 9)
       (if-expanded (list-expansion-loop operands))
       (if-not-expanded)))
 
-(define (vector-expansion operands if-expanded if-not-expanded)
+(define (vector-expansion operator operands if-expanded if-not-expanded)
   (if (< (length operands) 9)
       (if-expanded (make-combination list->vector
 				     (list (list-expansion-loop operands))))
@@ -218,7 +220,7 @@ MIT in each case. |#
 ;;;; General CAR/CDR Encodings
 
 (define (general-car-cdr-expansion encoding)
-  (lambda (operands if-expanded if-not-expanded)
+  (lambda (operator operands if-expanded if-not-expanded)
     (if (= (length operands) 1)
 	(if-expanded
 	 (make-combination general-car-cdr
@@ -267,7 +269,7 @@ MIT in each case. |#
 
 ;;;; Miscellaneous
 
-(define (make-string-expansion operands if-expanded if-not-expanded)
+(define (make-string-expansion operator operands if-expanded if-not-expanded)
   (let ((n (length operands)))
     (cond ((zero? n)
 	   (error "MAKE-STRING-EXPANSION: No arguments"))
@@ -276,7 +278,7 @@ MIT in each case. |#
 	  (else
 	   (if-not-expanded)))))
 
-(define (identity-procedure-expansion operands if-expanded if-not-expanded)
+(define (identity-procedure-expansion operator operands if-expanded if-not-expanded)
   (if (not (= (length operands) 1))
       (error "IDENTITY-PROCEDURE-EXPANSION: wrong number of arguments"
 	     (length operands)))
@@ -321,13 +323,14 @@ MIT in each case. |#
 ;;; Scode->Scode expanders
 
 (define (scode->scode-expander scode-expander)
-  (lambda (operands if-expanded if-not-expanded)
+  (lambda (operator operands if-expanded if-not-expanded)
     (scode-expander
      (map (access cgen/external-with-declarations package/cgen)
 	  operands)
      (lambda (scode-expression)
        (if-expanded
-	(transmit-values ((access transform/top-level package/transform)
+	(transmit-values ((access transform/top-level-1 package/transform)
+			  (reference/block operator)
 			  scode-expression)
 			 (lambda (block expression)
 			   expression))))
