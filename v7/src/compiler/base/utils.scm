@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.88.1.2 1987/07/01 20:52:14 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/utils.scm,v 1.88.1.3 1987/07/06 17:56:25 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -71,7 +71,7 @@ MIT in each case. |#
 	    'FLUID-LET)
 	   (else prefix)))
     "-"
-    (write-to-string (generate-label-number)))))
+    (number->string (generate-label-number)))))
 
 (define *current-label-number*)
 
