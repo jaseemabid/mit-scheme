@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: mit-syntax.scm,v 1.1.2.6 2002/01/17 17:35:59 cph Exp $
+;;; $Id: mit-syntax.scm,v 1.1.2.7 2002/01/17 20:56:10 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -454,7 +454,7 @@
 		 `(,keyword (,(car bindings)) ,(loop (cdr bindings)))
 		 `(,keyword ,bindings ,@body)))
 	   `(,keyword ,bindings ,@body))))))
-
+
 ;;;; Bodies
 
 (define (compile-body-item item)
@@ -462,33 +462,8 @@
       (lambda ()
 	(extract-declarations-from-body (body-item/components item)))
     (lambda (declaration-items items)
-      (call-with-values (lambda () (split-body-items items))
-	(lambda (names items)
-	  (output/body names
-		       (map declaration-item/text declaration-items)
-		       (compile-body-items item items)))))))
-
-(define (split-body-items items)
-  (let loop ((items items) (names '()) (items* '()))
-    (cond ((not (pair? items))
-	   (values (reverse! names)
-		   (reverse! items*)))
-	  ((binding-item? (car items))
-	   (let ((history (item/history (car items)))
-		 (name (binding-item/name (car items)))
-		 (value (binding-item/value (car items))))
-	     (loop (cdr items)
-		   (cons name names)
-		   (cons (make-expression-item history
-			   (lambda ()
-			     (output/assignment
-			      name
-			      (compile-item/expression value))))
-			 items*))))
-	  (else
-	   (loop (cdr items)
-		 names
-		 (cons (car items) items*))))))
+      (output/body (map declaration-item/text declaration-items)
+		   (compile-body-items item items)))))
 
 ;;;; Derived syntax
 

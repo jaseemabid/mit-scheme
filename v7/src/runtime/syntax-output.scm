@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-output.scm,v 1.1.2.2 2002/01/17 16:54:03 cph Exp $
+;;; $Id: syntax-output.scm,v 1.1.2.3 2002/01/17 20:56:15 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -63,9 +63,12 @@
 (define (output/lambda-internal name lambda-list declarations body)
   (call-with-values (lambda () (parse-mit-lambda-list lambda-list))
     (lambda (required optional rest)
-      (make-lambda name required optional rest '()
-		   (apply append declarations)
-		   body))))
+      (make-lambda* name required optional rest
+		    (let ((declarations (apply append declarations)))
+		      (if (pair? declarations)
+			  (make-sequence (make-block-declaration declarations)
+					 body)
+			  body))))))
 
 (define (output/delay expression)
   (make-delay expression))
@@ -83,31 +86,22 @@
   (output/combination (output/named-lambda lambda-tag:let names body) values))
 
 (define (output/letrec names values body)
-  (output/body
-   names '()
-   (if (pair? names)
-       (output/sequence
-	(list (if (null? (cdr names))
-		  (output/assignment (car names) (car values))
-		  (let ((temps (map (make-name-generator) names)))
-		    (output/let
-		     temps
-		     values
-		     (output/sequence
-		      (map (lambda (name temp)
-			     (output/assignment name
-						(output/variable temp)))
-			   names
-			   temps)))))
-	      body))
-       body)))
+  (output/body '()
+	       (make-sequence
+		(append! (map make-definition names values)
+			 (list body)))))
 
-(define (output/body names declarations body)
-  (if (or (pair? names) (pair? declarations))
-      (output/combination
-       (output/lambda-internal lambda-tag:let names declarations body)
-       (map (lambda (name) name (output/unassigned)) names))
-      body))
+(define (output/body declarations body)
+  (scan-defines (let ((declarations (apply append declarations)))
+		  (if (pair? declarations)
+		      (make-sequence
+		       (list (make-block-declaration declarations)
+			     body))
+		      body))
+		make-open-block))
+
+(define (output/definition name value)
+  (make-definition name value))
 
 (define (output/top-level-sequence declarations expressions)
   (let ((declarations (apply append declarations)))

@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.5 2002/01/17 17:36:03 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.6 2002/01/17 20:56:13 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -908,7 +908,16 @@
   (let ((items (flatten-body-items items)))
     (if (not (pair? items))
 	(illegal-expression-item item "Empty sequence"))
-    (output/sequence (map compile-item/expression items))))
+    (output/sequence
+     (map (lambda (item)
+	    (if (binding-item? item)
+		(let ((value (binding-item/value item)))
+		  (if (transformer-item? value)
+		      (output/sequence '())
+		      (output/definition (binding-item/name item)
+					 (compile-item/expression value))))
+		(compile-item/expression item)))
+	  items))))
 
 (define make-body-item
   (item-constructor body-item-rtd '(COMPONENTS)))
