@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/rvalue.scm,v 4.3 1988/06/14 08:33:23 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/rvalue.scm,v 4.3.1.1 1988/11/30 22:57:00 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
