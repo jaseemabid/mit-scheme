@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/Attic/version.h,v 11.59 1990/12/10 19:40:48 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/Attic/version.h,v 11.59.1.1 1991/01/15 20:43:54 cph Exp $
 
 Copyright (c) 1988, 1989, 1990 Massachusetts Institute of Technology
 
@@ -37,7 +37,7 @@ MIT in each case. */
 /* Scheme system release version */
 
 #ifndef RELEASE
-#define RELEASE		"7.1.0 (beta)"
+#define RELEASE		"7.1.1 (beta)"
 #endif
 
 /* Microcode release version */
