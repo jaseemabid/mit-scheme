@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/pardec.scm,v 3.4 1987/05/08 02:34:16 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/pardec.scm,v 3.4.1.1 1987/06/23 19:43:45 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -45,7 +45,7 @@ MIT in each case. |#
        (lambda (declaration bindings)
 	 (let ((association (assq (car declaration) known-declarations)))
 	   (if (not association)
-	       bindings
+	       (warn "Unknown declaration" declaration)
 	       (transmit-values (cdr association)
 		 (lambda (before-bindings? parser)
 		   (let ((block
@@ -77,10 +77,18 @@ MIT in each case. |#
 	      (return-2 (cons result before) after)
 	      (return-2 before (cons result after))))))))
 
+(declare (integrate-operator bind/general bind/values bind/no-values))
+
+(define (bind/general table/cons table global? operation export? names values)
+  (declare (integrate table/cons table global? operation export? names values))
+  (table/cons table global? operation export? names values))
+
 (define (bind/values table/cons table operation export? names values)
+  (declare (integrate table/cons table operation export? names values))
   (table/cons table (not export?) operation export? names values))
 
 (define (bind/no-values table/cons table operation export? names)
+  (declare (integrate table/cons table operation export? names))
   (table/cons table false operation export? names 'NO-VALUES))
 
 (define (declarations/known? declaration)
@@ -306,4 +314,20 @@ MIT in each case. |#
 	    (transmit-values info
 	      (lambda (value uninterned)
 		(finish value)))
+	    (variable/final-value variable environment finish if-not))))))
+
+;;;; User provided expansions
+
+(define expander-evaluation-environment
+  (access package/expansion
+	  package/scode-optimizer))
+
+(define-declaration 'EXPAND-OPERATOR true
+  (lambda (block table/cons table expanders)
+    (bind/general table/cons table false 'EXPAND false
+		  (map car expanders)
+		  (map (lambda (expander)
+			 (eval (cadr expander)
+			       expander-evaluation-environment))
+		       expanders))))
 	    (variable/final-value variable environment finish if-not))))))
