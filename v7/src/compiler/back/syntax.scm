@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/syntax.scm,v 1.14 1987/05/26 13:24:04 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/syntax.scm,v 1.14.1.1 1987/06/25 10:52:50 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -36,25 +36,28 @@ MIT in each case. |#
 
 (declare (usual-integrations))
 
-(define (syntax-instructions instructions)
-  (convert-output
-   (let loop ((instructions instructions))
-     (if (null? instructions)
-	 '()
-	 (append-syntax! (syntax-instruction (car instructions))
-			 (loop (cdr instructions)))))))
+(define (cons-syntax directive directives)
+  (if (and (bit-string? directive)
+	   (not (null? directives))
+	   (bit-string? (car directives)))
+      (begin (set-car! directives
+		       (bit-string-append (car directives) directive))
+	     directives)
+      (cons directive directives)))
 
 (define (convert-output directives)
-  (map (lambda (directive)
-	 (cond ((bit-string? directive) (vector 'CONSTANT directive))
-	       ((pair? directive)
-		(if (eq? (car directive) 'GROUP)
-		    (vector 'GROUP (convert-output (cdr directive)))
-		    (list->vector directive)))
-	       ((vector? directive) directive)
-	       (else
-		(error "SYNTAX-INSTRUCTIONS: Unknown directive" directive))))
-       directives))
+  (define (internal directives)
+    (map (lambda (directive)
+	   (cond ((bit-string? directive) (vector 'CONSTANT directive))
+		 ((pair? directive)
+		  (if (eq? (car directive) 'GROUP)
+		      (vector 'GROUP (internal (cdr directive)))
+		      (list->vector directive)))
+		 ((vector? directive) directive)
+		 (else
+		  (error "CONVERT-OUTPUT: Unknown directive" directive))))
+	 directives))
+  (internal (lap-instructions->directives directives)))
 
 (define (syntax-instruction instruction)
   (if (memq (car instruction) '(EQUATE SCHEME-OBJECT ENTRY-POINT LABEL))
@@ -90,29 +93,6 @@ MIT in each case. |#
   (if (integer? expression)
       (coercion expression)
       (vector 'EVALUATION expression (coercion-size coercion) coercion)))
-
-(define (cons-syntax directive directives)
-  (if (and (bit-string? directive)
-	   (not (null? directives))
-	   (bit-string? (car directives)))
-      (begin (set-car! directives
-		       (bit-string-append (car directives) directive))
-	     directives)
-      (cons directive directives)))
-
-(define (append-syntax! directives directives*)
-  (cond ((null? directives) directives*)
-	((null? directives*) directives)
-	(else
-	 (let ((pair (last-pair directives)))
-	   (if (and (bit-string? (car pair))
-		    (bit-string? (car directives*)))
-	       (begin (set-car! pair
-				(bit-string-append (car directives*)
-						   (car pair)))
-		      (set-cdr! pair (cdr directives*)))
-	       (set-cdr! pair directives*)))
-	 directives)))
 
 (define optimize-group
   (let ()
