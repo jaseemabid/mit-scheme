@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 4.6.1.1 1988/08/31 06:55:56 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 4.6.1.2 1988/09/15 04:57:15 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -182,13 +182,17 @@ MIT in each case. |#
 (define (syntax-files!)
   (for-each
    (lambda (node)
-     (set-source-node/modification-time!
-      node
-      (let ((source (modification-time node "scm"))
-	    (binary (modification-time node "bin")))
-	(if (not source)
-	    (error "Missing source file" (source-node/filename node)))
-	(and binary (< source binary) binary))))
+     (let ((modification-time
+	    (let ((source (modification-time node "scm"))
+		  (binary (modification-time node "bin")))
+	      (if (not source)
+		  (error "Missing source file" (source-node/filename node)))
+	      (and binary (< source binary) binary))))
+     (set-source-node/modification-time! node modification-time)
+     (if (not modification-time)
+	 (begin (newline)
+		(write-string "Source file newer than binary: ")
+		(write (source-node/filename node))))))
    source-nodes)
   (if compiler:enable-integration-declarations?
       (begin
@@ -197,17 +201,34 @@ MIT in each case. |#
 	   (let ((time (source-node/modification-time node)))
 	     (if (and time
 		      (there-exists? (source-node/dependencies node)
-			(lambda (node)
-			  (let ((time* (source-node/modification-time node)))
-			    (or (not time*)
-				(> time* time))))))
+			(lambda (node*)
+			  (let ((newer?
+				 (let ((time*
+					(source-node/modification-time node*)))
+				   (or (not time*)
+				       (> time* time)))))
+			    (if newer?
+				(begin
+				  (newline)
+				  (write-string "Binary file ")
+				  (write (source-node/filename node))
+				  (write-string " newer than dependency ")
+				  (write (source-node/filename node*))))
+			    newer?))))
 		 (set-source-node/modification-time! node false))))
 	 source-nodes)
 	(for-each
 	 (lambda (node)
 	   (if (not (source-node/modification-time node))
-	       (for-each (lambda (node)
-			   (set-source-node/modification-time! node false))
+	       (for-each (lambda (node*)
+			   (if (source-node/modification-time node*)
+			       (begin
+				 (newline)
+				 (write-string "Binary file ")
+				 (write (source-node/filename node*))
+				 (write-string " depends on ")
+				 (write (source-node/filename node))))
+			   (set-source-node/modification-time! node* false))
 			 (source-node/dependents node))))
 	 source-nodes)))
   (for-each (lambda (node)
@@ -220,7 +241,7 @@ MIT in each case. |#
 	    source-nodes/by-rank)
   (for-each source-node/maybe-syntax! source-nodes/by-rank)
   (for-each source-node/maybe-syntax! source-nodes/circular-dependencies))
-
+
 (define (source-node/maybe-syntax! node)
   (if (not (source-node/modification-time node))
       (source-node/syntax! node)))
