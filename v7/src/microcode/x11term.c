@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/x11term.c,v 1.4 1989/04/25 03:52:54 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/microcode/x11term.c,v 1.4.1.1 1989/06/16 09:47:42 cph Exp $
 
 Copyright (c) 1989 Massachusetts Institute of Technology
 
@@ -37,8 +37,6 @@ MIT in each case. */
 #include "scheme.h"
 #include "prims.h"
 #include "string.h"
-
-#define UNSPECIFIC (Make_Non_Pointer (TC_TRUE, 1))
 
 #include <X11/Xlib.h>
 #include <X11/cursorfont.h>
