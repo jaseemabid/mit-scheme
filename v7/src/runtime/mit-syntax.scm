@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: mit-syntax.scm,v 1.1.2.10 2002/01/18 04:09:01 cph Exp $
+;;; $Id: mit-syntax.scm,v 1.1.2.11 2002/01/18 05:35:53 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -26,42 +26,49 @@
 ;;;; Macro transformers
 
 (define (define-er-macro-transformer keyword environment transformer)
-  (define-expander keyword environment
-    (er-macro-transformer->expander transformer)))
+  (syntactic-environment/define environment keyword
+    (er-macro-transformer->expander transformer environment)))
 
-(define (transformer-keyword transformer->expander-name)
+(define (transformer-keyword transformer->expander-name transformer->expander)
   (lambda (form environment definition-environment history)
     definition-environment		;ignore
     (syntax-check '(KEYWORD EXPRESSION) form history)
     (let ((item
-	   (classify/subexpression
-	    `(,(make-syntactic-closure system-global-environment '()
-		 transformer->expander-name)
-	      ,(cadr form))
-	    environment
-	    history
-	    select-cadr)))
+	   (classify/subexpression (cadr form)
+				   environment
+				   history
+				   select-cadr)))
       (make-transformer-item
-       (make-expander-item
+       (transformer->expander
 	(transformer-eval (compile-item/expression item)
 			  (syntactic-environment->environment environment))
 	environment)
-       item))))
+       (make-expression-item history
+	 (lambda ()
+	   (output/combination
+	    (output/access-reference transformer->expander-name
+				     system-global-environment)
+	    (list (compile-item/expression item)
+		  (output/the-environment)))))))))
 
 (define-classifier 'SC-MACRO-TRANSFORMER system-global-environment
   ;; "Syntactic Closures" transformer
-  (transformer-keyword 'SC-MACRO-TRANSFORMER->EXPANDER))
+  (transformer-keyword 'SC-MACRO-TRANSFORMER->EXPANDER
+		       sc-macro-transformer->expander))
 
 (define-classifier 'RSC-MACRO-TRANSFORMER system-global-environment
   ;; "Reversed Syntactic Closures" transformer
-  (transformer-keyword 'RSC-MACRO-TRANSFORMER->EXPANDER))
+  (transformer-keyword 'RSC-MACRO-TRANSFORMER->EXPANDER
+		       rsc-macro-transformer->expander))
 
 (define-classifier 'ER-MACRO-TRANSFORMER system-global-environment
   ;; "Explicit Renaming" transformer
-  (transformer-keyword 'ER-MACRO-TRANSFORMER->EXPANDER))
+  (transformer-keyword 'ER-MACRO-TRANSFORMER->EXPANDER
+		       er-macro-transformer->expander))
 
 (define-classifier 'NON-HYGIENIC-MACRO-TRANSFORMER system-global-environment
-  (transformer-keyword 'NON-HYGIENIC-MACRO-TRANSFORMER->EXPANDER))
+  (transformer-keyword 'NON-HYGIENIC-MACRO-TRANSFORMER->EXPANDER
+		       non-hygienic-macro-transformer->expander))
 
 ;;;; Core primitives
 

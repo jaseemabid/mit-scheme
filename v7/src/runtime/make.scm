@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: make.scm,v 14.83.2.3 2002/01/17 21:30:07 cph Exp $
+$Id: make.scm,v 14.83.2.4 2002/01/18 05:35:44 cph Exp $
 
-Copyright (c) 1988-2001 Massachusetts Institute of Technology
+Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -379,6 +379,9 @@ USA.
 		      #t)
   (package-initialize '(RUNTIME POPULATION) 'INITIALIZE-PACKAGE! #t)
   (package-initialize '(RUNTIME RECORD) 'INITIALIZE-RECORD-TYPE-TYPE! #t)
+  (package-initialize '(RUNTIME SYNTACTIC-CLOSURES)
+		      'INITIALIZE-SYNTAX-TRANSFORMS!
+		      #t)
   (load-files files2)
   (package-initialize '(RUNTIME 1D-PROPERTY) 'INITIALIZE-PACKAGE! #t)
   (package-initialize '(RUNTIME EVENT-DISTRIBUTOR) 'INITIALIZE-PACKAGE! #t)

@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.6 2002/01/17 20:56:13 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.7 2002/01/18 05:35:37 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -475,9 +475,7 @@
 		item)
 	       ;; **** Kludge to support bootstrapping.
 	       ((procedure? item)
-		(make-expander-item
-		 (non-hygienic-macro-transformer->expander item)
-		 environment))
+		(non-hygienic-macro-transformer->expander item environment))
 	       (else
 		(error:wrong-type-datum item "syntactic keyword"))))))
 
@@ -677,11 +675,8 @@
 
 ;;;; Items
 
-(define item-rtd
-  (make-record-type "item" '(HISTORY RECORD)))
-
-(define make-item
-  (record-constructor item-rtd '(HISTORY RECORD)))
+;;; Some of the item code is in "syntax-transform.scm" because it is
+;;; needed during the cold load.
 
 (define item?
   (record-predicate item-rtd))
@@ -702,11 +697,6 @@
   (let ((rtd (make-record-type name fields)))
     (define-item-compiler rtd compiler)
     rtd))
-
-(define (item-constructor rtd fields)
-  (let ((constructor (record-constructor rtd fields)))
-    (lambda (history . arguments)
-      (make-item history (apply constructor arguments)))))
 
 (define (item-predicate rtd)
   (let ((predicate (record-predicate rtd)))
@@ -753,14 +743,10 @@
       (transformer-item? item)))
 
 (define (make-keyword-type name fields)
-  (make-item-type name fields
-    (lambda (item)
-      (illegal-expression-item item "Syntactic keyword"))))
+  (make-item-type name fields keyword-item-compiler))
 
-(define (keyword-constructor type fields)
-  (let ((constructor (item-constructor type fields)))
-    (lambda arguments
-      (apply constructor #f arguments))))
+(define (keyword-item-compiler item)
+  (illegal-expression-item item "Syntactic keyword"))
 
 
 (define classifier-item-rtd
@@ -789,11 +775,8 @@
   (item-accessor compiler-item-rtd 'COMPILER))
 
 
-(define expander-item-rtd
-  (make-keyword-type "expander-item" '(EXPANDER ENVIRONMENT)))
-
-(define make-expander-item
-  (keyword-constructor expander-item-rtd '(EXPANDER ENVIRONMENT)))
+(define-item-compiler expander-item-rtd
+  keyword-item-compiler)
 
 (define expander-item?
   (item-predicate expander-item-rtd))
