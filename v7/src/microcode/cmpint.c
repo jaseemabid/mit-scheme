@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.80 1993/11/16 03:56:41 gjr Exp $
+$Id: cmpint.c,v 1.80.1.1 1994/01/08 17:07:13 gjr Exp $
 
 Copyright (c) 1989-1993 Massachusetts Institute of Technology
 
@@ -113,7 +113,7 @@ MIT in each case. */
 #endif
 
 #ifndef PUSH_D_CACHE_REGION
-#  define PUSH_D_CACHE_REGION(addr, nwords) FLUSH_I_CACHE_REGION(addr, nwords)
+#  define PUSH_D_CACHE_REGION		FLUSH_I_CACHE_REGION
 #endif
 
 /* Make noise words invisible to the C compiler. */
@@ -1123,8 +1123,17 @@ DEFUN (link_cc_block,
 exit_proc:
   /* Rather than commit, since we want to undo */
   transaction_abort ();
-  PUSH_D_CACHE_REGION (block_address,
-		       (((unsigned long) (*block_address)) + 1));
+  {
+    SCHEME_OBJECT * ret_add_block;
+    
+    Get_Compiled_Block (ret_add_block, ret_add);
+    if (ret_add_block == block_address)
+      FLUSH_I_CACHE_REGION (block_address,
+			    (((unsigned long) (*block_address)) + 1));
+    else
+      PUSH_D_CACHE_REGION (block_address,
+			   (((unsigned long) (*block_address)) + 1));
+  }
   return (result);
 }
 
