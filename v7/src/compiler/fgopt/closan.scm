@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/closan.scm,v 4.4 1988/11/01 04:51:03 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/fgopt/closan.scm,v 4.4.1.1 1988/11/29 22:52:27 cph Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
