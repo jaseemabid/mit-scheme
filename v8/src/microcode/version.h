@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/microcode/version.h,v 10.32 1988/04/15 17:00:40 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/microcode/version.h,v 10.32.1.1 1988/12/19 22:46:20 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -37,7 +37,7 @@ MIT in each case. */
 /* Scheme system release version */
 
 #ifndef RELEASE
-#define RELEASE		"6.2.1"
+#define RELEASE		"6.2.2"
 #endif
 
 /* Microcode release version */
