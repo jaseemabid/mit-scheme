@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.4 1987/06/26 19:57:42 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.5 1987/06/26 20:05:47 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -37,6 +37,9 @@ MIT in each case. |#
 (declare (usual-integrations))
 
 (define *top-level-block*)
+
+(define (integrate/get-top-level-block)
+  *top-level-block*)
 
 (define (integrate/top-level block expression)
   (fluid-let ((*top-level-block* block))
