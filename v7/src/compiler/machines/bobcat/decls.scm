@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 1.9.1.2 1987/07/01 20:50:49 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/decls.scm,v 1.9.1.3 1987/07/02 01:57:16 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -197,8 +197,8 @@ MIT in each case. |#
  compiler-syntax-table)
 
 (file-dependency/syntax/join
- (append (filename/append "machines/bobcat" "lapgen")
-	 (filename/append "machines/spectrum" "lapgen"))
+ (append (filename/append "machines/spectrum" "lapgen")
+	 filenames/dependency-group/lap-syn4)
  lap-generator-syntax-table)
 
 (file-dependency/syntax/join
