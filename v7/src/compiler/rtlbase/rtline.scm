@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlbase/rtline.scm,v 4.10 1989/10/26 07:38:35 cph Rel $
+$Id: rtline.scm,v 4.10.1.1 1994/03/30 21:20:45 gjr Exp $
 
-Copyright (c) 1988, 1989 Massachusetts Institute of Technology
+Copyright (c) 1988-1994 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -33,6 +33,7 @@ promotional, or sales literature without prior written consent from
 MIT in each case. |#
 
 ;;;; RTL linearizer
+;; package: (compiler rtl-generator)
 
 (declare (usual-integrations))
 
@@ -40,19 +41,18 @@ MIT in each case. |#
 			  initial-value
 			  instruction-append!
 			  final-value)
-	 root procedures continuations)
-  continuations				;ignore
+	 root procedures continuations conts-linked?)
   (with-new-node-marks
-   (lambda ()
-     (let ((input-queue (make-queue))
-	   (output (initial-value)))
-       (let ((queue-continuations!
-	      (lambda (bblock)
-		(for-each (lambda (bblock)
-			    (if (not (node-marked? bblock))
-				(enqueue!/unsafe input-queue bblock)))
-			  (bblock-continuations bblock)))))
-	 (let ((process-bblock!
+    (lambda ()
+      (let ((input-queue (make-queue))
+	    (output (initial-value)))
+	(let* ((queue-continuations!
+		(lambda (bblock)
+		  (for-each (lambda (bblock)
+			      (if (not (node-marked? bblock))
+				  (enqueue!/unsafe input-queue bblock)))
+			    (bblock-continuations bblock))))
+	       (process-bblock!
 		(lambda (bblock)
 		  (if (not (node-marked? bblock))
 		      (set! output
@@ -60,17 +60,30 @@ MIT in each case. |#
 			     output
 			     (bblock-linearize bblock
 					       queue-continuations!)))))))
-	   (process-bblock!
-	    (cond ((rtl-expr? root) (rtl-expr/entry-node root))
-		  ((rtl-procedure? root) (rtl-procedure/entry-node root))
-		  (else (error "Illegal linearization root" root))))
-	   (queue-map!/unsafe input-queue process-bblock!)
-	   (for-each (lambda (procedure)
-		       (process-bblock! (rtl-procedure/entry-node procedure))
-		       (queue-map!/unsafe input-queue process-bblock!))
-		     procedures)
-	   (final-value output)))))))
-
+	  (if (pair? root)
+	      (for-each (lambda (rgraph)
+			  (for-each
+			   (lambda (edge)
+			     (process-bblock! (edge-right-node edge)))
+			   (rgraph-entry-edges rgraph)))
+			root)
+	      (process-bblock!
+	       (cond ((rtl-expr? root) (rtl-expr/entry-node root))
+		     ((rtl-procedure? root) (rtl-procedure/entry-node root))
+		     (else (error "Illegal linearization root" root)))))
+	  (queue-map!/unsafe input-queue process-bblock!)
+	  (for-each (lambda (procedure)
+		      (process-bblock! (rtl-procedure/entry-node procedure))
+		      (queue-map!/unsafe input-queue process-bblock!))
+		    procedures)
+	  (if (not conts-linked?)
+	      (for-each
+	       (lambda (cont)
+		 (process-bblock! (rtl-continuation/entry-node cont))
+		 (queue-map!/unsafe input-queue process-bblock!))
+	       continuations))
+	  (final-value output))))))
+
 (define (setup-bblock-continuations! rgraphs)
   (for-each
    (lambda (rgraph)
