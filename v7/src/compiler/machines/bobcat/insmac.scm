@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/insmac.scm,v 1.118.1.2 1987/06/25 11:01:40 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/insmac.scm,v 1.118.1.3 1987/07/01 20:53:07 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -68,7 +68,7 @@ MIT in each case. |#
 	(if (or source destination)
 	    (error "Source or destination used" 'EXTENSION-WORD)
 	    (if (zero? (remainder size 16))
-		(apply optimize-group-syntax instruction)
+		(optimize-group-syntax instruction false)
 		(error "EXTENSION-WORD: Extensions must be 16 bit multiples"
 		       size)))))))
 
@@ -128,25 +128,30 @@ MIT in each case. |#
 
 ;;;; Utility procedures
 
-(define (parse-word expression tail)
-  (expand-descriptors (cdr expression)
-    (lambda (instruction size src dst)
-      (if (zero? (remainder size 16))
-	  (let ((code
-		 (let ((code
-			(let ((code (if dst `(,@dst '()) '())))
-			  (if src
-			      `(,@src ,code)
-			      code))))
-		   (if (null? tail)
-		       code
-		       `(,(if (null? code) 'CONS 'CONS-SYNTAX)
-			 ,(car tail)
-			 ,code)))))
-	    `(,(if (null? code) 'CONS 'CONS-SYNTAX)
-	      ,(apply optimize-group-syntax instruction)
-	      ,code))
-	  (error "PARSE-WORD: Instructions must be 16 bit multiples" size)))))
+(define (parse-word expression tail #!optional early?)
+  (define (kernel)
+    (expand-descriptors (cdr expression)
+     (lambda (instruction size src dst)
+       (if (zero? (remainder size 16))
+	   (let ((code
+		  (let ((code
+			 (let ((code (if dst `(,@dst '()) '())))
+			   (if src
+			       `(,@src ,code)
+			       code))))
+		    (if (null? tail)
+			code
+			`(,(if (null? code) 'CONS 'CONS-SYNTAX)
+			  ,(car tail)
+			  ,code)))))
+	     `(,(if (null? code) 'CONS 'CONS-SYNTAX)
+	       ,(optimize-group-syntax instruction
+				       (if (unassigned? early?) false early?))
+	       ,code))
+	   (error "PARSE-WORD: Instructions must be 16 bit multiples" size)))))
+  (if (or (unassigned? early) (not early?))
+      (kernel)
+      (with-early-selectors kernel)))     
 
 (define (expand-descriptors descriptors receiver)
   (if (null? descriptors)
@@ -170,6 +175,20 @@ MIT in each case. |#
 				destination)
 			    destination*))))))))
 
+(define ea-keyword-selector 'EA-KEYWORD)
+(define ea-categories-selector 'EA-CATEGORIES)
+(define ea-mode-selector 'EA-MODE)
+(define ea-register-selector 'EA-REGISTER)
+(define ea-extension-selector 'EA-EXTENSION)
+
+(define (with-early-selectors handle)
+  (fluid-let ((ea-keyword-selector 'EA-KEYWORD-EARLY)
+	      (ea-categories-selector 'EA-CATEGORIES-EARLY)
+	      (ea-mode-selector 'EA-MODE-EARLY)
+	      (ea-register-selector 'EA-REGISTER-EARLY)
+	      (ea-extension-selector 'EA-EXTENSION-EARLY))
+    (handle)))
+
 (define (expand-descriptor descriptor receiver)
   (let ((size (car descriptor))
 	(expression (cadr descriptor))
@@ -186,22 +205,22 @@ MIT in each case. |#
 		     size))
 		 size false false))
       ((SOURCE-EA)
-       (receiver `((EA-MODE ,expression)
-		   (EA-REGISTER ,expression))
+       (receiver `((,ea-mode-selector ,expression)
+		   (,ea-register-selector ,expression))
 		 size
-		 `((EA-EXTENSION ,expression) ,(cadddr descriptor))
+		 `((,ea-extension-selector ,expression) ,(cadddr descriptor))
 		 false))
       ((DESTINATION-EA)
-       (receiver `((EA-MODE ,expression)
-		   (EA-REGISTER ,expression))
+       (receiver `((,ea-mode-selector ,expression)
+		   (,ea-register-selector ,expression))
 		 size
 		 false
-		 `((EA-EXTENSION ,expression) '())))
+		 `((,ea-extension-selector ,expression) '())))
       ((DESTINATION-EA-REVERSED)
-       (receiver `((EA-REGISTER ,expression)
-		   (EA-MODE ,expression))
+       (receiver `((,ea-register-selector ,expression)
+		   (,ea-mode-selector ,expression))
 		 size
 		 false
-		 `((EA-EXTENSION ,expression) '())))
+		 `((,ea-extension-selector ,expression) '())))
       (else
        (error "EXPAND-DESCRIPTOR: Badly-formed descriptor" descriptor)))))
