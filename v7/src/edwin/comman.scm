@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: comman.scm,v 1.85 2001/03/21 19:25:16 cph Exp $
+$Id: comman.scm,v 1.85.6.1 2002/02/02 01:27:09 cph Exp $
 
-Copyright (c) 1986, 1989-2001 Massachusetts Institute of Technology
+Copyright (c) 1986, 1989-2002 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -70,21 +70,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
   (make-string-table 500))
 
 (define (name->command name #!optional if-undefined)
-  (let ((name (canonicalize-name name)))
-    (or (string-table-get editor-commands (symbol-name name))
-	(case (if (default-object? if-undefined) 'INTERN if-undefined)
-	  ((#F) #f)
-	  ((ERROR) (error "Undefined command:" name))
-	  ((INTERN)
-	   (letrec ((command
-		     (make-command
-		      name
-		      "undefined command"
-		      '()
-		      (lambda () (editor-error "Undefined command:" name)))))
-	     command))
-	  (else
-	   (error:bad-range-argument if-undefined 'NAME->COMMAND))))))
+  (or (string-table-get editor-commands (symbol-name name))
+      (case (if (default-object? if-undefined) 'INTERN if-undefined)
+	((#F) #f)
+	((ERROR) (error "Undefined command:" name))
+	((INTERN)
+	 (letrec ((command
+		   (make-command
+		    name
+		    "undefined command"
+		    '()
+		    (lambda () (editor-error "Undefined command:" name)))))
+	   command))
+	(else
+	 (error:bad-range-argument if-undefined 'NAME->COMMAND)))))
 
 (define (->command object)
   (if (command? object)
@@ -175,13 +174,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
   (make-string-table 50))
 
 (define (name->variable name #!optional if-undefined)
-  (let ((name (canonicalize-name name)))
-    (or (string-table-get editor-variables (symbol-name name))
-	(case (if (default-object? if-undefined) 'INTERN if-undefined)
-	  ((#F) #f)
-	  ((ERROR) (error "Undefined variable:" name))
-	  ((INTERN) (make-variable name "" #f #f))
-	  (else (error:bad-range-argument if-undefined 'NAME->VARIABLE))))))
+  (or (string-table-get editor-variables (symbol-name name))
+      (case (if (default-object? if-undefined) 'INTERN if-undefined)
+	((#F) #f)
+	((ERROR) (error "Undefined variable:" name))
+	((INTERN) (make-variable name "" #f #f))
+	(else (error:bad-range-argument if-undefined 'NAME->VARIABLE)))))
 
 (define (->variable object)
   (if (variable? object)
