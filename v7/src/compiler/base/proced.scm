@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/proced.scm,v 4.6.1.1 1988/11/30 21:53:07 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/proced.scm,v 4.6.1.2 1988/12/12 21:27:20 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -53,7 +53,7 @@ MIT in each case. |#
   applications		;list of applications for which this is an operator
   always-known-operator? ;always known operator of application? [boolean]
   closing-limit		;closing limit (see code)
-  closure-block		;for closure, where procedure is closed [block]
+  closure-context	;for closure, where procedure is closed [block]
   closure-offset	;for closure, offset of procedure in stack frame
   register		;for continuation, argument register
   closure-size		;for closure, virtual size of frame [integer or false]
@@ -109,11 +109,13 @@ MIT in each case. |#
 		 (+ number-required
 		    (length (procedure-optional procedure))))))))
 
+(define (procedure-arity-encoding procedure)
+  (let* ((min (1+ (length (procedure-required-arguments procedure))))
+	 (max (+ min (length (procedure-optional procedure)))))
+    (values min (if (procedure-rest procedure) (- (1+ max)) max))))
+
 (define-integrable (procedure-closing-block procedure)
   (block-parent (procedure-block procedure)))
-
-(define (set-procedure-closing-block! procedure block)
-  (set-block-parent! (procedure-block procedure) block))
 
 (define-integrable (procedure-continuation-lvalue procedure)
   ;; Valid only if (not (procedure-continuation? procedure))
@@ -192,9 +194,13 @@ MIT in each case. |#
   (let ((block (procedure-block procedure)))
     (enumeration-case block-type (block-type block)
       ((STACK)
-       (cond ((procedure-closure-block procedure) 'CLOSURE)
-	     ((stack-parent? block) 'OPEN-INTERNAL)
-	     (else 'OPEN-EXTERNAL)))
+       (if (procedure-closure-context procedure)
+	   (if (procedure/trivial-closure? procedure)
+	       'TRIVIAL-CLOSURE
+	       'CLOSURE)
+	   (if (stack-parent? block)
+	       'OPEN-INTERNAL
+	       'OPEN-EXTERNAL)))
       ((IC) 'IC)
       ((CLOSURE) (error "Illegal occurrence of CLOSURE block" procedure))
       (else (error "Unknown block type" block)))))
@@ -202,19 +208,18 @@ MIT in each case. |#
 (define-integrable (procedure/ic? procedure)
   (ic-block? (procedure-block procedure)))
 
-(define-integrable (procedure/closure? procedure)
-  (and (procedure-closure-block procedure)
+(define (procedure/closure? procedure)
+  (and (procedure/closed? procedure)
        (not (procedure/ic? procedure))))
 
-(define-integrable (procedure/trivial-closure? procedure)
+(define (procedure/trivial-closure? procedure)
   (let ((enclosing (procedure-closing-block procedure)))
-    (or (null? enclosing)
+    (or (not enclosing)
 	(and (ic-block? enclosing)
 	     (not (ic-block/use-lookup? enclosing))))))
 
-(define (procedure/closed? procedure)
-  (or (procedure/ic? procedure)
-      (procedure/closure? procedure)))
+(define-integrable procedure/closed?
+  procedure-closure-context)
 
 (define-integrable (procedure/open? procedure)
   (not (procedure/closed? procedure)))
