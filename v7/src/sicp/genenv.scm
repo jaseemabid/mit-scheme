@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: genenv.scm,v 1.3 1999/01/02 06:19:10 cph Exp $
+$Id: genenv.scm,v 1.3.2.1 2001/12/11 05:36:51 cph Exp $
 
-Copyright (c) 1987, 1988, 1989, 1990, 1999 Massachusetts Institute of Technology
+Copyright (c) 1987-1990, 1999, 2001 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -16,7 +16,8 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
-Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+02111-1307, USA.
 |#
 
 ;;;; Environment hacking for 6.001
@@ -47,17 +48,17 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 			 values)
 		   unref)))
 
-      (if (null? descriptors)
-	  (receiver (reverse! names)
-		    (reverse! values)
-		    (reverse! unref))
+      (if (pair? descriptors)
 	  (let ((this (car descriptors)))
 	    (cond ((not (pair? this))
 		   (do-next this this))
 		  ((null? (cdr this))
 		   (do-next (car this) (car this)))
 		  (else
-		   (do-next (car this) (cdr this)))))))
+		   (do-next (car this) (cdr this)))))
+	  (receiver (reverse! names)
+		    (reverse! values)
+		    (reverse! unref))))
     (inner descriptors '() '() '()))
 
   (set! build-environment
@@ -69,20 +70,15 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 	      (if (default-object? receiver)
 		  unreferenceable
 		  (receiver
-		   (apply (scode-eval (make-lambda lambda-tag:make-environment
-						   names
-						   '()
-						   '()
-						   '()
-						   '()
-						   (make-the-environment))
-				      (if (default-object? parent-frame)
-					  source-frame
-					  parent-frame))
-			  (map (if (default-object? process)
-				   unmap-reference-trap
-				   (lambda (x)
-				     (unmap-reference-trap (process x))))
-			       values))
+		   (extend-interpreter-environment
+		    (if (default-object? parent-frame)
+			source-frame
+			parent-frame)
+		    (map (if (default-object? process)
+			     cons
+			     (lambda (name value)
+			       (cons name (process value))))
+			 names
+			 values))
 		   unreferenceable))))))
   42)
