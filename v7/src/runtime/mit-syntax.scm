@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: mit-syntax.scm,v 1.1.2.3 2002/01/17 01:48:17 cph Exp $
+;;; $Id: mit-syntax.scm,v 1.1.2.4 2002/01/17 01:49:20 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -913,8 +913,7 @@
 (define-declaration 'INTEGRATE-EXTERNAL
   (lambda (declaration environment history selector)
     environment selector
-    (if (not (and (syntax-match? '(DATUM) (cdr declaration))
-		  (string? (cadr declaration))))
+    (if (not (list-of-type? (cdr declaration) string?))
 	(syntax-error history "Ill-formed declaration:" declaration))
     declaration))
 
