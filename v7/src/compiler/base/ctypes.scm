@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/ctypes.scm,v 4.6 1988/11/01 04:46:49 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/ctypes.scm,v 4.6.1.1 1988/11/30 21:19:51 cph Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
