@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/runtime.pkg,v 14.87 1990/11/15 23:27:32 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/runtime/runtime.pkg,v 14.87.1.1 1991/08/26 23:22:07 cph Exp $
 
-Copyright (c) 1988, 1989, 1990 Massachusetts Institute of Technology
+Copyright (c) 1988-91 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -717,9 +717,6 @@ MIT in each case. |#
   (export (runtime socket)
 	  make-generic-input-port
 	  set-input-port/associated-port!)
-  (export (runtime subprocess)
-	  make-generic-input-port
-	  set-input-port/associated-port!)
   (initialization (initialize-package!)))
 
 (define-package (runtime generic-output)
@@ -740,9 +737,6 @@ MIT in each case. |#
 	  operation/write-char
 	  operation/write-string)
   (export (runtime socket)
-	  make-generic-output-port
-	  set-output-port/associated-port!)
-  (export (runtime subprocess)
 	  make-generic-output-port
 	  set-output-port/associated-port!)
   (initialization (initialize-package!)))
@@ -1409,14 +1403,6 @@ MIT in each case. |#
 	  channel-descriptor
 	  make-channel
 	  with-channel-blocking)
-  (export (runtime subprocess)
-	  make-channel
-	  pty-master-continue
-	  pty-master-interrupt
-	  pty-master-kill
-	  pty-master-quit
-	  pty-master-send-signal
-	  pty-master-stop)
   (export (runtime generic-input)
 	  input-buffer/buffered-chars
 	  input-buffer/channel
@@ -1828,28 +1814,6 @@ MIT in each case. |#
 	  open-tcp-stream-socket
 	  open-unix-stream-socket
 	  tcp-server-connection-accept))
-
-(define-package (runtime subprocess)
-  (files "process")
-  (parent ())
-  (export ()
-	  make-subprocess
-	  os-job-control?
-	  scheme-subprocess-environment
-	  subprocess-continue
-	  subprocess-ctty-type
-	  subprocess-delete
-	  subprocess-id
-	  subprocess-input-port
-	  subprocess-interrupt
-	  subprocess-kill
-	  subprocess-list
-	  subprocess-output-port
-	  subprocess-quit
-	  subprocess-signal
-	  subprocess-status
-	  subprocess-stop)
-  (initialization (initialize-package!)))
 
 (define-package (runtime graphics)
   (files "graphics")
