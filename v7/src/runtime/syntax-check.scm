@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntax-check.scm,v 1.1.2.1 2002/01/15 20:46:02 cph Exp $
+;;; $Id: syntax-check.scm,v 1.1.2.2 2002/01/22 05:51:21 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001 Massachusetts Institute of Technology
 ;;;
@@ -37,7 +37,9 @@
   (let ((match-error
 	 (lambda ()
 	   (error:bad-range-argument pattern 'SYNTAX-MATCH?))))
-    (cond ((symbol? pattern)
+    (cond ((procedure? pattern)
+	   (pattern object))
+	  ((symbol? pattern)
 	   (case pattern
 	     ((SYMBOL) (symbol? object))
 	     ((IDENTIFIER) (identifier? object))
