@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/lapgn2.scm,v 1.7 1988/03/25 21:21:27 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/back/lapgn2.scm,v 1.7.1.1 1988/08/22 22:18:19 cph Exp $
 
-Copyright (c) 1987 Massachusetts Institute of Technology
+Copyright (c) 1987, 1988 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -39,6 +39,7 @@ MIT in each case. |#
 (define *register-map*)
 (define *prefix-instructions*)
 (define *needed-registers*)
+(define *dead-registers*)
 
 (define-integrable (prefix-instructions! instructions)
   (set! *prefix-instructions* (LAP ,@*prefix-instructions* ,@instructions)))
