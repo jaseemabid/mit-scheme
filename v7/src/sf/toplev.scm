@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: toplev.scm,v 4.22 2002/01/09 05:11:21 cph Exp $
+$Id: toplev.scm,v 4.22.2.1 2002/01/15 20:48:15 cph Exp $
 
 Copyright (c) 1988-2002 Massachusetts Institute of Technology
 
@@ -29,18 +29,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 
 (define bin-pathname-type "bin")
 
-(define (integrate/procedure procedure declarations)
+(define (integrate/procedure procedure)
   (procedure-components procedure
     (lambda (*lambda environment)
-      (scode-eval (integrate/scode *lambda declarations false) environment))))
+      (scode-eval (integrate/scode *lambda false) environment))))
 
 (define (integrate/sexp s-expression environment declarations receiver)
   (integrate/simple (lambda (s-expressions)
-		      (phase:syntax s-expressions environment))
-		    (list s-expression) declarations receiver))
+		      (phase:syntax s-expressions environment declarations))
+		    (list s-expression)
+		    receiver))
 
-(define (integrate/scode scode declarations receiver)
-  (integrate/simple identity-procedure scode declarations receiver))
+(define (integrate/scode scode receiver)
+  (integrate/simple identity-procedure scode receiver))
 
 (define (sf input-string #!optional bin-string spec-string)
   (syntax-file input-string
@@ -249,20 +250,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 ;;;; Optimizer Top Level
 
 (define (integrate/file file-name environment declarations)
-  (integrate/kernel (lambda ()
-		      (phase:syntax (phase:read file-name) environment))
-		    declarations))
+  (integrate/kernel
+   (lambda ()
+     (phase:syntax (phase:read file-name)
+		   environment
+		   declarations))))
 
-(define (integrate/simple preprocessor input declarations receiver)
+(define (integrate/simple preprocessor input receiver)
   (call-with-values
       (lambda ()
-	(integrate/kernel (lambda () (preprocessor input)) declarations))
+	(integrate/kernel (lambda () (preprocessor input))))
     (or receiver
 	(lambda (expression externs-block externs)
 	  externs-block externs		;ignored
 	  expression))))
 
-(define (integrate/kernel get-scode declarations)
+(define (integrate/kernel get-scode)
   (fluid-let ((previous-name false)
 	      (previous-process-time false)
 	      (previous-real-time false))
@@ -270,32 +273,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 	(lambda ()
 	  (call-with-values
 	      (lambda ()
-		(call-with-values
-		    (lambda ()
-		      (phase:transform (canonicalize-scode (get-scode)
-							   declarations)))
+		(call-with-values (lambda () (phase:transform (get-scode)))
 		  phase:optimize))
 	    phase:generate-scode))
       (lambda (expression externs-block externs)
 	(end-phase)
 	(values expression externs-block externs)))))
-
-(define (canonicalize-scode scode declarations)
-  (let ((declarations (process-declarations declarations)))
-    (if (null? declarations)
-	scode
-	(scan-defines (make-sequence
-		       (list (make-block-declaration declarations)
-			     scode))
-		      make-open-block))))
 
 (define (phase:read filename)
   (mark-phase "Read")
   (read-file filename))
 
-(define (phase:syntax s-expression environment)
+(define (phase:syntax s-expressions environment declarations)
   (mark-phase "Syntax")
-  (syntax* s-expression environment))
+  (syntax* (if (null? declarations)
+	       s-expressions
+	       (cons (cons (make-syntactic-closure system-global-environment
+			       '()
+			     'DECLARE)
+			   declarations)
+		     s-expressions))
+	   environment))
 
 (define (phase:transform scode)
   (mark-phase "Transform")

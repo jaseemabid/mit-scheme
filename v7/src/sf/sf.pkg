@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: sf.pkg,v 4.16 2002/01/09 05:11:38 cph Exp $
+$Id: sf.pkg,v 4.16.2.1 2002/01/15 20:48:13 cph Exp $
 
 Copyright (c) 1987-1999, 2001, 2002 Massachusetts Institute of Technology
 
@@ -62,9 +62,7 @@ USA.
 	  integrate/file
 	  integrate/sexp
 	  integrate/scode
-	  read-externs-file)
-  (import (runtime syntaxer)
-	  process-declarations))
+	  read-externs-file))
 
 (define-package (scode-optimizer transform)
   (files "xform")
