@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/rtlgen.scm,v 1.20 1987/08/31 21:19:10 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlgen/rtlgen.scm,v 1.20.1.1 1987/12/18 17:49:13 cph Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -140,21 +140,28 @@ MIT in each case. |#
 	(scfg*scfg->scfg! (generator node true)
 			  (generate/node next subproblem?))
 	(generator node subproblem?))))
-
+
 (define (define-predicate-generator tag generator)
   (define-generator tag (normal-predicate-generator generator)))
 
 (define (normal-predicate-generator generator)
   (lambda (node subproblem?)
-    (pcfg*scfg->scfg!
-     (generator node)
-     (let ((consequent (pnode-consequent node)))
-       (and consequent
-	    (generate/node consequent subproblem?)))
-     (let ((alternative (pnode-alternative node)))
-       (and alternative
-	    (generate/node alternative subproblem?))))))
-
+    (let ((predicate (generator node)))
+      (pcfg*scfg->scfg!
+       predicate
+       (if (null? (pcfg-consequent-hooks predicate))
+	   (make-null-cfg)
+	   (let ((consequent (pnode-consequent node)))
+	     (if consequent
+		 (generate/node consequent subproblem?)
+		 (make-null-cfg))))
+       (if (null? (pcfg-alternative-hooks predicate))
+	   (make-null-cfg)
+	   (let ((alternative (pnode-alternative node)))
+	     (if alternative
+		 (generate/node alternative subproblem?)
+		 (make-null-cfg))))))))
+
 (define (generate/subproblem-cfg subproblem)
   (if (cfg-null? (subproblem-cfg subproblem))
       (make-null-cfg)
