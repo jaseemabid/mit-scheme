@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: interp.c,v 9.89 1999/01/02 06:06:43 cph Exp $
+$Id: interp.c,v 9.89.2.1 2000/11/27 05:57:55 cph Exp $
 
-Copyright (c) 1988-1999 Massachusetts Institute of Technology
+Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -1199,7 +1199,9 @@ Pop_Return_Non_Trapping:
       {
 	long temp;
 	SCHEME_OBJECT value;
-	Lock_Handle set_serializer;
+#ifdef DECLARE_LOCK
+	DECLARE_LOCK (set_serializer);
+#endif
 
 #ifndef No_In_Line_Lookup
 
@@ -1409,25 +1411,24 @@ Pop_Return_Non_Trapping:
     case RC_HARDWARE_TRAP:
       {
 	/* This just reinvokes the handler */
-
-	SCHEME_OBJECT info, handler;
-	info = (STACK_REF (0));
-
-	Save_Cont();
-	if ((! (Valid_Fixed_Obj_Vector())) ||
-	    ((handler = (Get_Fixed_Obj_Slot(Trap_Handler))) == SHARP_F))
+	SCHEME_OBJECT info = (STACK_REF (0));
+	SCHEME_OBJECT handler = SHARP_F;
+	Save_Cont ();
+	if (Valid_Fixed_Obj_Vector ())
+	  handler = (Get_Fixed_Obj_Slot (Trap_Handler));
+	if (handler == SHARP_F)
 	  {
 	    outf_fatal ("There is no trap handler for recovery!\n");
 	    termination_trap ();
 	    /*NOTREACHED*/
 	  }
-	Will_Push(STACK_ENV_EXTRA_SLOTS + 2);
+	Will_Push (STACK_ENV_EXTRA_SLOTS + 2);
 	STACK_PUSH (info);
 	STACK_PUSH (handler);
 	STACK_PUSH (STACK_FRAME_HEADER + 1);
-	Pushed();
-	goto Internal_Apply;
+	Pushed ();
       }
+      goto Internal_Apply;
     
     /* Internal_Apply, the core of the application mechanism.
 

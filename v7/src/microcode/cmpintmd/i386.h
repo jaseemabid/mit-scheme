@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.31 1999/01/02 06:11:34 cph Exp $
+$Id: i386.h,v 1.31.2.1 2000/11/27 05:58:00 cph Exp $
 
-Copyright (c) 1992-1999 Massachusetts Institute of Technology
+Copyright (c) 1992-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -196,7 +196,7 @@ magic = ([TC_COMPILED_ENTRY | 0] - (offset + length_of_CALL_instruction))
 
 */
 
-#define COMPILER_PROCESSOR_TYPE			COMPILER_I386_TYPE
+#define COMPILER_PROCESSOR_TYPE			COMPILER_IA32_TYPE
 
 /* The i387 coprocessor and i486 use 80-bit extended format internally. */
 

@@ -1,8 +1,8 @@
 ### -*- Fundamental -*-
 ###
-### $Id: makefile.vac,v 1.6 1999/01/02 06:11:34 cph Exp $
+### $Id: makefile.vac,v 1.6.2.1 2000/11/27 05:58:01 cph Exp $
 ###
-### Copyright (c) 1994-1999 Massachusetts Institute of Technology
+### Copyright (c) 1994-2000 Massachusetts Institute of Technology
 ###
 ### This program is free software; you can redistribute it and/or
 ### modify it under the terms of the GNU General Public License as
@@ -59,12 +59,10 @@ ASFLAGS = -Zomf
 
 include os2utl\makefile.cmn
 
-scheme.exe : $(OBJECTS) $(SCHEME_OBJECTS) scheme.res
-	$(CC) $(LDFLAGS) /B"/PMTYPE:PM" /Fe$@ \
-	$(OBJECTS) $(SCHEME_OBJECTS) $(SCHEME_LIB)
+scheme.exe : $(OBJECTS) scheme.res
+	$(CC) $(LDFLAGS) /B"/PMTYPE:PM" /Fe$@ $(OBJECTS) $(SCHEME_LIB)
 	rc scheme.res $@
 
-bchschem.exe : $(BCHOBJECTS) $(SCHEME_OBJECTS) bchschem.res
-	$(CC) $(LDFLAGS) /B"/PMTYPE:PM" /Fe$@ \
-	$(OBJECTS) $(SCHEME_OBJECTS) $(SCHEME_LIB)
+bchschem.exe : $(BCHOBJECTS) bchschem.res
+	$(CC) $(LDFLAGS) /B"/PMTYPE:PM" /Fe$@ $(BCHOBJECTS) $(SCHEME_LIB)
 	rc bchschem.res $@

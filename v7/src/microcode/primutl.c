@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: primutl.c,v 9.72 2000/01/18 05:08:57 cph Exp $
+$Id: primutl.c,v 9.72.2.1 2000/11/27 05:57:57 cph Exp $
 
 Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
@@ -29,8 +29,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
 #include "scheme.h"
-#include "os.h"
 #include "prims.h"
+#include "os.h"
 #include "usrdef.h"
 #include "prename.h"
 #include "syscall.h"

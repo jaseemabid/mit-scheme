@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.87 2000/01/18 05:08:09 cph Exp $
+$Id: fasload.c,v 9.87.2.1 2000/11/27 05:57:54 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -46,16 +46,17 @@ static Tchannel load_channel;
 
 #include "load.c"
 
-#ifdef _POSIX
-#include <string.h>
+#ifdef _POSIX_VERSION
+#  include <string.h>
 #else
-extern int EXFUN (strlen, (const char *));
-extern char * EXFUN (strcpy, (char *, const char *));
+   extern int EXFUN (strlen, (const char *));
+   extern char * EXFUN (strcpy, (char *, const char *));
 #endif
-#ifdef __STDC__
-#include <stdlib.h>
+
+#ifdef STDC_HEADERS
+#  include <stdlib.h>
 #else
-extern char * EXFUN (malloc, (int));
+   extern char * EXFUN (malloc, (int));
 #endif
 
 extern char * Error_Names [];
@@ -74,14 +75,6 @@ extern void
 
 extern Boolean
   EXFUN (install_c_code_table, (SCHEME_OBJECT *, long));
-
-#ifndef FLUSH_I_CACHE_REGION
-#  define FLUSH_I_CACHE_REGION(addr, nwords) NOP()
-#endif
-
-#ifndef PUSH_D_CACHE_REGION
-#  define PUSH_D_CACHE_REGION(addr, nwords) FLUSH_I_CACHE_REGION(addr, nwords)
-#endif
 
 static long failed_heap_length = -1;
 
@@ -783,6 +776,7 @@ DEFUN (load_file, (mode), int mode)
     Intern_Block (Orig_Constant, Constant_End);
   }
 
+#ifdef PUSH_D_CACHE_REGION
   if (dumped_interface_version != 0)
   {
     if (primitive_table != Orig_Heap)
@@ -790,6 +784,7 @@ DEFUN (load_file, (mode), int mode)
     if (Constant_End != Orig_Constant)
       PUSH_D_CACHE_REGION (Orig_Constant, (Constant_End - Orig_Constant));
   }
+#endif
 
   FASLOAD_RELOCATE_HOOK (Orig_Heap, primitive_table,
 			 Orig_Constant, Constant_End);

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: prntfs.c,v 1.15 1999/01/02 06:11:34 cph Exp $
+$Id: prntfs.c,v 1.15.2.1 2000/11/27 05:57:57 cph Exp $
 
-Copyright (c) 1993-1999 Massachusetts Institute of Technology
+Copyright (c) 1993-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -333,15 +333,10 @@ DEFUN (file_touch, (filename), CONST char * filename)
 	char buf [1];
 	(buf[0]) = '\0';
 	STD_VOID_UNIX_CALL (write, (fd, buf, 1));
-#ifdef HAVE_TRUNCATE
-	STD_VOID_UNIX_CALL (ftruncate, (fd, 0));
-	transaction_commit ();
-#else /* not HAVE_TRUNCATE */
 	transaction_commit ();
 	fd = (open (filename, (O_WRONLY | O_TRUNC), MODE_REG));
 	if (fd >= 0)
 	  STD_VOID_UNIX_CALL (close, (fd));
-#endif /* HAVE_TRUNCATE */
 	return (SHARP_F);
       }
   }

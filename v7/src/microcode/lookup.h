@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: lookup.h,v 9.51 1999/01/02 06:06:43 cph Exp $
+$Id: lookup.h,v 9.51.2.1 2000/11/27 05:57:55 cph Exp $
 
-Copyright (c) 1988-1999 Massachusetts Institute of Technology
+Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -56,21 +56,17 @@ extern SCHEME_OBJECT
 
 /* Common constants. */
 
-#ifdef b32				/* 32 bit objects */
-
-#if (TYPE_CODE_LENGTH == 8)
-#define UNCOMPILED_VARIABLE		0x08000000
+#if (SIZEOF_UNSIGNED_LONG == 4)	/* 32 bit objects */
+#  if (TYPE_CODE_LENGTH == 8)
+#    define UNCOMPILED_VARIABLE		0x08000000
+#  endif
+#  if (TYPE_CODE_LENGTH == 6)
+#    define UNCOMPILED_VARIABLE		0x20000000
+#  endif
+#  if (TC_CONSTANT != 0x08)
+#    include "error:lookup.h and types.h are inconsistent"
+#  endif
 #endif
-
-#if (TYPE_CODE_LENGTH == 6)
-#define UNCOMPILED_VARIABLE		0x20000000
-#endif
-
-#if (TC_CONSTANT != 0x08)
-#include "error:lookup.h and types.h are inconsistent"
-#endif
-
-#endif /* b32 */
 
 #ifndef UNCOMPILED_VARIABLE		/* Safe version */
 #define UNCOMPILED_VARIABLE		MAKE_OBJECT (UNCOMPILED_REF, 0)
@@ -120,6 +116,7 @@ extern SCHEME_OBJECT
    not matter, but might on a machine with address mapping.
  */
 
+#define DECLARE_LOCK(name) Lock_Handle name
 #define setup_lock(handle, cell)		handle = Lock_Cell(cell)
 #define remove_lock(handle)			Unlock_Cell(handle)
 
@@ -151,6 +148,7 @@ extern SCHEME_OBJECT
 
 #define verify(type_code, variable, code, label)
 #define verified_offset(variable, code)		code
+#undef DECLARE_LOCK
 #define setup_lock(handle, cell)
 #define remove_lock(ignore)
 #define setup_locks(hand1, cel1, hand2, cel2)

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchdmp.c,v 9.85 2000/01/18 05:06:26 cph Exp $
+$Id: bchdmp.c,v 9.85.2.1 2000/11/27 05:57:52 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -32,67 +32,25 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #define In_Fasdump
 #include "fasl.h"
 
-#ifdef DOS386
-#  include "msdos.h"
-#  include "dosio.h"
-
-char *
-DEFUN (mktemp, (fname), unsigned char * fname)
-{
-  /* This assumes that fname ends in at least 3 Xs.
-     tmpname seems too random to use.
-     This, of course, has a window in which another program can
-     create the file.
-   */
-
-  int posn = ((strlen (fname)) - 3);
-  int counter;
-
-  for (counter = 0; counter < 1000; counter++)
-  {
-    sprintf (&fname[posn], "%03d", counter);
-    if ((access (fname, F_OK)) != 0)
-    {
-      int fid = (open (fname,
-		       (O_CREAT | O_EXCL | O_RDWR),
-		       (S_IREAD | S_IWRITE)));
-      if (fid < 0)
-	continue;
-      close (fid);
-      break;
-    }
-  }
-  if (counter >= 1000)
-    return ((char *) NULL);
-
-  return ((char *) fname);
-}
-
-#  define FASDUMP_FILENAME_DEFINED
-static char FASDUMP_FILENAME[] = "\\tmp\\faXXXXXX";
-
-#endif /* DOS386 */
-
-#ifdef WINNT
-#  include "nt.h"
-#  include "ntio.h"
-
-#  define FASDUMP_FILENAME_DEFINED
-static char FASDUMP_FILENAME[] = "\\tmp\\faXXXXXX";
-
-#endif /* WINNT */
-
-#ifdef _OS2
-
-#include "os2.h"
-#define FASDUMP_FILENAME_DEFINED
-static char FASDUMP_FILENAME[] = "\\tmp\\faXXXXXX";
-
-#ifdef __EMX__
-#include <io.h>
+#ifdef __unix__
+#  include "ux.h"
+#  include "uxio.h"
+   static char FASDUMP_FILENAME[] = "/tmp/fasdumpXXXXXX";
 #endif
 
-#endif /* _OS2 */
+#ifdef __WIN32__
+#  include "nt.h"
+#  include "ntio.h"
+   static char FASDUMP_FILENAME[] = "\\tmp\\faXXXXXX";
+#endif
+
+#ifdef __OS2__
+#  include "os2.h"
+#  ifdef __EMX__
+#    include <io.h>
+#  endif
+   static char FASDUMP_FILENAME[] = "\\tmp\\faXXXXXX";
+#endif
 
 #if defined(__IBMC__) || defined(__WATCOMC__)
 
@@ -140,19 +98,6 @@ DEFUN (mktemp, (fname), unsigned char * fname)
 }
 
 #endif /* __IBMC__ or __WATCOMC__ */
-
-#ifndef FASDUMP_FILENAME_DEFINED
-
-/* Assume Unix */
-
-#  include "ux.h"
-#  include "uxio.h"
-extern int EXFUN (unlink, (CONST char *));
-
-#  define FASDUMP_FILENAME_DEFINED
-static char FASDUMP_FILENAME[] = "/tmp/fasdumpXXXXXX";
-
-#endif /* FASDUMP_FILENAME_DEFINED */
 
 #include "bchgcc.h"
 
@@ -322,14 +267,14 @@ static Boolean compiled_code_present_p;
   BCH_STORE_CLOSURE_ENTRY_ADDRESS (Temp, Scan);				\
 } while (0)
 
-int
+ssize_t
 DEFUN (eta_read, (fid, buffer, size),
        int fid AND char * buffer AND int size)
 {
   return (read (fid, buffer, size));
 }
 
-int
+ssize_t
 DEFUN (eta_write, (fid, buffer, size),
        int fid AND char * buffer AND int size)
 {
@@ -346,36 +291,12 @@ DEFUN (fasdump_exit, (length), long length)
   restore_gc_file ();
 
 #ifdef HAVE_FTRUNCATE
-  {
-#if (! (defined(_HPUX) || defined(__linux)))
-    /* HP-UX version < 9.0 has the wrong type in the prototype
-       in <unistd.h>
-     */
-
-    extern int EXFUN (ftruncate, (int, off_t));
+  ftruncate (dump_file, length);
 #endif
-
-    ftruncate (dump_file, length);
-    result = ((close (dump_file)) == 0);
-  }
-#else
-
-  result = (close (dump_file) == 0);
-
-#endif /* HAVE_FTRUNCATE */
+  result = ((close (dump_file)) == 0);
 #if defined(HAVE_TRUNCATE) && !defined(HAVE_FTRUNCATE)
-  {
-#ifndef _HPUX
-    /* HP-UX version < 9.0 has the wrong type in the prototype
-       in <unistd.h>
-     */
-
-    extern int EXFUN (truncate, (CONST char *, off_t));
+  truncate (dump_file_name, length);
 #endif
-
-    truncate (dump_file_name, length);
-  }
-#endif /* HAVE_TRUNCATE */
 
   if (length == 0)
     (void) (unlink (dump_file_name));
@@ -893,7 +814,6 @@ DEFINE_PRIMITIVE ("PRIMITIVE-FASDUMP", Prim_prim_fasdump, 3, 3, 0)
     PRIMITIVE_RETURN (dump_to_file (root, (STRING_ARG (2))));
   else
   {
-    extern char * EXFUN (mktemp, (char *));
     extern int EXFUN (OS_channel_copy,
 		      (off_t source_length,
 		       Tchannel source_channel,
@@ -901,24 +821,21 @@ DEFINE_PRIMITIVE ("PRIMITIVE-FASDUMP", Prim_prim_fasdump, 3, 3, 0)
 
     int copy_result;
     SCHEME_OBJECT fasdump_result;
-    Tchannel channel, temp_channel;
+    Tchannel channel = (arg_channel (2));
     char temp_name [(sizeof (FASDUMP_FILENAME)) + 1];
+    Tchannel temp_channel;
 
     {
       char * scan1 = &FASDUMP_FILENAME[0];
       char * scan2 = temp_name;
-      while (1)
-	if (((*scan2++) = (*scan1++)) == '\0')
-	  break;
+      while (((*scan2++) = (*scan1++)) != '\0')
+	;
     }
-    channel = (arg_channel (2));
-
     {
       char * temp_file = (mktemp (temp_name));
-      if ((temp_file == ((char *) NULL)) || (*temp_file == '\0'))
+      if ((temp_file == 0) || ((*temp_file) == '\0'))
 	signal_error_from_primitive (ERR_EXTERNAL_RETURN);
     }
-
     fasdump_result = (dump_to_file (root, (temp_name)));
     if (fasdump_result != SHARP_T)
       PRIMITIVE_RETURN (fasdump_result);

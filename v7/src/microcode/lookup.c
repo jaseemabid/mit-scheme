@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: lookup.c,v 9.57 1999/01/02 06:06:43 cph Exp $
+$Id: lookup.c,v 9.57.2.1 2000/11/27 05:57:55 cph Exp $
 
-Copyright (c) 1988-1999 Massachusetts Institute of Technology
+Copyright (c) 1988-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -82,7 +82,9 @@ DEFUN (scan_frame, (frame, sym, hunk, depth, unbound_valid_p),
        AND long depth
        AND Boolean unbound_valid_p)
 {
-  Lock_Handle compile_serializer;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (compile_serializer);
+#endif
   fast SCHEME_OBJECT *scan, temp;
   fast long count;
 
@@ -175,7 +177,9 @@ DEFUN (deep_lookup, (env, sym, hunk),
        AND SCHEME_OBJECT sym
        AND SCHEME_OBJECT * hunk)
 {
-  Lock_Handle compile_serializer;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (compile_serializer);
+#endif
   fast SCHEME_OBJECT frame;
   fast long depth;
 
@@ -266,7 +270,8 @@ DEFUN (deep_lookup_end, (cell, hunk),
        SCHEME_OBJECT * cell
        AND SCHEME_OBJECT * hunk)
 {
-  long trap_kind, return_value;
+  long trap_kind;
+  long return_value = PRIM_DONE;
   Boolean repeat_p;
 
   do {
@@ -342,8 +347,9 @@ DEFUN (deep_lookup_end, (cell, hunk),
 
     /* The reference was dangerous, uncompile the variable. */
     {
-      Lock_Handle compile_serializer;
-
+#ifdef DECLARE_LOCK
+      DECLARE_LOCK (compile_serializer);
+#endif
       setup_lock(compile_serializer, hunk);
       hunk[VARIABLE_COMPILED_TYPE] = UNCOMPILED_VARIABLE;
       hunk[VARIABLE_OFFSET] = SHARP_F;
@@ -493,9 +499,13 @@ DEFUN (deep_assignment_end, (cell, hunk, value, force),
        AND SCHEME_OBJECT value
        AND Boolean force)
 {
-  Lock_Handle set_serializer;
-  long trap_kind, return_value;
-  SCHEME_OBJECT bogus_unassigned, extension, saved_extension, saved_value;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (set_serializer);
+#endif
+  long trap_kind;
+  long return_value = PRIM_DONE;
+  SCHEME_OBJECT bogus_unassigned, extension, saved_extension;
+  SCHEME_OBJECT saved_value = SHARP_F;
   Boolean repeat_p, uncompile_p, fluid_lock_p;
 
   /* State variables */
@@ -684,9 +694,9 @@ compiler_cache_assignment:
   if (uncompile_p)
   {
     /* The reference was dangerous, uncompile the variable. */
-
-    Lock_Handle compile_serializer;
-
+#ifdef DECLARE_LOCK
+    DECLARE_LOCK (compile_serializer);
+#endif
     setup_lock (compile_serializer, hunk);
     hunk[VARIABLE_COMPILED_TYPE] = UNCOMPILED_VARIABLE;
     hunk[VARIABLE_OFFSET] = SHARP_F;
@@ -714,7 +724,9 @@ DEFUN (assignment_end, (cell, env, hunk, value),
        AND SCHEME_OBJECT * hunk
        AND SCHEME_OBJECT value)
 {
-  Lock_Handle set_serializer;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (set_serializer);
+#endif
   SCHEME_OBJECT bogus_unassigned;
   long temp;
 
@@ -857,8 +869,9 @@ DEFUN (definition, (cell, value, shadowed_p),
     return (redefinition (cell, value));
   else
   {
-    Lock_Handle set_serializer;
-
+#ifdef DECLARE_LOCK
+    DECLARE_LOCK (set_serializer);
+#endif
     setup_lock (set_serializer, cell);
     if (*cell == DANGEROUS_UNBOUND_OBJECT)
     {
@@ -883,7 +896,9 @@ DEFUN (dangerize, (cell, sym),
        fast SCHEME_OBJECT * cell
        AND SCHEME_OBJECT sym)
 {
-  Lock_Handle set_serializer;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (set_serializer);
+#endif
   fast long temp;
   SCHEME_OBJECT trap;
 
@@ -970,7 +985,9 @@ DEFUN (extend_frame,
        AND SCHEME_OBJECT original_frame
        AND Boolean recache_p)
 {
-  Lock_Handle extension_serializer;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (extension_serializer);
+#endif
   SCHEME_OBJECT extension, the_procedure;
   fast SCHEME_OBJECT *scan;
   long aux_count;
@@ -1584,8 +1601,11 @@ DEFUN (compiler_cache,
 	      (long, SCHEME_OBJECT, SCHEME_OBJECT,
 	       SCHEME_OBJECT, long, SCHEME_OBJECT));
 
-  Lock_Handle set_serializer;
-  fast SCHEME_OBJECT trap, references, extension;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (set_serializer);
+#endif
+  fast SCHEME_OBJECT trap, references;
+  SCHEME_OBJECT extension = SHARP_F;
   SCHEME_OBJECT trap_value, store_trap_tag, store_extension;
   long trap_kind, return_value;
 
@@ -2067,7 +2087,9 @@ DEFUN (compiler_uncache, (value_cell, sym),
        SCHEME_OBJECT * value_cell
        AND SCHEME_OBJECT sym)
 {
-  Lock_Handle set_serializer;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (set_serializer);
+#endif
   SCHEME_OBJECT val, extension, references;
   long trap_kind, temp, i, index;
 
@@ -2356,10 +2378,14 @@ DEFUN (compiler_recache,
        AND Boolean shadowed_p
        AND Boolean link_p)
 {
-  Lock_Handle set_serializer_1, set_serializer_2;
+#ifdef DECLARE_LOCK
+  DECLARE_LOCK (set_serializer_1);
+  DECLARE_LOCK (set_serializer_2);
+#endif
   SCHEME_OBJECT
-    old_value, references, extension, new_extension, new_trap,
+    old_value, references, extension, new_extension,
     *trap_info_table[TRAP_MAP_TABLE_SIZE];
+  SCHEME_OBJECT new_trap = SHARP_F;
   long
     trap_kind, temp, i, index, total_size, total_count, conflict_count;
 

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.74 1999/01/02 06:11:34 cph Exp $
+$Id: utils.c,v 9.74.2.1 2000/11/27 05:57:58 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -116,14 +116,14 @@ DEFUN (Setup_Interrupt, (masked_interrupts), long masked_interrupts)
   long interrupt_mask;
   SCHEME_OBJECT interrupt_handler;
 
-#ifdef _OS2
+#ifdef __OS2__
   if ((1 << interrupt_number) == INT_Global_1)
     {
       extern void OS2_handle_attention_interrupt ();
       OS2_handle_attention_interrupt ();
       abort_to_interpreter (PRIM_POP_RETURN);
     }
-#endif /* _OS2 */
+#endif /* __OS2__ */
   if (! (Valid_Fixed_Obj_Vector ()))
     {
       outf_fatal ("\nInvalid fixed-objects vector.");
@@ -535,7 +535,8 @@ void
 DEFUN (Do_Micro_Error, (Err, From_Pop_Return),
        long Err AND Boolean From_Pop_Return)
 {
-  SCHEME_OBJECT Error_Vector, Handler;
+  SCHEME_OBJECT Error_Vector = SHARP_F;
+  SCHEME_OBJECT Handler;
 
   if (Consistency_Check)
   {
@@ -1073,7 +1074,7 @@ DEFUN (Translate_To_Point, (Target), SCHEME_OBJECT Target)
   /*NOTREACHED*/
 }
 
-#ifndef _OS2
+#ifndef __OS2__
 
 extern SCHEME_OBJECT EXFUN (Compiler_Get_Fixed_Objects, (void));
 
@@ -1090,8 +1091,8 @@ extern SCHEME_OBJECT EXFUN (Re_Enter_Interpreter, (void));
 extern SCHEME_OBJECT EXFUN (C_call_scheme,
 			    (SCHEME_OBJECT, long, SCHEME_OBJECT *));
 
-#ifdef WINNT
-#include <windows.h>
+#ifdef __WIN32__
+#  include <windows.h>
 #endif
 
 SCHEME_OBJECT
@@ -1103,16 +1104,15 @@ DEFUN (C_call_scheme, (proc, nargs, argvec),
   SCHEME_OBJECT primitive, prim_lexpr, * sp, result;
   SCHEME_OBJECT * callers_last_return_code;
 
-#ifdef i386
-  extern void * C_Frame_Pointer, * C_Stack_Pointer;
-  void * cfp, * csp;
-  
-  cfp = C_Frame_Pointer;
-  csp = C_Stack_Pointer;
-#ifdef NT386CL
+#ifdef __IA32__
+  extern void * C_Frame_Pointer;
+  extern void * C_Stack_Pointer;
+  void * cfp = C_Frame_Pointer;
+  void * csp = C_Stack_Pointer;
+#ifdef CL386
   __try
-#endif /* NT386CL */
-#endif /* i386 */
+#endif
+#endif
   {  
     primitive = (Regs [REGBLOCK_PRIMITIVE]);
     prim_lexpr = (Regs [REGBLOCK_LEXPR_ACTUALS]);
@@ -1151,17 +1151,17 @@ DEFUN (C_call_scheme, (proc, nargs, argvec),
     Regs [REGBLOCK_LEXPR_ACTUALS] = prim_lexpr;
     Regs [REGBLOCK_PRIMITIVE] = primitive;
   }
-#ifdef i386
-#ifdef NT386CL
+#ifdef __IA32__
+#ifdef CL386
   __finally  
-#endif /* NT386CL */
+#endif
   {
     C_Frame_Pointer = cfp;
     C_Stack_Pointer = csp;
   }
-#endif /* i386 */
+#endif
 
   return  result;
 }
 
-#endif /* not _OS2 */
+#endif /* not __OS2__ */

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: pruxenv.c,v 1.18 1999/01/02 06:11:34 cph Exp $
+$Id: pruxenv.c,v 1.18.2.1 2000/11/27 05:57:57 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright (c) 1990-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,13 +26,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "ux.h"
 
 #ifdef HAVE_SOCKETS
-#include "uxsock.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#  include "uxsock.h"
 #endif
-
-extern char ** environ;
 
 DEFINE_PRIMITIVE ("FILE-TIME->STRING", Prim_file_time_to_string, 1, 1,
   "Convert a file system time stamp into a date/time string.")

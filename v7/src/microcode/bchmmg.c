@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchmmg.c,v 9.95 2000/01/18 05:06:34 cph Exp $
+$Id: bchmmg.c,v 9.95.2.1 2000/11/27 05:57:52 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -22,42 +22,35 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 /* Memory management top level.  Garbage collection to disk. */
 
 #include "scheme.h"
-#include "memmag.h"
 #include "prims.h"
+#include "memmag.h"
 #include "option.h"
-#include "oscond.h"
-#include "posixtyp.h"
+#include "osenv.h"
 
-#ifdef _POSIX
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#  include <unistd.h>
 #endif
 
-#ifdef DOS386
-#  include <string.h>
-#  include "msdos.h"
-#  define SUB_DIRECTORY_DELIMITER '\\'
-#endif
-
-#ifdef WINNT
+#ifdef __WIN32__
 #  include "nt.h"
 #  define SUB_DIRECTORY_DELIMITER '\\'
 #  define ASSUME_NORMAL_GC_FILE
 #endif
 
-#ifdef _OS2
-#include "os2.h"
-#define SUB_DIRECTORY_DELIMITER '\\'
-#define ASSUME_NORMAL_GC_FILE
-#if defined(__IBMC__) || defined(__WATCOMC__) || defined(__EMX__)
-#include <io.h>
-#include <sys\stat.h>
-#endif
-#ifndef F_OK
-#define F_OK 0
-#define X_OK 1
-#define W_OK 2
-#define R_OK 4
-#endif
+#ifdef __OS2__
+#  include "os2.h"
+#  define SUB_DIRECTORY_DELIMITER '\\'
+#  define ASSUME_NORMAL_GC_FILE
+#  if defined(__IBMC__) || defined(__WATCOMC__) || defined(__EMX__)
+#    include <io.h>
+#    include <sys\stat.h>
+#  endif
+#  ifndef F_OK
+#    define F_OK 0
+#    define X_OK 1
+#    define W_OK 2
+#    define R_OK 4
+#  endif
 #endif
 
 #ifndef SUB_DIRECTORY_DELIMITER
@@ -74,7 +67,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #  define SEEK_SET 0
 #endif
 
-#ifdef HAVE_SYSV_SHARED_MEMORY
+#ifdef USE_SYSV_SHARED_MEMORY
 #  define RECORD_GC_STATISTICS
 #endif
 #define MILLISEC * 1000
@@ -216,7 +209,7 @@ DEFUN (io_error_always_abort, (operation_name, noise),
   return (1);
 }
 
-#ifdef WINNT
+#ifdef __WIN32__
 #include <windows.h>
 
 int 
@@ -248,8 +241,8 @@ DEFUN (io_error_retry_p, (operation_name, noise),
   return (0);
 }
 
-#else /* not WINNT */
-#ifdef _OS2
+#else /* not __WIN32__ */
+#ifdef __OS2__
 
 #define INCL_WIN
 #include <os2.h>
@@ -275,7 +268,7 @@ io_error_retry_p (char * operation_name, char * noise)
     }
 }
 
-#else /* not _OS2 */
+#else /* not __OS2__ */
 
 extern char EXFUN (userio_choose_option,
 		   (CONST char *, CONST char *, CONST char **));
@@ -334,8 +327,8 @@ DEFUN (io_error_retry_p, (operation_name, noise),
   }
 }
 
-#endif /* not _OS2 */
-#endif /* not WINNT */
+#endif /* not __OS2__ */
+#endif /* not __WIN32__ */
 
 static int
 DEFUN (verify_write, (position, size, success),
@@ -367,7 +360,7 @@ DEFUN (write_data, (from, position, nbytes, noise, success),
        AND char * noise AND Boolean * success)
 {
   if (((verify_write (position, nbytes, success)) != -1)
-      && ((retrying_file_operation (write,
+      && ((retrying_file_operation (((file_operation_t *) write),
 				    gc_file,
 				    from,
 				    position,
@@ -389,7 +382,7 @@ DEFUN (load_data, (position, to, nbytes, noise, success),
        long position AND char * to AND long nbytes
        AND char * noise AND Boolean * success)
 {
-  (void) (retrying_file_operation (read,
+  (void) (retrying_file_operation (((file_operation_t *) read),
 				   gc_file,
 				   to,
 				   position,
@@ -400,7 +393,6 @@ DEFUN (load_data, (position, to, nbytes, noise, success),
 				   ((success == ((Boolean *) NULL))
 				    ? io_error_retry_p
 				    : io_error_always_abort)));
-  return;
 }
 
 static int
@@ -414,15 +406,6 @@ DEFUN (parameterization_termination, (kill_p, init_p),
     Microcode_Termination (TERM_EXIT);		/*NOTREACHED*/
   return (-1);
 }
-
-#ifdef SIGCONT
-static void
-DEFUN (continue_running, (sig), int sig)
-{
-  RE_INSTALL_HANDLER (SIGCONT, continue_running);
-  return;
-}
-#endif
 
 struct bch_GC_statistic
 {
@@ -450,7 +433,7 @@ static struct bch_GC_statistic all_gc_statistics[] =
 
 #endif
 
-#ifdef HAVE_SYSV_SHARED_MEMORY
+#ifdef USE_SYSV_SHARED_MEMORY
 
 #ifdef RECORD_GC_STATISTICS
 
@@ -584,43 +567,35 @@ static long default_sleep_period = 20 MILLISEC;
 #define GET_SLEEP_DELTA()	default_sleep_period
 #define SET_SLEEP_DELTA(value)	default_sleep_period = (value)
 
-#ifdef FD_SET
-#define SELECT_TYPE fd_set
-#else
-#define SELECT_TYPE int
-#define FD_SETSIZE ((sizeof (int)) * CHAR_BIT)
-#define FD_SET(n, p) ((*(p)) |= (1 << (n)))
-#define FD_CLR(n, p) ((*(p)) &= ~(1 << (n)))
-#define FD_ISSET(n, p) (((*(p)) & (1 << (n))) != 0)
-#define FD_ZERO(p) ((*(p)) = 0)
-extern int EXFUN (select,
-		  (int, SELECT_TYPE *, SELECT_TYPE *, SELECT_TYPE *,
-		   struct timeval *));
-#endif
-
 static void
 DEFUN (sleep_awaiting_drones, (microsec, mask),
        unsigned int microsec AND unsigned long mask)
 {
-  int dummy, saved_errno;
-  struct timeval timeout;
-
-  dummy = 0;
-  timeout.tv_sec = 0;
-  timeout.tv_usec = microsec;
+  int saved_errno;
+  int retval;
 
   *wait_mask = mask;
-  dummy = (select (0,
-		   ((SELECT_TYPE *) &dummy),
-		   ((SELECT_TYPE *) &dummy),
-		   ((SELECT_TYPE *) &dummy),
-		   &timeout));
+#ifdef HAVE_POLL
+  retval = (poll (0, 0, (microsec / 1000)));
+#else
+  {
+    int dummy = 0;
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = microsec;
+    retval
+      = (select (0,
+		 ((SELECT_TYPE *) &dummy),
+		 ((SELECT_TYPE *) &dummy),
+		 ((SELECT_TYPE *) &dummy),
+		 &timeout));
+  }
+#endif
   *wait_mask = ((unsigned long) 0);
   saved_errno = errno;
 
-  if ((dummy == -1) && (saved_errno == EINTR))
+  if ((retval == -1) && (saved_errno == EINTR))
     STATISTICS_INCR (sleeps_interrupted);
-  return;
 }
 
 #ifndef _SUNOS4
@@ -639,13 +614,20 @@ DEFUN (sysV_sprintf, (string, format, value),
 }
 
 #endif /* _SUNOS4 */
+
+#ifdef SIGCONT
+static void
+DEFUN (continue_running, (sig), int sig)
+{
+  RE_INSTALL_HANDLER (SIGCONT, continue_running);
+}
+#endif
 
 static void
 DEFUN (start_gc_drones, (first_drone, how_many, restarting),
        int first_drone AND int how_many AND int restarting)
 {
   pid_t pid;
-  long signal_mask;
   char arguments[512];
   struct drone_info *drone;
   char
@@ -1289,6 +1271,7 @@ DEFUN_VOID (find_idle_buffer)
 	      scheme_program_name);
   Microcode_Termination (TERM_GC_OUT_OF_SPACE);
   /*NOTREACHED*/
+  return (0);
 }
 
 static struct buffer_info * 
@@ -1726,7 +1709,7 @@ DEFUN (await_io_completion, (start_p), int start_p)
 #define LOAD_BUFFER(buffer, position, size, noise)			\
   buffer = (read_buffer (position, size, noise))
 
-#endif /* HAVE_SYSV_SHARED_MEMORY */
+#endif /* USE_SYSV_SHARED_MEMORY */
 
 
 
@@ -1900,9 +1883,12 @@ DEFUN (termination_open_gc_file, (operation, extra),
   /*NOTREACHED*/
 }
 
-extern char * EXFUN (mktemp, (char *));
-#ifndef _POSIX
+#ifndef _POSIX_VERSION
 extern off_t EXFUN (lseek, (int, off_t, int));
+#endif
+
+#if defined(__IBMC__) || defined(__WATCOMC__)
+extern char * EXFUN (mktemp, (unsigned char *));
 #endif
 
 static void
@@ -2015,7 +2001,7 @@ DEFUN (open_gc_file, (size, unlink_p),
   gc_file = (open (gc_file_name, flags, GC_FILE_MASK));
   if (gc_file == -1)
   {
-#if defined(DOS386) || defined(WINNT) || defined(_OS2)
+#if defined(__WIN32__) || defined(__OS2__)
     /* errno does not give sufficient information except under unix. */
 
     int saved_errno = errno;
@@ -2044,7 +2030,7 @@ DEFUN (open_gc_file, (size, unlink_p),
     }      
     else
       errno = saved_errno;
-#endif /* defined(DOS386) || defined(WINNT) || defined(_OS2) */
+#endif /* __WIN32__ || __OS2__ */
     termination_open_gc_file ("open", ((char *) NULL));
   }
 
@@ -3341,6 +3327,8 @@ DEFINE_PRIMITIVE ("GARBAGE-COLLECT", Prim_garbage_collect, 1, 1, 0)
   return (0);
 }
 
+#ifdef RECORD_GC_STATISTICS
+
 static void
 DEFUN_VOID (statistics_clear)
 {
@@ -3392,6 +3380,7 @@ DEFUN (statistics_print, (level, noise), int level AND char * noise)
   }
   return;
 }
+#endif /* RECORD_GC_STATISTICS */
 
 static SCHEME_OBJECT
 DEFUN_VOID (statistics_names)
@@ -3485,6 +3474,7 @@ DEFINE_PRIMITIVE ("BCHSCHEME-PARAMETERS-GET", Prim_bchscheme_get_params, 0, 0, 0
   PRIMITIVE_RETURN (vector);
 }
 
+#if CAN_RECONFIGURE_GC_BUFFERS
 static long
 DEFUN (bchscheme_long_parameter, (vector, index),
        SCHEME_OBJECT vector AND int index)
@@ -3500,12 +3490,13 @@ DEFUN (bchscheme_long_parameter, (vector, index),
     error_bad_range_arg (1);
   return (value);
 }
+#endif /* CAN_RECONFIGURE_GC_BUFFERS */
 
 DEFINE_PRIMITIVE ("BCHSCHEME-PARAMETERS-SET!", Prim_bchscheme_set_params, 1, 1, 0)
 {
   PRIMITIVE_HEADER (1);
 
-#if (CAN_RECONFIGURE_GC_BUFFERS == 0)
+#if !CAN_RECONFIGURE_GC_BUFFERS
   signal_error_from_primitive (ERR_UNDEFINED_PRIMITIVE);
   /*NOTREACHED*/
   return (0);

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.56 1999/01/02 06:11:34 cph Exp $
+$Id: extern.h,v 9.56.2.1 2000/11/27 05:57:54 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ extern int local_circle [];
 
 /* The register block */
 
-#ifdef WINNT
+#ifdef __WIN32__
 extern SCHEME_OBJECT *RegistersPtr;
 #define Registers RegistersPtr
 #else

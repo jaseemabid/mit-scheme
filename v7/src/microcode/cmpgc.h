@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: cmpgc.h,v 1.30 1999/01/02 06:11:34 cph Exp $
+$Id: cmpgc.h,v 1.30.2.1 2000/11/27 05:57:53 cph Exp $
 
-Copyright (c) 1989-1999 Massachusetts Institute of Technology
+Copyright (c) 1989-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -474,7 +474,11 @@ typedef unsigned short format_word;
 
 #ifndef FLUSH_I_CACHE
 #  define FLUSH_I_CACHE() do {} while (0)
-#endif /* FLUSH_I_CACHE */
+#endif
+
+#if !defined(PUSH_D_CACHE_REGION) && defined(FLUSH_I_CACHE_REGION)
+#  define PUSH_D_CACHE_REGION(addr, nwords) FLUSH_I_CACHE_REGION(addr, nwords)
+#endif
 
 #ifndef COMPILER_TRANSPORT_END
 #  define COMPILER_TRANSPORT_END() do					\

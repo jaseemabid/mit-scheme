@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ntgui.c,v 1.27 2000/01/10 04:44:17 cph Exp $
+$Id: ntgui.c,v 1.27.2.1 2000/11/27 05:57:56 cph Exp $
 
 Copyright (c) 1993-2000 Massachusetts Institute of Technology
 
@@ -154,16 +154,16 @@ DEFUN_VOID (nt_gui_default_poll)
 
 extern HANDLE master_tty_window;
 extern void catatonia_trigger (void);
-extern unsigned long * winnt_catatonia_block;
+extern unsigned long * win32_catatonia_block;
 
 void
 catatonia_trigger (void)
 {
   int mes_result;
   static BOOL already_exitting = FALSE;
-  SCHEME_OBJECT saved = winnt_catatonia_block[CATATONIA_BLOCK_LIMIT];
+  SCHEME_OBJECT saved = win32_catatonia_block[CATATONIA_BLOCK_LIMIT];
 
-  winnt_catatonia_block[CATATONIA_BLOCK_LIMIT] = 0;
+  win32_catatonia_block[CATATONIA_BLOCK_LIMIT] = 0;
 
   mes_result = (MessageBox (master_tty_window,
 			    "Scheme appears to have become catatonic.\n"
@@ -171,8 +171,8 @@ catatonia_trigger (void)
 			    "MIT Scheme",
 			    (MB_ICONSTOP | MB_OKCANCEL)));
 
-  winnt_catatonia_block[CATATONIA_BLOCK_COUNTER] = 0;
-  winnt_catatonia_block[CATATONIA_BLOCK_LIMIT] = saved;
+  win32_catatonia_block[CATATONIA_BLOCK_COUNTER] = 0;
+  win32_catatonia_block[CATATONIA_BLOCK_LIMIT] = saved;
 
   if (mes_result != IDOK)
     return;
@@ -211,7 +211,7 @@ DEFINE_PRIMITIVE ("MICROCODE-POLL-INTERRUPT-HANDLER", Prim_microcode_poll_interr
   }
   else
   {
-    winnt_catatonia_block[CATATONIA_BLOCK_COUNTER] = 0;
+    win32_catatonia_block[CATATONIA_BLOCK_COUNTER] = 0;
     nt_gui_default_poll ();
 #ifndef USE_WM_TIMER
     low_level_timer_tick ();

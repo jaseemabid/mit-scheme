@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bchgcc.h,v 9.60 2000/01/18 02:59:13 cph Exp $
+$Id: bchgcc.h,v 9.60.2.1 2000/11/27 05:57:52 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -20,31 +20,26 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
 #ifndef _BCHGCC_H_INCLUDED
-
 #define _BCHGCC_H_INCLUDED
 
-#include "oscond.h"
+#include "config.h"
 #include "gccode.h"
 
-#ifdef _BSD
+#ifdef HAVE_SYS_FILE_H
 #  include <sys/file.h>
-#else
-#  ifndef F_GETFL
-#    include <fcntl.h>
-#  endif
+#endif
+#ifdef HAVE_FCNTL_H
+#  include <fcntl.h>
 #endif
 
-#ifdef DOS386
+#ifdef __WIN32__
 #  define IO_PAGE_SIZE		4096
 #endif
-#ifdef WINNT
-#  define IO_PAGE_SIZE		4096
-#endif
-#ifdef _OS2
+#ifdef __OS2__
 #  define IO_PAGE_SIZE		4096
 #endif
 #ifndef IO_PAGE_SIZE
-#    include <sys/param.h>
+#  include <sys/param.h>
 #endif
 
 #ifndef BCH_START_CLOSURE_RELOCATION
@@ -80,19 +75,12 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #  define BCH_STORE_OPERATOR_LINKAGE_ADDRESS STORE_OPERATOR_LINKAGE_ADDRESS
 #endif
 
-#ifdef _POSIX
-# include <sys/types.h>
-#else /* not _POSIX */
-#ifndef __osf__
-# define ssize_t int
-#endif /* not __osf__ */
-#endif /* not _POSIX */
-
 extern char * EXFUN (error_name, (int));
 
+typedef ssize_t EXFUN (file_operation_t, (int, char *, int));
+
 extern int EXFUN (retrying_file_operation,
-		  (/* no prototype because (CONST char *) != (char *) */
-		   ssize_t EXFUN ((*), ()),
+		  (file_operation_t *,
 		   int, char *, long, long, char *, char *, long *,
 		   int EXFUN ((*), (char *, char *))));
 
@@ -100,7 +88,7 @@ extern int EXFUN (io_error_retry_p, (char *, char *));
 extern int EXFUN (io_error_always_abort, (char *, char *));
 
 #ifndef O_BINARY
-# define O_BINARY 0
+#  define O_BINARY 0
 #endif
 
 #define GC_FILE_FLAGS		(O_RDWR | O_CREAT | O_BINARY) /* O_SYNCIO removed */

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: prosfs.c,v 1.14 1999/12/21 18:48:29 cph Exp $
+$Id: prosfs.c,v 1.14.2.1 2000/11/27 05:57:57 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -26,9 +26,6 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "osfile.h"
 #include "osfs.h"
 #include "osio.h"
-#ifdef DOS386
-#  include <sys\stat.h>
-#endif
 
 extern int EXFUN (OS_channel_copy,
 		  (off_t source_length,

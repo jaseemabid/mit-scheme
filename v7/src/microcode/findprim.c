@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: findprim.c,v 9.53 2000/01/18 02:53:44 cph Exp $
+$Id: findprim.c,v 9.53.2.1 2000/11/27 05:57:54 cph Exp $
 
 Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
@@ -67,7 +67,7 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 #include <ctype.h>
 
-#ifdef WINNT
+#ifdef __WIN32__
 #include <string.h>
 #else
 extern int EXFUN (strcmp, (CONST char *, CONST char *));
@@ -1105,16 +1105,14 @@ DEFUN (read_index, (arg, identification),
        char * arg AND
        char * identification)
 {
-  int result;
-
-  result = 0;
+  int result = 0;
   if (((arg [0]) == '0') && ((arg [1]) == 'x'))
     sscanf ((& (arg [2])), "%x", (& result));
   else
     sscanf ((& (arg [0])), "%d", (& result));
   if (result < 0)
     {
-      fprintf (stderr, "%s: %s == %d\n", identification, result);
+      fprintf (stderr, "%s == %d\n", identification, result);
       exit (1);
     }
   return (result);

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: pruxfs.c,v 9.55 1999/01/02 06:11:34 cph Exp $
+$Id: pruxfs.c,v 9.55.2.1 2000/11/27 05:57:57 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright (c) 1987-2000 Massachusetts Institute of Technology
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -284,9 +284,9 @@ DEFUN (file_type_letter, (s), struct stat * s)
 static void
 DEFUN (rwx, (bits, chars), unsigned short bits AND char * chars)
 {
-  (chars[0]) = (((bits & S_IREAD) != 0)  ? 'r' : '-');
-  (chars[1]) = (((bits & S_IWRITE) != 0) ? 'w' : '-');
-  (chars[2]) = (((bits & S_IEXEC) != 0)  ? 'x' : '-');
+  (chars[0]) = (((bits & S_IRUSR) != 0) ? 'r' : '-');
+  (chars[1]) = (((bits & S_IWUSR) != 0) ? 'w' : '-');
+  (chars[2]) = (((bits & S_IXUSR) != 0) ? 'x' : '-');
 }
 
 DEFINE_PRIMITIVE ("FILE-TOUCH", Prim_file_touch, 1, 1,
