@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: oscond.h,v 1.15 1993/11/08 06:15:20 gjr Exp $
+$Id: oscond.h,v 1.15.1.1 1998/07/19 20:26:21 cph Exp $
 
-Copyright (c) 1990-1993 Massachusetts Institute of Technology
+Copyright (c) 1990-98 Massachusetts Institute of Technology
 
 This material was developed by the Scheme project at the Massachusetts
 Institute of Technology, Department of Electrical Engineering and
@@ -116,7 +116,13 @@ MIT in each case. */
 #endif /* __hpux */
 #endif /* _HPUX */
 
-#ifdef _IRIX4
+#if defined(_IRIX4) || defined(_IRIX6)
+#ifndef _IRIX
+#define _IRIX
+#endif
+#endif
+
+#ifdef _IRIX
 #define _POSIX
 #define _SYSV3
 #endif
