@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 1.58.1.2 1987/06/10 21:28:16 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/base/macros.scm,v 1.58.1.3 1987/06/25 10:41:18 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -45,6 +45,9 @@ MIT in each case. |#
 (define assembler-syntax-table
   (make-syntax-table compiler-syntax-table))
 
+(define early-syntax-table
+  (make-syntax-table compiler-syntax-table))
+
 (syntax-table-define compiler-syntax-table 'PACKAGE
   (in-package system-global-environment
     (declare (usual-integrations))
@@ -71,6 +74,9 @@ MIT in each case. |#
 	     (cdr expression)))))
 
 (define enable-integration-declarations
+  true)
+
+(define enable-expansion-declarations
   true)
 
 (let ()
@@ -252,44 +258,34 @@ MIT in each case. |#
 	  ,(rule-result-expression variables qualifier
 				   `(BEGIN ,@actions)))))))
 
-;;;; Lap instruction sequences.  A NOP for now.
+;;;; Lap instruction sequences.
 
-(syntax-table-define compiler-syntax-table 'INSTRUCTIONS
+(syntax-table-define compiler-syntax-table 'LAP
   (macro some-instructions
     (define (handle remaining)
       (cond ((null? remaining)
-	     'lap:empty-instructions)
-	    ((eq? (caar remaining) 'EVALUATE)
-	     `(lap:cons-instruction
+	     `empty-lap-instructions)
+	    ((eq? (caar remaining) 'UNQUOTE)
+	     `(append-lap-instructions!
 	       ,(cadar remaining)
 	       ,(handle (cdr remaining))))
-	    ((eq? (caar remaining) 'EVALUATE-SPLICE)
-	     `(lap:append-instructions
+	    ((eq? (caar remaining) 'UNQUOTE-SPLICING)
+	     `(append-lap-instructions!
 	       ,(cadar remaining)
 	       ,(handle (cdr remaining))))
 	    (else
-	     `(lap:cons-instruction
-	       (INSTRUCTION ,(car remaining))
+	     `(append-lap-instructions!
+	       (INST ,(car remaining))
 	       ,(handle (cdr remaining))))))
     (handle some-instructions)))
 
-(syntax-table-define compiler-syntax-table 'INSTRUCTION
+(syntax-table-define compiler-syntax-table 'INST
   (macro (the-instruction)
-    (define (quoted? object)
-      (and (pair? object)
-	   (eq? (car object) 'QUOTE)))
+    `(->lap-instructions
+      ,(list 'quasiquote the-instruction))))
 
-    (define (walk tree)
-      (cond ((not (pair? tree))
-	     `(quote ,tree))
-	    ((eq? (car tree) 'EVALUATE)
-	     (cadr tree))
-	    (else
-	     (let ((the-car (walk (car tree)))
-		   (the-cdr (walk (cdr tree))))
-	       (if (and (quoted? the-car)
-			(quoted? the-cdr))
-		   `(quote (,(cadr the-car) . ,(cadr the-cdr)))
-		   `(cons ,the-car ,the-cdr))))))
-    (walk the-instruction)))
-				   `(BEGIN ,@actions)))))))
+;; This is a NOP for now.
+
+(syntax-table-define compiler-syntax-table 'INST-EA
+  (macro (ea)
+    (list 'quasiquote ea)))
