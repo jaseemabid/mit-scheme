@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;; $Id: syntactic-closures.scm,v 1.1.2.9 2002/01/19 05:31:52 cph Exp $
+;;; $Id: syntactic-closures.scm,v 1.1.2.10 2002/01/22 16:53:59 cph Exp $
 ;;;
 ;;; Copyright (c) 1989-1991, 2001, 2002 Massachusetts Institute of Technology
 ;;;
@@ -301,19 +301,16 @@
 (define syntactic-closure/form
   (record-accessor syntactic-closure-rtd 'FORM))
 
-(define (make-syntactic-closure-list environment free-names forms)
-  (map (lambda (form) (make-syntactic-closure environment free-names form))
-       forms))
-
 (define (strip-syntactic-closures object)
   (cond ((syntactic-closure? object)
 	 (strip-syntactic-closures (syntactic-closure/form object)))
 	((pair? object)
 	 (cons (strip-syntactic-closures (car object))
 	       (strip-syntactic-closures (cdr object))))
-	((vector? object)
-	 (vector-map strip-syntactic-closures object))
 	(else object)))
+
+(define (close-syntax form environment)
+  (make-syntactic-closure environment '() form))
 
 (define (identifier? object)
   (or (symbol? object)
