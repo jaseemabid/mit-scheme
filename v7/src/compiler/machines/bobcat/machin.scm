@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/machin.scm,v 1.49.1.1 1987/06/10 19:44:02 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/machin.scm,v 1.49.1.2 1987/06/25 10:32:33 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -162,12 +162,12 @@ MIT in each case. |#
   (let ((references (make-vector 16)))
     (let loop ((i 0) (j 8))
       (if (< i 8)
-	  (begin (vector-set! references i `(D ,i))
-		 (vector-set! references j `(A ,i))
+	  (begin (vector-set! references i (INST-EA (D ,i)))
+		 (vector-set! references j (INST-EA (A ,i)))
 		 (loop (1+ i) (1+ j)))))    (lambda (register)
       (vector-ref references register))))
 
-(define mask-reference '(D 7))
+(define mask-reference (INST-EA (D 7)))
 
 (define-integrable (interpreter-register:access)
   (rtl:make-machine-register d0))
@@ -214,23 +214,8 @@ MIT in each case. |#
 (define-integrable (interpreter-stack-pointer? register)
   (= (rtl:register-number register) regnum:stack-pointer))
 
-(define-integrable lap:empty-instructions '())
+;;;; Exports from machines/lapgen
 
-(define-integrable (lap:cons-instruction inst insts)
-  (cons inst insts))
-
-(define-integrable (lap:append-instructions insts1 insts2)
-  (append insts1 insts2))
-
-(define (lap:make-label-statement label)
-  (INSTRUCTION (LABEL (EVALUATE label))))
-
-(define (lap:make-unconditional-branch label)
-  (INSTRUCTION (BRA L (@PCR (EVALUATE label)))))
-
-(define (lap:make-entry-point label block-start-label)
-  (INSTRUCTIONS
-   (ENTRY-POINT (EVALUATE label))
-   (DC W (- (EVALUATE label) (EVALUATE block-start-label)))
-   (LABEL (EVALUATE label))))
-    (LABEL ,label)))
+(define lap:make-label-statement)
+(define lap:make-unconditional-branch)
+(define lap:make-entry-point)
