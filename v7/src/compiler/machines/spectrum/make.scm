@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: make.scm,v 4.89 1993/02/28 06:20:47 gjr Exp $
+$Id: make.scm,v 4.89.1.1 1994/11/26 19:27:09 gjr Exp $
 
 Copyright (c) 1988-1993 Massachusetts Institute of Technology
 
@@ -36,7 +36,16 @@ MIT in each case. |#
 
 (declare (usual-integrations))
 
-(let ((value ((load "base/make") "HP PA")))
-  (set! (access compiler:compress-top-level? (->environment '(compiler)))
-	true)
-  value)
+(let ((old-purify purify))
+  ;; This temporary monkey-business stops uncompiled code from being
+  ;; purified so that TRACE & BREAK dont take so long
+  (fluid-let
+      ((purify (lambda (thing)
+		 (if (not (comment? thing))
+		     (old-purify thing)))))
+
+    ;; Original expression
+    (let ((value ((load "base/make") "HP PA  untagged fixnums")))
+      (set! (access compiler:compress-top-level? (->environment '(compiler)))
+	    true)
+      value)))
