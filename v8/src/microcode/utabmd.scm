@@ -1,6 +1,6 @@
 ;;; -*-Scheme-*-
 ;;;
-;;;	Copyright (c) 1987, 1989, 1990 Massachusetts Institute of Technology
+;;;	Copyright (c) 1987-91 Massachusetts Institute of Technology
 ;;;
 ;;;	This material was developed by the Scheme project at the
 ;;;	Massachusetts Institute of Technology, Department of
@@ -37,7 +37,7 @@
 
 ;;;; Machine Dependent Type Tables
 
-;;; $Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/microcode/utabmd.scm,v 9.53 1990/11/26 16:58:32 jinx Rel $
+;;; $Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/microcode/utabmd.scm,v 9.53.1.1 1991/08/24 00:50:28 cph Exp $
 
 (declare (usual-integrations))
 
@@ -102,6 +102,10 @@
 	       GENERIC-TRAMPOLINE-SUBTRACT		;2D
 	       GENERIC-TRAMPOLINE-MULTIPLY		;2E
 	       GENERIC-TRAMPOLINE-DIVIDE		;2F
+	       GENERIC-TRAMPOLINE-QUOTIENT 		;30
+	       GENERIC-TRAMPOLINE-REMAINDER 		;31
+	       GENERIC-TRAMPOLINE-MODULO 		;32
+	       ARITY-DISPATCHER-TAG			;33
 	       ))
 
 ;;; [] Types
@@ -590,4 +594,4 @@
 
 ;;; This identification string is saved by the system.
 
-"$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/microcode/utabmd.scm,v 9.53 1990/11/26 16:58:32 jinx Rel $"
+"$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v8/src/microcode/utabmd.scm,v 9.53.1.1 1991/08/24 00:50:28 cph Exp $"
