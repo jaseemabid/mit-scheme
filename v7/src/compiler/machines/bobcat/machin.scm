@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/machin.scm,v 1.49.1.2 1987/06/25 10:32:33 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/machines/bobcat/machin.scm,v 1.49.1.3 1987/07/01 21:03:18 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -131,10 +131,10 @@ MIT in each case. |#
 (define-integrable a7 15)
 (define number-of-machine-registers 16)
 
-(define regnum:frame-pointer a4)
-(define regnum:free-pointer a5)
-(define regnum:regs-pointer a6)
-(define regnum:stack-pointer a7)
+(define-integrable regnum:frame-pointer a4)
+(define-integrable regnum:free-pointer a5)
+(define-integrable regnum:regs-pointer a6)
+(define-integrable regnum:stack-pointer a7)
 
 (define-integrable (sort-machine-registers registers)
   registers)
