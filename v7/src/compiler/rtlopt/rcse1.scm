@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rcse1.scm,v 4.11 1988/08/11 20:10:34 cph Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rcse1.scm,v 4.11.1.1 1988/10/21 14:20:12 markf Exp $
 
 Copyright (c) 1988 Massachusetts Institute of Technology
 
@@ -275,10 +275,13 @@ MIT in each case. |#
 
 (define-trivial-one-arg-method 'UNASSIGNED-TEST
   rtl:type-test-expression rtl:set-unassigned-test-expression!)
+
 
 (define (method/noop statement)
   statement
   unspecific)
+
+(define-cse-method 'OVERFLOW-TEST method/noop)
 
 (define-cse-method 'POP-RETURN method/noop)
 
