@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rcse1.scm,v 4.17 1989/01/21 09:29:50 cph Rel $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/compiler/rtlopt/rcse1.scm,v 4.17.1.1 1989/03/21 18:27:10 arthur Exp $
 
 Copyright (c) 1988, 1989 Massachusetts Institute of Technology
 
