@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.3 1987/06/26 18:21:01 jinx Exp $
+$Header: /Users/cph/tmp/foo/mit-scheme/mit-scheme/v7/src/sf/subst.scm,v 3.5.1.4 1987/06/26 19:57:42 jinx Exp $
 
 Copyright (c) 1987 Massachusetts Institute of Technology
 
@@ -36,28 +36,31 @@ MIT in each case. |#
 
 (declare (usual-integrations))
 
+(define *top-level-block*)
+
 (define (integrate/top-level block expression)
-  (let ((operations (operations/bind-block (operations/make) block))
-	(environment (environment/make)))
-    (if (open-block? expression)
-	(transmit-values
-	    (environment/recursive-bind operations environment
-					(open-block/variables expression)
-					(open-block/values expression))
-	  (lambda (environment values)
-	    (return-3 operations
-		      environment
-		      (quotation/make block
-				      (integrate/open-block operations
-							    environment
-							    expression
-							    values)))))
-	(return-3 operations
-		  environment
-		  (quotation/make block
-				  (integrate/expression operations
-							environment
-							expression))))))
+  (fluid-let ((*top-level-block* block))
+    (let ((operations (operations/bind-block (operations/make) block))
+	  (environment (environment/make)))
+      (if (open-block? expression)
+	  (transmit-values
+	   (environment/recursive-bind operations environment
+				       (open-block/variables expression)
+				       (open-block/values expression))
+	   (lambda (environment values)
+	     (return-3 operations
+		       environment
+		       (quotation/make block
+				       (integrate/open-block operations
+							     environment
+							     expression
+							     values)))))
+	  (return-3 operations
+		    environment
+		    (quotation/make block
+				    (integrate/expression operations
+							  environment
+							  expression)))))))
 
 (define (operations/bind-block operations block)
   (let ((declarations (block/declarations block)))
