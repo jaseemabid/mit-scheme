@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: errors.h,v 9.46 2003/02/14 18:28:18 cph Exp $
+$Id: errors.h,v 9.46.2.1 2005/08/22 18:05:58 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
+Copyright 1993,2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,10 +29,9 @@ USA.
 #ifndef SCM_ERRORS_H
 #define SCM_ERRORS_H
 
-/* All error and termination codes must be positive
- * to allow primitives to return either an error code
- * or a primitive flow control value (see const.h)
- */
+/* All error and termination codes must be positive to allow
+   primitives to return either an error code or a primitive flow
+   control value (see const.h).  */
 
 #define ERR_BAD_ERROR_CODE			0x00
 #define ERR_UNBOUND_VARIABLE			0x01
@@ -54,13 +54,11 @@ USA.
 #define ERR_ARG_3_BAD_RANGE			0x12
 #define ERR_MACRO_BINDING			0x13
 /* #define ERR_FASDUMP_OVERFLOW			0x14 */
-#define ERR_BAD_INTERRUPT_CODE			0x15 /* Not generated */
+/* #define ERR_BAD_INTERRUPT_CODE		0x15 */
 /* #define ERR_NO_ERRORS			0x16 */
 #define ERR_FASL_FILE_TOO_BIG			0x17
 #define ERR_FASL_FILE_BAD_DATA			0x18
 #define ERR_IMPURIFY_OUT_OF_SPACE		0x19
-
-/* The following do not exist in the 68000 version */
 #define ERR_WRITE_INTO_PURE_SPACE		0x1A
 /* #define ERR_LOSING_SPARE_HEAP		0x1B */
 /* #define ERR_NO_HASH_TABLE			0x1C */
@@ -69,8 +67,6 @@ USA.
 #define ERR_ARG_2_FAILED_COERCION      		0x1F
 #define ERR_OUT_OF_FILE_HANDLES			0x20
 /* #define ERR_SHELL_DIED			0x21 */
-
-/* Late additions to both 68000 and C world */
 #define ERR_ARG_4_BAD_RANGE			0x22
 #define ERR_ARG_5_BAD_RANGE			0x23
 #define ERR_ARG_6_BAD_RANGE			0x24
@@ -101,10 +97,8 @@ USA.
 #define ERR_STACK_HAS_SLIPPED			0x3D
 #define ERR_CANNOT_RECURSE			0x3E
 
-/*
-  If you add any error codes here, add them to
-  the table below and to utabmd.scm as well.
- */
+/* If you add any error codes here, add them to the table below and to
+   utabmd.scm as well.  */
 
 #define MAX_ERROR				0x3E
 
@@ -200,7 +194,7 @@ USA.
 #define TERM_GC_OUT_OF_SPACE			0x14
 #define TERM_NO_SPACE				0x15
 #define TERM_SIGNAL				0x16
-#define TERM_TOUCH				0x17
+/* #define TERM_				0x17 */
 #define TERM_SAVE_AND_EXIT			0x18
 #define TERM_TRAP				0x19
 #define TERM_BAD_BACK_OUT			0x1a
@@ -268,10 +262,10 @@ USA.
 /* 0x14 */		"Out of space after garbage collection",	\
 /* 0x15 */		"Out of memory: Available memory exceeded",	\
 /* 0x16 */		"Unhandled signal received",			\
-/* 0x17 */		"Touch without futures support",		\
+/* 0x17 */		0,						\
 /* 0x18 */		"Halt requested by external source",		\
 /* 0x19 */		"User requested termination after trap",	\
-/* 0x1a */		"Backing out of non-primitive"			\
+/* 0x1A */		"Backing out of non-primitive"			\
 }
 
 #endif /* SCM_ERRORS_H */

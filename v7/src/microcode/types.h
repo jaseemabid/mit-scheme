@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: types.h,v 9.40 2003/02/14 18:28:24 cph Exp $
+$Id: types.h,v 9.40.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1987-1999, 2001 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
+Copyright 1993,1997,2001,2002,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -73,7 +74,7 @@ USA.
 #define TC_MANIFEST_SPECIAL_NM_VECTOR	0x2B
 #define TC_VARIABLE			0x2C
 #define TC_THE_ENVIRONMENT		0x2D
-#define TC_FUTURE			0x2E
+/* #define TC_UNUSED			0x2E */
 #define TC_VECTOR_1B			0x2F
 #define TC_PCOMB0			0x30
 #define TC_VECTOR_16B			0x31
@@ -90,12 +91,14 @@ USA.
 #define TC_COMPLEX			0x3C
 #define TC_COMPILED_CODE_BLOCK		0x3D
 #define TC_RECORD			0x3E
+/* #define TC_UNUSED			0x3F */
 
 /* If you add a new type, don't forget to update gccode.h, gctype.c,
    and the type name table below. */
 
-#define LAST_TYPE_CODE			0x3E
-#define MIN_TYPE_CODE_LENGTH		6
+#define MIN_TYPE_CODE_LENGTH 6
+#define TYPE_CODE_LIMIT (1 << MIN_TYPE_CODE_LENGTH)
+#define LAST_TYPE_CODE (TYPE_CODE_LIMIT - 1)
 
 #ifdef TYPE_CODE_LENGTH
 #if (TYPE_CODE_LENGTH < MIN_TYPE_CODE_LENGTH)
@@ -151,7 +154,7 @@ USA.
   /* 0x2B */			"MANIFEST-SPECIAL-NM-VECTOR",		\
   /* 0x2C */			"VARIABLE",				\
   /* 0x2D */			"THE-ENVIRONMENT",			\
-  /* 0x2E */			"FUTURE",				\
+  /* 0x2E */			0,					\
   /* 0x2F */			"VECTOR-1B",				\
   /* 0x30 */			"PCOMB0",				\
   /* 0x31 */			"VECTOR-16B",				\
@@ -167,8 +170,9 @@ USA.
   /* 0x3B */			"STACK-ENVIRONMENT",			\
   /* 0x3C */			"COMPLEX",				\
   /* 0x3D */			"COMPILED-CODE-BLOCK",			\
-  /* 0x3E */			"RECORD"				\
-  }
+  /* 0x3E */			"RECORD",				\
+  /* 0x3F */			0					\
+}
 
 /* Flags and aliases */
 
@@ -186,5 +190,3 @@ USA.
 
 #define UNMARKED_HISTORY_TYPE		TC_HUNK3_A
 #define MARKED_HISTORY_TYPE		TC_HUNK3_B
-
-#define case_TC_FIXNUMs case TC_FIXNUM

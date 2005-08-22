@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: intext.c,v 1.7 2003/02/14 18:28:19 cph Exp $
+$Id: intext.c,v 1.7.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -23,30 +23,28 @@ USA.
 
 */
 
-#include "ansidecl.h"
-#include "dstack.h"
 #include "intext.h"
 
-extern void EXFUN (preserve_signal_mask, (void));
+extern void preserve_signal_mask (void);
 
 struct interruptable_extent * current_interruptable_extent;
 
 void
-DEFUN_VOID (initialize_interruptable_extent)
+initialize_interruptable_extent (void)
 {
   current_interruptable_extent = 0;
 }
 
 void
-DEFUN_VOID (reset_interruptable_extent)
+reset_interruptable_extent (void)
 {
   current_interruptable_extent = 0;
 }
 
 struct interruptable_extent *
-DEFUN_VOID (enter_interruptable_extent)
+enter_interruptable_extent (void)
 {
-  PTR position = dstack_position;
+  void * position = dstack_position;
   struct interruptable_extent * frame;
   /* Inside the interrupt handler, the signal mask will be different.
      Push a winding frame that will restore it to its current value.
@@ -71,7 +69,7 @@ DEFUN_VOID (enter_interruptable_extent)
    be a problem for some applications. */
 
 int
-DEFUN_VOID (enter_interruption_extent)
+enter_interruption_extent (void)
 {
   if ((current_interruptable_extent == 0)
       || (current_interruptable_extent -> interrupted))
@@ -81,7 +79,7 @@ DEFUN_VOID (enter_interruption_extent)
 }
 
 void
-DEFUN_VOID (exit_interruption_extent)
+exit_interruption_extent (void)
 {
   longjmp ((current_interruptable_extent -> control_point), 1);
 }

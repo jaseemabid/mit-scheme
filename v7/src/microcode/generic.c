@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: generic.c,v 9.41 2003/02/14 18:28:19 cph Exp $
+$Id: generic.c,v 9.41.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
+Copyright 1993,1996,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,10 +29,10 @@ USA.
 
 #define INDIRECT(slot, arity)						\
 {									\
-  PRIMITIVE_CANONICALIZE_CONTEXT ();					\
+  canonicalize_primitive_context ();					\
  Will_Push (STACK_ENV_EXTRA_SLOTS + 1);					\
-  STACK_PUSH (Get_Fixed_Obj_Slot (slot));				\
-  STACK_PUSH (STACK_FRAME_HEADER + arity);				\
+  STACK_PUSH (VECTOR_REF (fixed_objects, slot));			\
+  PUSH_APPLY_FRAME_HEADER (arity);					\
  Pushed ();								\
   PRIMITIVE_ABORT (PRIM_APPLY);						\
   /*NOTREACHED*/							\
@@ -42,7 +43,7 @@ USA.
 {									\
   PRIMITIVE_HEADER (1);							\
   {									\
-    fast SCHEME_OBJECT x = (ARG_REF (1));				\
+    SCHEME_OBJECT x = (ARG_REF (1));					\
     if (FIXNUM_P (x))							\
       return (BOOLEAN_TO_OBJECT (test (x)));				\
   }									\
@@ -60,7 +61,7 @@ DEFINE_PRIMITIVE ("NEGATIVE?", Prim_negative, 1, 1, 0)
 {									\
   PRIMITIVE_HEADER (1);							\
   {									\
-    fast SCHEME_OBJECT x = (ARG_REF (1));				\
+    SCHEME_OBJECT x = (ARG_REF (1));					\
     if (FIXNUM_P (x))							\
       return (long_to_integer ((FIXNUM_TO_LONG (x)) op 1));		\
   }									\
@@ -76,8 +77,8 @@ DEFINE_PRIMITIVE ("-1+", Prim_subtract_one, 1, 1, 0)
 {									\
   PRIMITIVE_HEADER (2);							\
   {									\
-    fast SCHEME_OBJECT x = (ARG_REF (1));				\
-    fast SCHEME_OBJECT y = (ARG_REF (2));				\
+    SCHEME_OBJECT x = (ARG_REF (1));					\
+    SCHEME_OBJECT y = (ARG_REF (2));					\
     if ((FIXNUM_P (x)) && (FIXNUM_P (y)))				\
       return (BOOLEAN_TO_OBJECT (test (x, y)));				\
   }									\
@@ -97,8 +98,8 @@ DEFINE_PRIMITIVE ("&>", Prim_greater, 2, 2, 0)
 {									\
   PRIMITIVE_HEADER (2);							\
   {									\
-    fast SCHEME_OBJECT x = (ARG_REF (1));				\
-    fast SCHEME_OBJECT y = (ARG_REF (2));				\
+    SCHEME_OBJECT x = (ARG_REF (1));					\
+    SCHEME_OBJECT y = (ARG_REF (2));					\
     if ((FIXNUM_P (x)) && (FIXNUM_P (y)))				\
       return (long_to_integer ((FIXNUM_TO_LONG (x)) op			\
 			       (FIXNUM_TO_LONG (y))));			\

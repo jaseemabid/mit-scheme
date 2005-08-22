@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: prostty.c,v 1.9 2003/02/14 18:28:23 cph Exp $
+$Id: prostty.c,v 1.9.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1992,1993,1996,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -64,16 +64,14 @@ DEFINE_PRIMITIVE ("TTY-COMMAND-BEEP", Prim_tty_command_beep, 0, 0,
   "Return a string that, when written to the display, will make it beep.")
 {
   PRIMITIVE_HEADER (0);
-  PRIMITIVE_RETURN
-    (char_pointer_to_string ((unsigned char *) (OS_tty_command_beep ())));
+  PRIMITIVE_RETURN (char_pointer_to_string (OS_tty_command_beep ()));
 }
 
 DEFINE_PRIMITIVE ("TTY-COMMAND-CLEAR", Prim_tty_command_clear, 0, 0,
   "Return a string that, when written to the display, will clear it.")
 {
   PRIMITIVE_HEADER (0);
-  PRIMITIVE_RETURN
-    (char_pointer_to_string ((unsigned char *) (OS_tty_command_clear ())));
+  PRIMITIVE_RETURN (char_pointer_to_string (OS_tty_command_clear ()));
 }
 
 DEFINE_PRIMITIVE ("TTY-NEXT-INTERRUPT-CHAR", Prim_tty_next_interrupt_char, 0, 0,
@@ -116,12 +114,12 @@ DEFINE_PRIMITIVE ("TTY-GET-INTERRUPT-CHARS", Prim_tty_get_interrupt_chars, 0, 0,
     SCHEME_OBJECT result = (allocate_string (num_chars * 2));
     cc_t * int_chars = (OS_ctty_get_int_chars ());
     cc_t * int_handlers = (OS_ctty_get_int_char_handlers ());
-    unsigned char * scan = (STRING_LOC (result, 0));
+    char * scan = (STRING_POINTER (result));
 
     for (i = 0; i < num_chars; i++)
     {
-      (*scan++) = ((unsigned char) int_chars[i]);
-      (*scan++) = ((unsigned char) int_handlers[i]);
+      (*scan++) = (int_chars[i]);
+      (*scan++) = (int_handlers[i]);
     }
     PRIMITIVE_RETURN (result);
   }
@@ -138,18 +136,18 @@ STRING must be in the correct form for this operating system.")
     cc_t * int_chars = (OS_ctty_get_int_chars ());
     cc_t * int_handlers = (OS_ctty_get_int_char_handlers ());
     SCHEME_OBJECT argument = (ARG_REF (1));
-    unsigned char * scan;
+    char * scan;
 
     if (! ((STRING_P (argument))
 	   && (((unsigned int) (STRING_LENGTH (argument)))
 	       == (num_chars * 2))))
       error_wrong_type_arg (1);
 
-    for (i = 0, scan = (STRING_LOC (argument, 0)); i < num_chars; i++)
-    {
-      int_chars[i] = (*scan++);
-      int_handlers[i] = (*scan++);
-    }
+    for (i = 0, scan = (STRING_POINTER (argument)); i < num_chars; i++)
+      {
+	(int_chars[i]) = (*scan++);
+	(int_handlers[i]) = (*scan++);
+      }
     OS_ctty_set_int_chars (int_chars);
     OS_ctty_set_int_char_handlers (int_handlers);
   }

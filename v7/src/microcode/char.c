@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: char.c,v 9.35 2003/02/14 18:28:18 cph Exp $
+$Id: char.c,v 9.35.2.1 2005/08/22 18:05:57 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1991,1993 Massachusetts Institute of Technology
+Copyright 1997,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -30,11 +31,11 @@ USA.
 #include <ctype.h>
 
 long
-DEFUN (arg_ascii_char, (n), int n)
+arg_ascii_char (int n)
 {
   CHECK_ARG (n, CHARACTER_P);
   {
-    fast SCHEME_OBJECT object = (ARG_REF (n));
+    SCHEME_OBJECT object = (ARG_REF (n));
     if (! (CHAR_TO_ASCII_P (object)))
       error_bad_range_arg (n);
     return (CHAR_TO_ASCII (object));
@@ -42,7 +43,7 @@ DEFUN (arg_ascii_char, (n), int n)
 }
 
 long
-DEFUN (arg_ascii_integer, (n), int n)
+arg_ascii_integer (int n)
 {
   return (arg_index_integer (n, MAX_ASCII));
 }
@@ -91,13 +92,13 @@ DEFINE_PRIMITIVE ("INTEGER->CHAR", Prim_integer_to_char, 1, 1, 0)
 }
 
 long
-DEFUN (char_downcase, (c), fast long c)
+char_downcase (long c)
 {
   return ((isupper (c)) ? ((c - 'A') + 'a') : c);
 }
 
 long
-DEFUN (char_upcase, (c), fast long c)
+char_upcase (long c)
 {
   return ((islower (c)) ? ((c - 'a') + 'A') : c);
 }
@@ -137,7 +138,7 @@ DEFINE_PRIMITIVE ("CHAR-ASCII?", Prim_char_ascii_p, 1, 1, 0)
   PRIMITIVE_HEADER (1);
   CHECK_ARG (1, CHARACTER_P);
   {
-    fast SCHEME_OBJECT character = ARG_REF (1);
+    SCHEME_OBJECT character = ARG_REF (1);
     PRIMITIVE_RETURN
       (((OBJECT_DATUM (character)) >= MAX_ASCII) ?
        SHARP_F :

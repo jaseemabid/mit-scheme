@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: mul.c,v 9.37 2003/02/14 18:28:20 cph Exp $
+$Id: mul.c,v 9.37.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
+Copyright 1993,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -31,7 +32,7 @@ USA.
    file is included in the appropriate os file. */
 
 extern SCHEME_OBJECT
-  EXFUN (Mul, (SCHEME_OBJECT, SCHEME_OBJECT));
+  Mul (SCHEME_OBJECT, SCHEME_OBJECT);
 
 #if (TYPE_CODE_LENGTH == 8)
 
@@ -51,17 +52,16 @@ extern SCHEME_OBJECT
 */
 
 SCHEME_OBJECT
-DEFUN (Mul, (Arg1, Arg2),
-       SCHEME_OBJECT Arg1
-       AND SCHEME_OBJECT Arg2)
+Mul (SCHEME_OBJECT Arg1,
+       SCHEME_OBJECT Arg2)
 {
-  register long A = (FIXNUM_TO_LONG (Arg1));
-  register long B = (FIXNUM_TO_LONG (Arg2));
+  long A = (FIXNUM_TO_LONG (Arg1));
+  long B = (FIXNUM_TO_LONG (Arg2));
 #if __GNUC__
 #if FALSE
   /* GCC isn't yet efficient enough with `long long' -- KR.  */
   {
-    register long long X;
+    long long X;
     asm ("emul %1,%2,$0,%0" : "=g" (X) : "g" (A), "g" (B));
     return
       ((((X & (-1 << 23)) == 0) ||
@@ -72,7 +72,7 @@ DEFUN (Mul, (Arg1, Arg2),
 #else
   /* non-long-long version: */
   {
-    register struct
+    struct
       {
 	long low;
 	long high;
@@ -206,13 +206,12 @@ static long Fixnum_Range[2] = {SMALLEST_FIXNUM , BIGGEST_FIXNUM};
 #define	ABS(x)		(((x) < 0) ? -(x) : (x))
 
 SCHEME_OBJECT
-DEFUN (Mul, (Arg1, Arg2),
-       SCHEME_OBJECT Arg1
-       AND SCHEME_OBJECT Arg2)
+Mul (SCHEME_OBJECT Arg1,
+       SCHEME_OBJECT Arg2)
 {
   long A, B, C;
-  fast unsigned long Hi_A, Hi_B, Lo_A, Lo_B, Lo_C, Middle_C;
-  Boolean Sign;
+  unsigned long Hi_A, Hi_B, Lo_A, Lo_B, Lo_C, Middle_C;
+  bool Sign;
 
   A = (FIXNUM_TO_LONG (Arg1));
   B = (FIXNUM_TO_LONG (Arg2));

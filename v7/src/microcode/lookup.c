@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: lookup.c,v 9.70 2003/02/14 18:28:20 cph Exp $
+$Id: lookup.c,v 9.70.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1988-2001 Massachusetts Institute of Technology
+Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
+Copyright 1993,1996,1997,2000,2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,21 +29,6 @@ USA.
 #include "scheme.h"
 #include "trap.h"
 #include "lookup.h"
-
-extern long make_uuo_link
-  (SCHEME_OBJECT, SCHEME_OBJECT, SCHEME_OBJECT, unsigned long);
-extern long make_fake_uuo_link
-  (SCHEME_OBJECT, SCHEME_OBJECT, unsigned long);
-extern SCHEME_OBJECT extract_uuo_link
-  (SCHEME_OBJECT, unsigned long);
-
-extern SCHEME_OBJECT extract_variable_cache
-  (SCHEME_OBJECT, unsigned long);
-extern void store_variable_cache
-  (SCHEME_OBJECT, SCHEME_OBJECT, unsigned long);
-
-extern SCHEME_OBJECT compiled_block_environment
-  (SCHEME_OBJECT);
 
 /* Hopefully a conservative guesstimate. */
 #ifndef SPACE_PER_UUO_LINK	/* So it can be overriden from config.h */
@@ -74,9 +60,9 @@ extern SCHEME_OBJECT compiled_block_environment
 
 #define GC_CHECK(n)							\
 {									\
-  if (GC_Check (n))							\
+  if (GC_NEEDED_P (n))							\
     {									\
-      Request_GC (n);							\
+      REQUEST_GC (n);							\
       return (PRIM_INTERRUPT);						\
     }									\
 }
@@ -91,7 +77,8 @@ extern SCHEME_OBJECT compiled_block_environment
    ? EXTERNAL_UNASSIGNED_OBJECT						\
    : (value))
 
-#define EXTERNAL_UNASSIGNED_OBJECT (Get_Fixed_Obj_Slot (Non_Object))
+#define EXTERNAL_UNASSIGNED_OBJECT					\
+  (VECTOR_REF (fixed_objects, NON_OBJECT))
 
 #define WALK_REFERENCES(refs_pointer, ref_var, body)			\
 {									\
@@ -551,7 +538,7 @@ link_variables (SCHEME_OBJECT target_environment, SCHEME_OBJECT target_symbol,
   SCHEME_OBJECT * source_cell;
   trap_kind_t source_kind;
   SCHEME_OBJECT * target_cell;
-  
+
   if (! ((ENVIRONMENT_P (target_environment))
 	 && (ENVIRONMENT_P (source_environment))))
     return (ERR_BAD_FRAME);
@@ -647,7 +634,7 @@ unbind_variable (SCHEME_OBJECT environment, SCHEME_OBJECT symbol,
 	  case TRAP_UNBOUND:
 	    (*value_ret) = SHARP_F;
 	    return (PRIM_DONE);
-	    
+
 	  case NON_TRAP_KIND:
 	  case TRAP_UNASSIGNED:
 	  case TRAP_MACRO:
@@ -722,7 +709,7 @@ compiler_cache_lookup (SCHEME_OBJECT name, SCHEME_OBJECT block,
 		       unsigned long offset)
 {
   return
-    (add_cache_reference ((compiled_block_environment (block)),
+    (add_cache_reference ((cc_block_environment (block)),
 			  name, block, offset,
 			  CACHE_REFERENCES_LOOKUP));
 }
@@ -732,7 +719,7 @@ compiler_cache_assignment (SCHEME_OBJECT name, SCHEME_OBJECT block,
 			   unsigned long offset)
 {
   return
-    (add_cache_reference ((compiled_block_environment (block)),
+    (add_cache_reference ((cc_block_environment (block)),
 			  name, block, offset,
 			  CACHE_REFERENCES_ASSIGNMENT));
 }
@@ -742,7 +729,7 @@ compiler_cache_operator (SCHEME_OBJECT name, SCHEME_OBJECT block,
 			 unsigned long offset)
 {
   return
-    (add_cache_reference ((compiled_block_environment (block)),
+    (add_cache_reference ((cc_block_environment (block)),
 			  name, block, offset,
 			  CACHE_REFERENCES_OPERATOR));
 }
@@ -946,11 +933,11 @@ install_cache (SCHEME_OBJECT cache, SCHEME_OBJECT block, unsigned long offset,
   switch (reference_kind)
     {
     case CACHE_REFERENCES_LOOKUP:
-      store_variable_cache (cache, block, offset);
+      write_variable_cache (cache, block, offset);
       break;
 
     case CACHE_REFERENCES_ASSIGNMENT:
-      store_variable_cache
+      write_variable_cache
 	((((GET_CACHE_CLONE (cache)) != SHARP_F)
 	  ? (GET_CACHE_CLONE (cache))
 	  : cache),
@@ -973,10 +960,7 @@ install_operator_cache (SCHEME_OBJECT cache,
 			SCHEME_OBJECT block, unsigned long offset)
 {
   SCHEME_OBJECT value = (GET_CACHE_VALUE (cache));
-  DIE_IF_ERROR
-    ((REFERENCE_TRAP_P (value))
-     ? (make_fake_uuo_link (cache, block, offset))
-     : (make_uuo_link (value, cache, block, offset)));
+  DIE_IF_ERROR (make_uuo_link (value, cache, block, offset));
 }
 
 static unsigned long
@@ -1098,7 +1082,7 @@ static int
 move_ref_pair_p (SCHEME_OBJECT ref_pair, SCHEME_OBJECT ancestor)
 {
   SCHEME_OBJECT descendant
-    = (compiled_block_environment
+    = (cc_block_environment
        (GET_CACHE_REFERENCE_BLOCK (PAIR_CAR (ref_pair))));
   while (PROCEDURE_FRAME_P (descendant))
     {
@@ -1226,7 +1210,7 @@ update_assignment_references (SCHEME_OBJECT cache)
     ((GET_CACHE_ASSIGNMENT_REFERENCES (cache)),
      reference,
      {
-       store_variable_cache
+       write_variable_cache
 	 (reference_cache,
 	  (GET_CACHE_REFERENCE_BLOCK (reference)),
 	  (GET_CACHE_REFERENCE_OFFSET (reference)));

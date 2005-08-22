@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: sdata.h,v 9.42 2003/02/14 18:28:23 cph Exp $
+$Id: sdata.h,v 9.42.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1987-1989, 1999, 2001, 2002 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1993,1995 Massachusetts Institute of Technology
+Copyright 2001,2002,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -94,49 +95,7 @@ USA.
 #define CONTINUATION_RETURN_CODE   0
 #define CONTINUATION_SIZE          2
 #define HISTORY_SIZE		   (CONTINUATION_SIZE + 2)
-
-/* CONTROL_POINT
- * Points to a copy of the control stack at the time a control point is
- * created.  This is the saved state of the interpreter, and can be
- * restored later by APPLYing the control point to an argument (i.e. a
- * throw).  Format is that of an ordinary vector.  They are linked
- * together by using the return code RC_JOIN_STACKLETS.
- */
 
-/* If USE_STACKLETS is defined, then a stack (i.e. control point) is
-   actually made from smaller units allocated from the heap and linked
-   together.  The format is:
-
-		   0 memory address
-
-             _______________________________________
-             |MAN. VECT.| n                        |
-           _ _______________________________________
-         /   | #T if it does not need to be copied |
-        |    _______________________________________
-        |    | NM VECT   | m  at GC or when full   |
-        |    _______________________________________
-        |    |               ...                   |\
-        |    |     not yet in use -- garbage       | > m
-     n <     _______________________________________/
-        |    | Top of Stack, useful contents       | <---sp_register
-        |    _______________________________________
-        \    |               ...                   |
-         \   |           useful stuff              |
-          \_ ________________________________________
-                                                     <---Stack_Top
-		   infinite memory address
-
-*/
-
-#define STACKLET_HEADER_SIZE		3
-#define STACKLET_LENGTH			0
-#define STACKLET_REUSE_FLAG		1
-#define STACKLET_UNUSED_LENGTH		2
-
-/* Aliases */
-#define STACKLET_FREE_LIST_LINK		STACKLET_REUSE_FLAG
-
 /* DELAYED
  * The object returned by a DELAY operation.  Consists initially of a
  * procedure to be APPLYed and environment.  After the FORCE primitive
@@ -343,6 +302,11 @@ USA.
 
 #define SET_SYMBOL_GLOBAL_VALUE(symbol, value)				\
   ((* (SYMBOL_GLOBAL_VALUE_CELL (symbol))) = (value))
+
+#define GET_SYMBOL_NAME(symbol) (MEMORY_REF ((symbol), SYMBOL_NAME))
+
+#define SET_SYMBOL_NAME(symbol, name)					\
+  MEMORY_SET ((symbol), SYMBOL_NAME, (name))
 
 /* LIST
  * Ordinary CONS cell as supplied to a user.  Perhaps this data type is

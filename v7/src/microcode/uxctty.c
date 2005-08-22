@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: uxctty.c,v 1.16 2003/02/14 18:28:24 cph Exp $
+$Id: uxctty.c,v 1.16.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1990-2000 Massachusetts Institute of Technology
+Copyright 1990,1991,1992,1993,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -68,10 +68,10 @@ static struct terminal_state_recording inside_ctty_state;
 static struct terminal_state_recording inside_stdin_state;
 static struct terminal_state_recording inside_stdout_state;
 
-static void EXFUN (ctty_update_interrupt_chars, (void));
+static void ctty_update_interrupt_chars (void);
 
 static int
-DEFUN (get_terminal_state, (fd, s), int fd AND Ttty_state * s)
+get_terminal_state (int fd, Ttty_state * s)
 {
   while (1)
     {
@@ -82,7 +82,7 @@ DEFUN (get_terminal_state, (fd, s), int fd AND Ttty_state * s)
 }
 
 static int
-DEFUN (set_terminal_state, (fd, s), int fd AND Ttty_state * s)
+set_terminal_state (int fd, Ttty_state * s)
 {
   while (1)
     {
@@ -94,7 +94,7 @@ DEFUN (set_terminal_state, (fd, s), int fd AND Ttty_state * s)
 
 
 static int
-DEFUN (get_flags, (fd, flags), int fd AND int * flags)
+get_flags (int fd, int * flags)
 {
 #ifdef FCNTL_NONBLOCK
   while (1)
@@ -114,7 +114,7 @@ DEFUN (get_flags, (fd, flags), int fd AND int * flags)
 }
 
 static int
-DEFUN (set_flags, (fd, flags), int fd AND int * flags)
+set_flags (int fd, int * flags)
 {
 #ifdef FCNTL_NONBLOCK
   while (1)
@@ -129,7 +129,7 @@ DEFUN (set_flags, (fd, flags), int fd AND int * flags)
 }
 
 static void
-DEFUN (save_external_state, (s), struct terminal_state_recording * s)
+save_external_state (struct terminal_state_recording * s)
 {
   (s -> recorded_p) =
     (scheme_in_foreground
@@ -139,7 +139,7 @@ DEFUN (save_external_state, (s), struct terminal_state_recording * s)
 }
 
 static void
-DEFUN (restore_external_state, (s), struct terminal_state_recording * s)
+restore_external_state (struct terminal_state_recording * s)
 {
   if (s -> recorded_p)
     {
@@ -150,8 +150,7 @@ DEFUN (restore_external_state, (s), struct terminal_state_recording * s)
 }
 
 void
-DEFUN (save_internal_state, (s, es),
-       struct terminal_state_recording * s AND
+save_internal_state (struct terminal_state_recording * s,
        struct terminal_state_recording * es)
 {
   /* Don't do anything unless we have a recording of the external
@@ -164,8 +163,7 @@ DEFUN (save_internal_state, (s, es),
 }
 
 static void
-DEFUN (restore_internal_state, (s, es),
-       struct terminal_state_recording * s AND
+restore_internal_state (struct terminal_state_recording * s,
        struct terminal_state_recording * es)
 {
   /* When we recorded the internal state, we had a recording of the
@@ -191,7 +189,7 @@ DEFUN (restore_internal_state, (s, es),
 }
 
 void
-DEFUN_VOID (UX_ctty_save_external_state)
+UX_ctty_save_external_state (void)
 {
   if (permit_ctty_control && (ctty_fildes >= 0))
     {
@@ -210,7 +208,7 @@ DEFUN_VOID (UX_ctty_save_external_state)
 }
 
 void
-DEFUN_VOID (UX_ctty_restore_external_state)
+UX_ctty_restore_external_state (void)
 {
   restore_external_state (&outside_ctty_state);
   restore_external_state (&outside_stdin_state);
@@ -218,7 +216,7 @@ DEFUN_VOID (UX_ctty_restore_external_state)
 }
 
 void
-DEFUN_VOID (UX_ctty_save_internal_state)
+UX_ctty_save_internal_state (void)
 {
   save_internal_state ((&inside_ctty_state), (&outside_ctty_state));
   save_internal_state ((&inside_stdin_state), (&outside_stdin_state));
@@ -226,7 +224,7 @@ DEFUN_VOID (UX_ctty_save_internal_state)
 }
 
 void
-DEFUN_VOID (UX_ctty_restore_internal_state)
+UX_ctty_restore_internal_state (void)
 {
   int do_update =
     ((inside_ctty_state . recorded_p)
@@ -239,13 +237,13 @@ DEFUN_VOID (UX_ctty_restore_internal_state)
 }
 
 int
-DEFUN_VOID (OS_ctty_interrupt_control)
+OS_ctty_interrupt_control (void)
 {
   return (outside_ctty_state . recorded_p);
 }
 
 int
-DEFUN (UX_terminal_control_ok, (fd), int fd)
+UX_terminal_control_ok (int fd)
 {
   return
     ((fd == STDIN_FILENO)
@@ -278,31 +276,31 @@ static Tinterrupt_chars current_interrupt_chars;
 #define KEYBOARD_ALL_INTERRUPTS		0x7
 
 cc_t
-DEFUN_VOID (OS_ctty_quit_char)
+OS_ctty_quit_char (void)
 {
   return (current_interrupt_chars . quit);
 }
 
 cc_t
-DEFUN_VOID (OS_ctty_int_char)
+OS_ctty_int_char (void)
 {
   return (current_interrupt_chars . intrpt);
 }
 
 cc_t
-DEFUN_VOID (OS_ctty_tstp_char)
+OS_ctty_tstp_char (void)
 {
   return (current_interrupt_chars . tstp);
 }
 
 cc_t
-DEFUN_VOID (OS_ctty_disabled_char)
+OS_ctty_disabled_char (void)
 {
   return ((ctty_fildes >= 0) ? (UX_PC_VDISABLE (ctty_fildes)) : '\377');
 }
 
 int
-DEFUN_VOID (OS_ctty_fd)
+OS_ctty_fd (void)
 {
   return (ctty_fildes);
 }
@@ -311,7 +309,7 @@ DEFUN_VOID (OS_ctty_fd)
 
 /* not currently used */
 static void
-DEFUN (ctty_get_interrupt_chars, (ic), Tinterrupt_chars * ic)
+ctty_get_interrupt_chars (Tinterrupt_chars * ic)
 {
   Ttty_state s;
   if ((get_terminal_state (ctty_fildes, (&s))) == 0)
@@ -377,7 +375,7 @@ DEFUN (ctty_get_interrupt_chars, (ic), Tinterrupt_chars * ic)
 #endif /* 0 */
 
 static void
-DEFUN (ctty_set_interrupt_chars, (ic), Tinterrupt_chars * ic)
+ctty_set_interrupt_chars (Tinterrupt_chars * ic)
 {
   Ttty_state s;
   if ((get_terminal_state (ctty_fildes, (&s))) == 0)
@@ -423,7 +421,7 @@ DEFUN (ctty_set_interrupt_chars, (ic), Tinterrupt_chars * ic)
 }
 
 static void
-DEFUN_VOID (ctty_update_interrupt_chars)
+ctty_update_interrupt_chars (void)
 {
   if (outside_ctty_state . recorded_p)
     {
@@ -444,13 +442,13 @@ DEFUN_VOID (ctty_update_interrupt_chars)
 }
 
 void
-DEFUN (OS_ctty_get_interrupt_enables, (mask), Tinterrupt_enables * mask)
+OS_ctty_get_interrupt_enables (Tinterrupt_enables * mask)
 {
   (*mask) = current_interrupt_enables;
 }
 
 void
-DEFUN (OS_ctty_set_interrupt_enables, (mask), Tinterrupt_enables * mask)
+OS_ctty_set_interrupt_enables (Tinterrupt_enables * mask)
 {
   current_interrupt_enables = (*mask);
   ctty_update_interrupt_chars ();
@@ -459,9 +457,8 @@ DEFUN (OS_ctty_set_interrupt_enables, (mask), Tinterrupt_enables * mask)
 #if 0
 
 void
-DEFUN (OS_ctty_set_interrupt_chars, (quit_char, int_char, tstp_char),
-       cc_t quit_char AND
-       cc_t int_char AND
+OS_ctty_set_interrupt_chars (cc_t quit_char,
+       cc_t int_char,
        cc_t tstp_char)
 {
   (current_interrupt_chars . quit) = quit_char;
@@ -472,13 +469,13 @@ DEFUN (OS_ctty_set_interrupt_chars, (quit_char, int_char, tstp_char),
 #endif
 
 unsigned int
-DEFUN_VOID (OS_ctty_num_int_chars)
+OS_ctty_num_int_chars (void)
 {
   return (3);
 }
 
 cc_t *
-DEFUN_VOID (OS_ctty_get_int_chars)
+OS_ctty_get_int_chars (void)
 {
   static cc_t int_chars [3];
 
@@ -489,7 +486,7 @@ DEFUN_VOID (OS_ctty_get_int_chars)
 }
 
 void
-DEFUN (OS_ctty_set_int_chars, (int_chars), cc_t * int_chars)
+OS_ctty_set_int_chars (cc_t * int_chars)
 {
   current_interrupt_chars.quit   = int_chars[0];
   current_interrupt_chars.intrpt = int_chars[1];
@@ -498,17 +495,16 @@ DEFUN (OS_ctty_set_int_chars, (int_chars), cc_t * int_chars)
   return;
 }
 
-extern enum interrupt_handler EXFUN (OS_signal_quit_handler, (void));
-extern enum interrupt_handler EXFUN (OS_signal_int_handler, (void));
-extern enum interrupt_handler EXFUN (OS_signal_tstp_handler, (void));
-extern void EXFUN
-  (OS_signal_set_interrupt_handlers,
-   (enum interrupt_handler quit_handler,
+extern enum interrupt_handler OS_signal_quit_handler (void);
+extern enum interrupt_handler OS_signal_int_handler (void);
+extern enum interrupt_handler OS_signal_tstp_handler (void);
+extern void OS_signal_set_interrupt_handlers
+  (enum interrupt_handler quit_handler,
     enum interrupt_handler int_handler,
-    enum interrupt_handler tstp_handler));
+    enum interrupt_handler tstp_handler);
 
 cc_t *
-DEFUN_VOID (OS_ctty_get_int_char_handlers)
+OS_ctty_get_int_char_handlers (void)
 {
   static cc_t int_handlers [3];
 
@@ -519,7 +515,7 @@ DEFUN_VOID (OS_ctty_get_int_char_handlers)
 }
 
 void
-DEFUN (OS_ctty_set_int_char_handlers, (int_handlers), cc_t * int_handlers)
+OS_ctty_set_int_char_handlers (cc_t * int_handlers)
 {
   OS_signal_set_interrupt_handlers
     (((enum interrupt_handler) (int_handlers [0])),
@@ -529,10 +525,11 @@ DEFUN (OS_ctty_set_int_char_handlers, (int_handlers), cc_t * int_handlers)
 }
 
 void
-DEFUN (UX_initialize_ctty, (interactive), int interactive)
+UX_initialize_ctty (int interactive)
 {
   {
-    char * tty = (UX_ctermid (0));
+    char buffer [L_ctermid];
+    char * tty = (UX_ctermid (buffer));
     ctty_fildes =
       (((tty == 0) || ((tty[0]) == 0))
        ? (-1)

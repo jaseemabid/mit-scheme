@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2msg.c,v 1.17 2003/04/25 05:13:06 cph Exp $
+$Id: os2msg.c,v 1.17.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright 1994,1995,1997,2000,2003 Massachusetts Institute of Technology
+Copyright 1994,1995,1997,2000,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -27,7 +27,7 @@ USA.
 
 #include "os2.h"
 
-extern void EXFUN (tty_set_next_interrupt_char, (cc_t c));
+extern void tty_set_next_interrupt_char (cc_t c);
 extern void * OS2_malloc_noerror (unsigned int);
 
 static qid_t allocate_qid (void);
@@ -751,7 +751,7 @@ read_scm_tqueue (tqueue_t * tqueue, int blockp)
      last read and the second clear -- and since we cleared the bit no
      one else is going to look at the queue until another event comes
      along.
-     
+
      This code serves two purposes.  First, this is the only way to
      reliably clear the interrupt bit to avoid having an event stuck
      in the queue and the Scheme thread not bothering to look.

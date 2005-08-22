@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: nttty.c,v 1.10 2003/02/14 18:28:21 cph Exp $
+$Id: nttty.c,v 1.10.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1992-1999 Massachusetts Institute of Technology
+Copyright 1993,1995,1996,1997,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -69,13 +69,13 @@ OS_tty_y_size (void)
   return (tty_y_size);
 }
 
-CONST char *
+const char *
 OS_tty_command_beep (void)
 {
   return (tty_command_beep);
 }
 
-CONST char *
+const char *
 OS_tty_command_clear (void)
 {
   return (tty_command_clear);
@@ -98,11 +98,11 @@ char PC;
 
 int
 tputs (string, nlines, outfun)
-     register char * string;
+     char * string;
      int nlines;
-     register int (*outfun) ();
+     int (*outfun) ();
 {
-  register int padcount = 0;
+  int padcount = 0;
 
   if (string == (char *) 0)
     return (0);

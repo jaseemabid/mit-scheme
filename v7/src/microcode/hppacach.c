@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: hppacach.c,v 1.15 2003/02/14 18:28:19 cph Exp $
+$Id: hppacach.c,v 1.15.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,1996,1999 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -312,7 +312,7 @@ print_tlb (info, name)
   printf ("\toff_count\t%ld\n", info->off_count);
   printf ("\tloop\t\t%ld association%s per entry.",
 	  info->loop, ((info->loop == 1) ? "" : "s"));
-  
+
   print_cst ((info->conf.bits.cst));
   print_sel ((info->conf.bits.psel), "p-sel", "P%sTLB", "purge");
 
@@ -325,7 +325,7 @@ print_tlb (info, name)
 	  info->off_base, info->off_stride, info->off_count,
 	  info->loop);
 
-  return;  
+  return;
 }
 
 void

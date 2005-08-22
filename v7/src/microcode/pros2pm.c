@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: pros2pm.c,v 1.23 2003/02/14 18:28:23 cph Exp $
+$Id: pros2pm.c,v 1.23.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1994-1999 Massachusetts Institute of Technology
+Copyright 1994,1995,1997,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -723,7 +723,7 @@ DEFINE_PRIMITIVE ("OS2PS-GET-BITMAP-PARAMETERS", Prim_OS2_ps_get_bitmap_paramete
   PRIMITIVE_HEADER (1);
   {
     SCHEME_OBJECT s = (allocate_string (sizeof (BITMAPINFOHEADER)));
-    PBITMAPINFOHEADER params = ((PBITMAPINFOHEADER) (STRING_LOC (s, 0)));
+    PBITMAPINFOHEADER params = ((PBITMAPINFOHEADER) (STRING_POINTER (s)));
     (params -> cbFix) = (sizeof (BITMAPINFOHEADER));
     OS2_get_bitmap_parameters ((bid_argument (1)), params);
     PRIMITIVE_RETURN (s);
@@ -771,7 +771,7 @@ DEFINE_PRIMITIVE ("OS2-CLIPBOARD-READ-TEXT", Prim_OS2_clipboard_read_text, 0, 0,
       result = SHARP_F;
     else
       {
-	result = (char_pointer_to_string ((unsigned char *) text));
+	result = (char_pointer_to_string (text));
 	OS_free ((void *) text);
       }
     PRIMITIVE_RETURN (result);
@@ -918,7 +918,7 @@ DEFINE_PRIMITIVE ("OS2WIN-FONT-DIALOG", Prim_OS2_window_font_dialog, 2, 2, 0)
 				   : (STRING_ARG (2)))));
   if (spec == 0)
     PRIMITIVE_RETURN (SHARP_F);
-  result = (char_pointer_to_string ((char *) spec));
+  result = (char_pointer_to_string (spec));
   OS_free ((void *) spec);
   PRIMITIVE_RETURN (result);
 }

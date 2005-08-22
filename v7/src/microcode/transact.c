@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: transact.c,v 1.7 2003/02/14 18:28:24 cph Exp $
+$Id: transact.c,v 1.7.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (C) 1990-2000 Massachusetts Institute of Technology
+Copyright 1990,1993,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -23,15 +23,12 @@ USA.
 
 */
 
-#include <stdio.h>
 #include "config.h"
 #include "outf.h"
 #include "dstack.h"
 
 static void
-DEFUN (error, (procedure_name, message),
-       CONST char * procedure_name AND
-       CONST char * message)
+error (const char * procedure_name, const char * message)
 {
   outf_fatal ("%s: %s\n", procedure_name, message);
   outf_flush_fatal ();
@@ -42,14 +39,14 @@ enum transaction_state { active, aborting, committing };
 
 struct transaction
 {
-  PTR checkpoint;
+  void * checkpoint;
   enum transaction_state state;
 };
 
 static struct transaction * current_transaction;
 
 static void
-DEFUN (guarantee_current_transaction, (proc), CONST char * proc)
+guarantee_current_transaction (const char * proc)
 {
   if (current_transaction == 0)
     error (proc, "no transaction");
@@ -62,15 +59,15 @@ DEFUN (guarantee_current_transaction, (proc), CONST char * proc)
 }
 
 void
-DEFUN_VOID (transaction_initialize)
+transaction_initialize (void)
 {
   current_transaction = 0;
 }
 
 void
-DEFUN_VOID (transaction_begin)
+transaction_begin (void)
 {
-  PTR checkpoint = dstack_position;
+  void * checkpoint = dstack_position;
   struct transaction * transaction =
     (dstack_alloc (sizeof (struct transaction)));
   (transaction -> checkpoint) = checkpoint;
@@ -79,7 +76,7 @@ DEFUN_VOID (transaction_begin)
 }
 
 void
-DEFUN_VOID (transaction_abort)
+transaction_abort (void)
 {
   guarantee_current_transaction ("transaction_abort");
   (current_transaction -> state) = aborting;
@@ -87,7 +84,7 @@ DEFUN_VOID (transaction_abort)
 }
 
 void
-DEFUN_VOID (transaction_commit)
+transaction_commit (void)
 {
   guarantee_current_transaction ("transaction_commit");
   (current_transaction -> state) = committing;
@@ -97,12 +94,12 @@ DEFUN_VOID (transaction_commit)
 struct action
 {
   enum transaction_action_type type;
-  void EXFUN ((*procedure), (PTR environment));
-  PTR environment;
+  void (*procedure) (void * environment);
+  void * environment;
 };
 
 static void
-DEFUN (execute_action, (action), PTR action)
+execute_action (void * action)
 {
   if ((((struct action *) action) -> type) !=
       (((current_transaction -> state) == committing)
@@ -112,10 +109,9 @@ DEFUN (execute_action, (action), PTR action)
 }
 
 void
-DEFUN (transaction_record_action, (type, procedure, environment),
-       enum transaction_action_type type AND
-       void EXFUN ((*procedure), (PTR environment)) AND
-       PTR environment)
+transaction_record_action (enum transaction_action_type type,
+			   void (*procedure) (void * environment),
+			   void * environment)
 {
   guarantee_current_transaction ("transaction_record_action");
   {

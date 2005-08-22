@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: pros2fs.c,v 1.20 2003/02/14 18:28:23 cph Exp $
+$Id: pros2fs.c,v 1.20.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1994-2000 Massachusetts Institute of Technology
+Copyright 1994,1995,1996,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -33,7 +33,7 @@ extern void OS2_write_file_status (const char *, FILESTATUS3 *);
 extern char * OS2_drive_type (char);
 extern long OS2_timezone (void);
 extern long OS2_daylight_savings_p (void);
-extern void EXFUN (OS_file_copy, (CONST char *, CONST char *));
+extern void OS_file_copy (const char *, const char *);
 
 static SCHEME_OBJECT time_to_integer (FDATE *, FTIME *);
 static void integer_to_time (SCHEME_OBJECT, FDATE *, FTIME *);
@@ -105,8 +105,8 @@ DEFINE_PRIMITIVE ("FILE-EQ?", Prim_file_eq_p, 2, 2,
   CHECK_ARG (2, STRING_P);
   {
     unsigned long length = (STRING_LENGTH (ARG_REF (1)));
-    const char * s1 = (STRING_LOC ((ARG_REF (1)), 0));
-    const char * s2 = (STRING_LOC ((ARG_REF (2)), 0));
+    const char * s1 = (STRING_POINTER (ARG_REF (1)));
+    const char * s2 = (STRING_POINTER (ARG_REF (2)));
     const char * e1 = (s1 + length);
     if ((STRING_LENGTH (ARG_REF (2))) != length)
       PRIMITIVE_RETURN (SHARP_F);
@@ -241,7 +241,7 @@ Otherwise the result is #F.")
   {
     unsigned int attr = (info -> attrFile);
     SCHEME_OBJECT modes = (allocate_string (5));
-    char * s = ((char *) (STRING_LOC (modes, 0)));
+    char * s = (STRING_POINTER (modes));
     (s[0]) = (((attr & FILE_DIRECTORY) != 0) ? 'd' : '-');
     (s[1]) = (((attr & FILE_READONLY)  != 0) ? 'r' : '-');
     (s[2]) = (((attr & FILE_HIDDEN)    != 0) ? 'h' : '-');

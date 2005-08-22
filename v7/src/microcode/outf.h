@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: outf.h,v 1.7 2003/02/14 18:28:22 cph Exp $
+$Id: outf.h,v 1.7.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1993, 1999, 2000 Massachusetts Institute of Technology
+Copyright 1993,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -24,25 +24,32 @@ USA.
 */
 
 #ifndef SCM_OUTF_H
-#define SCM_OUTF_H
+#define SCM_OUTF_H 1
 
-#include <stdio.h>
 #include "config.h"
 
-typedef struct __outf_channel_type_placeholder *outf_channel;
+typedef enum { CONSOLE_OUTPUT, ERROR_OUTPUT, FATAL_OUTPUT } outf_channel;
 
-extern void EXFUN (outf, (outf_channel chan, CONST char *format  DOTS));
-extern void EXFUN (outf_console, (CONST char *format  DOTS));
-extern void EXFUN (outf_error, (CONST char *format  DOTS));
-extern void EXFUN (outf_fatal, (CONST char *format  DOTS));
+extern void outf (outf_channel, const char *, ...)
+  ATTRIBUTE ((__format__ (__printf__, 2, 3)));
 
-extern void EXFUN (outf_flush, (outf_channel chan));
-extern void EXFUN (outf_flush_console, (void));
-extern void EXFUN (outf_flush_error, (void));
-extern void EXFUN (outf_flush_fatal, (void));
+extern void outf_console (const char *, ...)
+  ATTRIBUTE ((__format__ (__printf__, 1, 2)));
 
-#define  console_output ((outf_channel)-1)
-#define  error_output ((outf_channel)-2)
-#define  fatal_output ((outf_channel)-3)
+extern void outf_error (const char *, ...)
+  ATTRIBUTE ((__format__ (__printf__, 1, 2)));
 
-#endif /* SCM_OUTF_H */
+extern void outf_fatal (const char *, ...)
+  ATTRIBUTE ((__format__ (__printf__, 1, 2)));
+
+extern void voutf (outf_channel, const char *, va_list);
+extern void voutf_console (const char *, va_list);
+extern void voutf_error (const char *, va_list);
+extern void voutf_fatal (const char *, va_list);
+
+extern void outf_flush (outf_channel chan);
+extern void outf_flush_console (void);
+extern void outf_flush_error (void);
+extern void outf_flush_fatal (void);
+
+#endif /* not SCM_OUTF_H */

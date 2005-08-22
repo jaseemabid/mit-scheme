@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: scode.h,v 9.29 2003/02/14 18:28:23 cph Exp $
+$Id: scode.h,v 9.29.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1987-1989, 1999, 2001 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1993,2001 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -111,9 +112,9 @@ USA.
 
 /* Selectors */
 
-#define Get_Body_Elambda(Addr)  (FAST_MEMORY_REF (Addr, ELAMBDA_SCODE))
-#define Get_Names_Elambda(Addr) (FAST_MEMORY_REF (Addr, ELAMBDA_NAMES))
-#define Get_Count_Elambda(Addr) (FAST_MEMORY_REF (Addr, ELAMBDA_ARG_COUNT))
+#define Get_Body_Elambda(Addr)  (MEMORY_REF (Addr, ELAMBDA_SCODE))
+#define Get_Names_Elambda(Addr) (MEMORY_REF (Addr, ELAMBDA_NAMES))
+#define Get_Count_Elambda(Addr) (MEMORY_REF (Addr, ELAMBDA_ARG_COUNT))
 #define Elambda_Formals_Count(Addr) \
      ((((long) Addr) & EL_FORMALS_MASK) >> EL_FORMALS_SHIFT)
 #define Elambda_Opts_Count(Addr) \

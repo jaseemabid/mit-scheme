@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: uxtop.h,v 1.5 2003/02/14 18:28:24 cph Exp $
+$Id: uxtop.h,v 1.5.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1990, 1999 Massachusetts Institute of Technology
+Copyright 1990,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,6 +28,6 @@ USA.
 
 #include "ostop.h"
 
-extern void EXFUN (UX_dump_core, (void));
+extern void UX_dump_core (void);
 
 #endif /* SCM_UXTOP_H */

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: uxutil.h,v 1.5 2003/02/14 18:28:24 cph Exp $
+$Id: uxutil.h,v 1.5.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1990, 1999 Massachusetts Institute of Technology
+Copyright 1990,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,13 +28,12 @@ USA.
 
 #include "os.h"
 
-extern CONST char * EXFUN (char_description, (unsigned char c, int long_p));
-extern void EXFUN (userio_buffered_input, (void));
-extern char EXFUN (userio_read_char, (void));
-extern char EXFUN (userio_read_char_raw, (void));
-extern char EXFUN
-  (userio_choose_option,
-   (CONST char * herald, CONST char * prompt, CONST char ** choices));
-extern int EXFUN (userio_confirm, (CONST char * prompt));
+extern const char * char_description (unsigned char c, int long_p);
+extern void userio_buffered_input (void);
+extern char userio_read_char (void);
+extern char userio_read_char_raw (void);
+extern char userio_choose_option
+  (const char * herald, const char * prompt, const char ** choices);
+extern int userio_confirm (const char * prompt);
 
 #endif /* SCM_UXUTIL_H */

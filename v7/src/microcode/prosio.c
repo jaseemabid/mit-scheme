@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: prosio.c,v 1.24 2003/03/25 01:12:29 cph Exp $
+$Id: prosio.c,v 1.24.2.1 2005/08/22 18:06:00 cph Exp $
 
 Copyright 1987,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
-Copyright 1996,1997,2001,2003 Massachusetts Institute of Technology
+Copyright 1996,1997,2001,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -35,8 +35,7 @@ USA.
 #endif
 
 Tchannel
-DEFUN (arg_to_channel, (argument, arg_number),
-       SCHEME_OBJECT argument AND
+arg_to_channel (SCHEME_OBJECT argument,
        int arg_number)
 {
   if (! ((INTEGER_P (argument)) && (integer_to_ulong_p (argument))))
@@ -50,7 +49,7 @@ DEFUN (arg_to_channel, (argument, arg_number),
 }
 
 Tchannel
-DEFUN (arg_channel, (arg_number), int arg_number)
+arg_channel (int arg_number)
 {
   Tchannel channel = (arg_to_channel ((ARG_REF (arg_number)), arg_number));
   if (!OS_channel_open_p (channel))
@@ -63,7 +62,7 @@ DEFINE_PRIMITIVE ("CHANNEL-CLOSE", Prim_channel_close, 1, 1,
 {
   PRIMITIVE_HEADER (1);
   {
-    fast Tchannel channel = (arg_to_channel ((ARG_REF (1)), 1));
+    Tchannel channel = (arg_to_channel ((ARG_REF (1)), 1));
     if (OS_channel_open_p (channel))
       {
 	CLOSE_CHANNEL_HOOK (channel);
@@ -145,8 +144,7 @@ DEFINE_PRIMITIVE ("CHANNEL-TYPE-NAME", Prim_channel_type_name, 1, 1,
   index = ((unsigned int) type);
   if (index >= ((sizeof (channel_type_names)) / (sizeof (char *))))
     PRIMITIVE_RETURN (SHARP_F);
-  PRIMITIVE_RETURN
-    (char_pointer_to_string ((unsigned char *) (channel_type_names [index])));
+  PRIMITIVE_RETURN (char_pointer_to_string (channel_type_names [index]));
 }
 
 DEFINE_PRIMITIVE ("CHANNEL-READ", Prim_channel_read, 4, 4,
@@ -176,7 +174,7 @@ Third and fourth args START and END specify the substring to use.")
   PRIMITIVE_HEADER (4);
   {
     unsigned long length;
-    CONST char * buffer = (arg_extended_string (2, (&length)));
+    const char * buffer = (arg_extended_string (2, (&length)));
     unsigned long end = (arg_ulong_index_integer (4, (length + 1)));
     unsigned long start = (arg_ulong_index_integer (3, (end + 1)));
     long nwritten =
@@ -237,13 +235,13 @@ DEFINE_PRIMITIVE ("MAKE-PIPE", Prim_make_pipe, 0, 0,
 /* Select registry */
 
 static select_registry_t
-DEFUN (arg_select_registry, (arg_number), int arg_number)
+arg_select_registry (int arg_number)
 {
   return ((select_registry_t) (arg_ulong_integer (arg_number)));
 }
 
 static unsigned int
-DEFUN (arg_sr_mode, (arg_number), int arg_number)
+arg_sr_mode (int arg_number)
 {
   unsigned long n = (arg_ulong_integer (arg_number));
   if (! ((n >= 1) && (n <= 3)))

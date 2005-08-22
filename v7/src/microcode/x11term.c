@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: x11term.c,v 1.29 2003/02/14 18:28:24 cph Exp $
+$Id: x11term.c,v 1.29.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1989-2000 Massachusetts Institute of Technology
+Copyright 1989,1990,1991,1992,1993,1995 Massachusetts Institute of Technology
+Copyright 2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -105,7 +106,7 @@ struct xterm_extra
    && ((XW_CURSOR_Y (xw)) < (y_end)))
 
 static void
-DEFUN (xterm_erase_cursor, (xw), struct xwindow * xw)
+xterm_erase_cursor (struct xwindow * xw)
 {
   if (XW_CURSOR_VISIBLE_P (xw))
     {
@@ -122,7 +123,7 @@ DEFUN (xterm_erase_cursor, (xw), struct xwindow * xw)
 }
 
 static void
-DEFUN (xterm_draw_cursor, (xw), struct xwindow * xw)
+xterm_draw_cursor (struct xwindow * xw)
 {
   if ((XW_CURSOR_ENABLED_P (xw)) && (! (XW_CURSOR_VISIBLE_P (xw))))
     {
@@ -142,16 +143,12 @@ DEFUN (xterm_draw_cursor, (xw), struct xwindow * xw)
 }
 
 static void
-DEFUN (xterm_process_event, (xw, event),
-       struct xwindow * xw AND
-       XEvent * event)
+xterm_process_event (struct xwindow * xw, XEvent * event)
 {
 }
 
 static XSizeHints *
-DEFUN (xterm_make_size_hints, (font, extra),
-       XFontStruct * font AND
-       unsigned int extra)
+xterm_make_size_hints (XFontStruct * font, unsigned int extra)
 {
   XSizeHints * size_hints = (XAllocSizeHints ());
   if (size_hints == 0)
@@ -167,12 +164,11 @@ DEFUN (xterm_make_size_hints, (font, extra),
 }
 
 static void
-DEFUN (xterm_set_wm_normal_hints, (xw, size_hints, geometry_mask, x, y),
-       struct xwindow * xw AND
-       XSizeHints * size_hints AND
-       int geometry_mask AND
-       unsigned int x AND
-       unsigned int y)
+xterm_set_wm_normal_hints (struct xwindow * xw,
+			   XSizeHints * size_hints,
+			   int geometry_mask,
+			   unsigned int x,
+			   unsigned int y)
 {
   (size_hints -> flags) |=
     ((((geometry_mask & XValue) && (geometry_mask & YValue))
@@ -192,7 +188,7 @@ DEFUN (xterm_set_wm_normal_hints, (xw, size_hints, geometry_mask, x, y),
 }
 
 static void
-DEFUN (xterm_update_normal_hints, (xw), struct xwindow * xw)
+xterm_update_normal_hints (struct xwindow * xw)
 {
   xterm_set_wm_normal_hints
     (xw,
@@ -203,31 +199,30 @@ DEFUN (xterm_update_normal_hints, (xw), struct xwindow * xw)
 }
 
 static void
-DEFUN (xterm_deallocate, (xw), struct xwindow * xw)
+xterm_deallocate (struct xwindow * xw)
 {
   free (XW_CHARACTER_MAP (xw));
   free (XW_HIGHLIGHT_MAP (xw));
 }
 
 static SCHEME_OBJECT
-DEFUN (xterm_x_coordinate_map, (xw, x), struct xwindow * xw AND unsigned int x)
+xterm_x_coordinate_map (struct xwindow * xw, unsigned int x)
 {
   return (ulong_to_integer (x / (FONT_WIDTH (XW_FONT (xw)))));
 }
 
 static SCHEME_OBJECT
-DEFUN (xterm_y_coordinate_map, (xw, y), struct xwindow * xw AND unsigned int y)
+xterm_y_coordinate_map (struct xwindow * xw, unsigned int y)
 {
   return (ulong_to_integer (y / (FONT_HEIGHT (XW_FONT (xw)))));
 }
 
 static void
-DEFUN (xterm_copy_map_line, (xw, x_start, x_end, y_from, y_to),
-       struct xwindow * xw AND
-       unsigned int x_start AND
-       unsigned int x_end AND
-       unsigned int y_from AND
-       unsigned int y_to)
+xterm_copy_map_line (struct xwindow * xw,
+		     unsigned int x_start,
+		     unsigned int x_end,
+		     unsigned int y_from,
+		     unsigned int y_to)
 {
   {
     char * from_scan =
@@ -252,12 +247,11 @@ DEFUN (xterm_copy_map_line, (xw, x_start, x_end, y_from, y_to),
 }
 
 static void
-DEFUN (xterm_dump_contents, (xw, x_start, x_end, y_start, y_end),
-       struct xwindow * xw AND
-       unsigned int x_start AND
-       unsigned int x_end AND
-       unsigned int y_start AND
-       unsigned int y_end)
+xterm_dump_contents (struct xwindow * xw,
+		     unsigned int x_start,
+		     unsigned int x_end,
+		     unsigned int y_start,
+		     unsigned int y_end)
 {
   char * character_map = (XW_CHARACTER_MAP (xw));
   char * highlight_map = (XW_HIGHLIGHT_MAP (xw));
@@ -294,12 +288,11 @@ DEFUN (xterm_dump_contents, (xw, x_start, x_end, y_start, y_end),
 }
 
 static void
-DEFUN (xterm_dump_rectangle, (xw, x, y, width, height),
-       struct xwindow * xw AND
-       unsigned int x AND
-       unsigned int y AND
-       unsigned int width AND
-       unsigned int height)
+xterm_dump_rectangle (struct xwindow * xw,
+		      unsigned int x,
+		      unsigned int y,
+		      unsigned int width,
+		      unsigned int height)
 {
   XFontStruct * font = (XW_FONT (xw));
   unsigned int fwidth = (FONT_WIDTH (font));
@@ -340,10 +333,9 @@ DEFUN (xterm_dump_rectangle, (xw, x, y, width, height),
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 static void
-DEFUN (xterm_reconfigure, (xw, width, height),
-       struct xwindow * xw AND
-       unsigned int width AND
-       unsigned int height)
+xterm_reconfigure (struct xwindow * xw,
+		   unsigned int width,
+		   unsigned int height)
 {
   unsigned int extra = (2 * (XW_INTERNAL_BORDER_WIDTH (xw)));
   unsigned int x_size = ((width < extra) ? 0 : (width - extra));
@@ -502,10 +494,10 @@ DEFINE_PRIMITIVE ("XTERM-OPEN-WINDOW", Prim_xterm_open_window, 3, 3, 0)
     Display * display = (XD_DISPLAY (xd));
     struct drawing_attributes attributes;
     struct xwindow_methods methods;
-    CONST char * resource_name = RESOURCE_NAME;
-    CONST char * resource_class = RESOURCE_CLASS;
+    const char * resource_name = RESOURCE_NAME;
+    const char * resource_class = RESOURCE_CLASS;
     int map_p;
-    
+
     x_decode_window_map_arg
       ((ARG_REF (3)), (&resource_name), (&resource_class), (&map_p));
     x_default_attributes
@@ -726,13 +718,12 @@ DEFINE_PRIMITIVE ("XTERM-WRITE-SUBSTRING!", Prim_xterm_write_substring, 7, 7, 0)
 }
 
 static void
-DEFUN (xterm_clear_rectangle, (xw, x_start, x_end, y_start, y_end, hl),
-       struct xwindow * xw AND
-       unsigned int x_start AND
-       unsigned int x_end AND
-       unsigned int y_start AND
-       unsigned int y_end AND
-       unsigned int hl)
+xterm_clear_rectangle (struct xwindow * xw,
+		       unsigned int x_start,
+		       unsigned int x_end,
+		       unsigned int y_start,
+		       unsigned int y_end,
+		       unsigned int hl)
 {
   unsigned int x_length = (x_end - x_start);
   unsigned int y;
@@ -802,13 +793,12 @@ DEFINE_PRIMITIVE ("XTERM-CLEAR-RECTANGLE!", Prim_xterm_clear_rectangle, 6, 6, 0)
 }
 
 static void
-DEFUN (xterm_scroll_lines_up, (xw, x_start, x_end, y_start, y_end, lines),
-       struct xwindow * xw AND
-       unsigned int x_start AND
-       unsigned int x_end AND
-       unsigned int y_start AND
-       unsigned int y_end AND
-       unsigned int lines)
+xterm_scroll_lines_up (struct xwindow * xw,
+		       unsigned int x_start,
+		       unsigned int x_end,
+		       unsigned int y_start,
+		       unsigned int y_end,
+		       unsigned int lines)
 {
   {
     unsigned int y_to = y_start;
@@ -866,13 +856,12 @@ Scroll the contents of the region up by LINES.")
 }
 
 static void
-DEFUN (xterm_scroll_lines_down, (xw, x_start, x_end, y_start, y_end, lines),
-       struct xwindow * xw AND
-       unsigned int x_start AND
-       unsigned int x_end AND
-       unsigned int y_start AND
-       unsigned int y_end AND
-       unsigned int lines)
+xterm_scroll_lines_down (struct xwindow * xw,
+			 unsigned int x_start,
+			 unsigned int x_end,
+			 unsigned int y_start,
+			 unsigned int y_end,
+			 unsigned int lines)
 {
   {
     unsigned int y_to = y_end;
@@ -892,7 +881,8 @@ DEFUN (xterm_scroll_lines_down, (xw, x_start, x_end, y_start, y_end, lines),
 	     (XTERM_Y_PIXEL (xw, (y_start + lines))));
 }
 
-DEFINE_PRIMITIVE ("XTERM-SCROLL-LINES-DOWN", Prim_xterm_scroll_lines_down, 6, 6,
+DEFINE_PRIMITIVE ("XTERM-SCROLL-LINES-DOWN", Prim_xterm_scroll_lines_down,
+		  6, 6,
   "(XTERM-SCROLL-LINES-DOWN XTERM X-START X-END Y-START Y-END LINES)\n\
 Scroll the contents of the region down by LINES.")
 {
@@ -951,7 +941,7 @@ The pairs are organized in row-major order from (X-START, Y-START).")
     SCHEME_OBJECT string = (allocate_string (string_length));
     if (string_length > 0)
       {
-	char * string_scan = ((char *) (STRING_LOC (string, 0)));
+	char * string_scan = (STRING_POINTER (string));
 	unsigned int y;
 	for (y = y_start; (y < y_end); y += 1)
 	  {
@@ -992,7 +982,7 @@ See `XTERM-SCREEN-CONTENTS' for the format of CONTENTS.")
       error_bad_range_arg (6);
     if (string_length > 0)
       {
-	char * string_scan = ((char *) (STRING_LOC (string, 0)));
+	char * string_scan = (STRING_POINTER (string));
 	unsigned int y;
 	for (y = y_start; (y < y_end); y += 1)
 	  {

@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: utabmd.scm,v 9.88 2005/04/16 03:12:24 cph Exp $
+$Id: utabmd.scm,v 9.88.2.1 2005/08/22 18:06:01 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1994,2001,2002,2005 Massachusetts Institute of Technology
@@ -72,12 +72,12 @@ USA.
 	       THE-WORK-QUEUE				;19
 	       FUTURE-READS-LOGGER			;1A
 	       TOUCHED-FUTURES-VECTOR			;1B
-	       PRECIOUS-OBJECTS				;1C
+	       #F #| PRECIOUS-OBJECTS |#		;1C
 	       ERROR-PROCEDURE				;1D
 	       #F #| UNSNAPPED-LINK |#	                ;1E
 	       #F #| MICROCODE-UTILITIES-VECTOR |#	;1F
 	       COMPILER-ERROR-PROCEDURE			;20
-	       LOST-OBJECT-BASE				;21
+	       #F #| LOST-OBJECT-BASE |#		;21
 	       STATE-SPACE-ROOT				;22
 	       PRIMITIVE-PROFILING-TABLE		;23
 	       GENERIC-TRAMPOLINE-ZERO?			;24
@@ -611,4 +611,4 @@ USA.
 
 ;;; This identification string is saved by the system.
 
-"$Id: utabmd.scm,v 9.88 2005/04/16 03:12:24 cph Exp $"
+"$Id: utabmd.scm,v 9.88.2.1 2005/08/22 18:06:01 cph Exp $"

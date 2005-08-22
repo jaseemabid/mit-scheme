@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: prospty.c,v 1.6 2003/02/14 18:28:23 cph Exp $
+$Id: prospty.c,v 1.6.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1992-1999 Massachusetts Institute of Technology
+Copyright 1992,1993,1997,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -27,12 +27,13 @@ USA.
 
 #include "scheme.h"
 #include "prims.h"
+#include "osscheme.h"
 #include "osterm.h"
 #include "osio.h"
 #include "ospty.h"
 
 static Tchannel
-DEFUN (arg_pty_master, (arg), unsigned int arg)
+arg_pty_master (unsigned int arg)
 {
   Tchannel channel = (arg_channel (1));
   if ((OS_channel_type (channel)) != channel_type_unix_pty_master)
@@ -47,18 +48,16 @@ Returns a vector #(CHANNEL MASTER-NAME SLAVE-NAME).")
   PRIMITIVE_HEADER (0);
   {
     Tchannel channel;
-    CONST char * master_name;
-    CONST char * slave_name =
+    const char * master_name;
+    const char * slave_name =
       (OS_open_pty_master ((&channel), (&master_name)));
     transaction_begin ();
     OS_channel_close_on_abort (channel);
     {
       SCHEME_OBJECT vector = (allocate_marked_vector (TC_VECTOR, 3, 1));
       VECTOR_SET (vector, 0, (long_to_integer (channel)));
-      VECTOR_SET (vector, 1,
-		  (char_pointer_to_string ((unsigned char *) master_name)));
-      VECTOR_SET (vector, 2,
-		  (char_pointer_to_string ((unsigned char *) slave_name)));
+      VECTOR_SET (vector, 1, (char_pointer_to_string (master_name)));
+      VECTOR_SET (vector, 2, (char_pointer_to_string (slave_name)));
       transaction_commit ();
       PRIMITIVE_RETURN (vector);
     }

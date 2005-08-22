@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40 2003/02/14 18:28:18 cph Exp $
+$Id: fasl.h,v 9.40.2.1 2005/08/22 18:05:58 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
+Copyright 1994,1997,2002,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -26,9 +27,13 @@ USA.
 /* Contains information relating to the format of FASL files.
    The machine/opsys information is contained in config.h
    The processor and compiled code version information is
-   contained in the appropriate cmp* file, or compiler.c */
-
-/* FASL Version */
+   contained in the appropriate cmp* file, or compiler.c.  */
+
+#ifndef SCM_FASL_H
+#define SCM_FASL_H 1
+
+#include "scheme.h"
+#include "osio.h"
 
 #define FASL_FILE_MARKER	0xFAFAFAFA
 
@@ -36,97 +41,132 @@ USA.
 
 #define FASL_HEADER_LENGTH	50	/* Scheme objects in header */
 
-#define FASL_Offset_Marker	0	/* Marker to indicate FASL format */
-#define FASL_Offset_Heap_Count	1	/* Count of objects in heap */
-#define FASL_Offset_Heap_Base	2	/* Address of heap when dumped */
-#define FASL_Offset_Dumped_Obj	3	/* Where dumped object was */
-#define FASL_Offset_Const_Count	4	/* Count of objects in const. area */
-#define FASL_Offset_Const_Base	5	/* Address of const. area at dump */
-#define FASL_Offset_Version	6	/* FASL format version info. */
-#define FASL_Offset_Stack_Top	7	/* Top of stack when dumped */
-#define FASL_Offset_Prim_Length 8	/* Number of entries in primitive table */
-#define FASL_Offset_Prim_Size	9	/* Size of primitive table in SCHEME_OBJECTs */
-#define FASL_Offset_Ci_Version	10	/* Version number for compiled code interface */
-#define FASL_Offset_Ut_Base	11	/* Address of the utilities vector */
-#define FASL_Offset_Check_Sum	12	/* Header and data checksum. */
-#define FASL_Offset_C_Length	13	/* Number of entries in the C code table */
-#define FASL_Offset_C_Size	14	/* Size of C code table in SCHEME_OBJECTs */
-#define FASL_Offset_Mem_Base	15	/* Base address when not HEAP_IN_LOW_MEMORY */
+#define FASL_OFFSET_MARKER	0	/* Marker to indicate FASL format */
+#define FASL_OFFSET_HEAP_SIZE	1	/* # of words in heap */
+#define FASL_OFFSET_HEAP_BASE	2	/* Address of heap when dumped */
+#define FASL_OFFSET_DUMPED_OBJ	3	/* Where dumped object was */
+#define FASL_OFFSET_CONST_SIZE	4	/* # of words in constant area */
+#define FASL_OFFSET_CONST_BASE	5	/* Address of const. area at dump */
+#define FASL_OFFSET_VERSION	6	/* FASL format version info. */
+#define FASL_OFFSET_STACK_START	7	/* value of stack_start when dumped */
+#define FASL_OFFSET_PRIM_LENGTH 8	/* # of entries in primitive table */
+#define FASL_OFFSET_PRIM_SIZE	9	/* # of words in primitive table */
+#define FASL_OFFSET_CI_VERSION	10	/* Version of comp. code interface */
+#define FASL_OFFSET_UT_BASE	11	/* Address of the utilities vector */
 
-#define FASL_Offset_First_Free	16	/* Used to clear header */
+#if 0
+#define FASL_OFFSET_CHECK_SUM	12	/* Header and data checksum. */
+#define FASL_OFFSET_C_LENGTH	13	/* # of entries in the C code table */
+#define FASL_OFFSET_C_SIZE	14	/* # of words in the C code table */
+#endif
 
-/* Aliases for backwards compatibility. */
-
-/* Where ext. prims. vector is */
-#define FASL_Offset_Ext_Loc	FASL_Offset_Prim_Length
-
+#define FASL_OFFSET_MEM_BASE	15	/* Saved value of memory_base */
+#define FASL_OFFSET_STACK_SIZE	16	/* # of words in stack area */
+#define FASL_OFFSET_HEAP_RSVD   17	/* value of active_heap_reserved */
+
 /* Version information encoding */
 
-#define ONE			((SCHEME_OBJECT) 1)
+#define FASL_ARCH_LENGTH (OBJECT_LENGTH / 2)
+#define FASL_ARCH(P) ((P) & ((1UL << FASL_ARCH_LENGTH) - 1))
 
-#define MACHINE_TYPE_LENGTH	(OBJECT_LENGTH / 2)
-#define MACHINE_TYPE_MASK	((ONE << MACHINE_TYPE_LENGTH) - 1)
-#define The_Machine_Type(P)	((P) & MACHINE_TYPE_MASK)
-#define SUBVERSION_LENGTH	(MACHINE_TYPE_LENGTH - TYPE_CODE_LENGTH)
-#define SUBVERSION_MASK		((ONE << SUBVERSION_LENGTH) - 1)
-#define The_Sub_Version(P)	(((P) >> MACHINE_TYPE_LENGTH) & SUBVERSION_MASK)
-#define The_Version(P)		(OBJECT_TYPE (P))
+#define FASL_VERSION_LENGTH (FASL_ARCH_LENGTH - TYPE_CODE_LENGTH)
+#define FASL_VERSION(P)						\
+  (((P) >> FASL_ARCH_LENGTH) & ((1UL << FASL_VERSION_LENGTH) - 1))
 
-#define Make_Version(V, S, M)						\
-  MAKE_OBJECT ((V), ((((unsigned long) (S)) << MACHINE_TYPE_LENGTH)	\
-		     | (M)))						\
+/* The '1' here is for upwards compatibility.  */
+#define MAKE_FASL_VERSION(s, a)					\
+  (MAKE_OBJECT (1, ((((unsigned long) (s)) << FASL_ARCH_LENGTH) | (a))))
 
-#define CI_MASK			((ONE << (DATUM_LENGTH / 2)) - 1)
-#define CI_VERSION(P)		(((P) >> (DATUM_LENGTH / 2)) & CI_MASK)
-#define CI_PROCESSOR(P)		((P) & CI_MASK)
-#define CI_BAND_P(P)		((OBJECT_TYPE (P)) == TC_CONSTANT)
+#define CI_VERSION(P) (((P) >> HALF_DATUM_LENGTH) & HALF_DATUM_MASK)
+#define CI_PROCESSOR(P) ((P) & HALF_DATUM_MASK)
+#define CI_BAND_P(P) ((OBJECT_TYPE (P)) == TC_CONSTANT)
 
-#define MAKE_CI_VERSION(Band_p, Version, Processor_Type)		\
-  MAKE_OBJECT (((Band_p) ? TC_CONSTANT : TC_NULL),				\
-	       ((((unsigned long) (Version)) << (DATUM_LENGTH / 2))	\
-		| (Processor_Type)))
-
-/* "Memorable" FASL versions -- ones where we modified something
-   and want to remain backwards compatible.
-*/
+#define MAKE_CI_VERSION(b, v, a)					\
+  (MAKE_OBJECT (((b) ? TC_CONSTANT : TC_NULL),				\
+		((((unsigned long) (v)) << HALF_DATUM_LENGTH)		\
+		 | (a))))
 
-/* Versions. */
-
-#define FASL_FORMAT_ADDED_STACK	1
-
-/* Subversions of highest numbered version. */
-
-#define FASL_LONG_HEADER	3
-#define FASL_DENSE_TYPES	4
-#define FASL_PADDED_STRINGS	5
-#define FASL_REFERENCE_TRAP	6
-#define FASL_MERGED_PRIMITIVES	7
-#define FASL_INTERFACE_VERSION	8
-#define FASL_NEW_BIGNUMS	9
-#define FASL_C_CODE		10
+typedef enum
+{
+  FASL_VERSION_NONE,
+  FASL_VERSION_LONG_HEADER = 3,
+  FASL_VERSION_DENSE_TYPES,
+  FASL_VERSION_PADDED_STRINGS,
+  FASL_VERSION_REFERENCE_TRAP,
+  FASL_VERSION_MERGED_PRIMITIVES,
+  FASL_VERSION_INTERFACE_VERSION,
+  FASL_VERSION_NEW_BIGNUMS,
+  FASL_VERSION_C_CODE,
+  FASL_VERSION_STACK_END
+} fasl_version_t;
 
 /* Current parameters.  Always used on output. */
+#define CURRENT_FASL_VERSION FASL_VERSION_STACK_END
 
-#define FASL_FORMAT_VERSION	FASL_FORMAT_ADDED_STACK
-#define FASL_SUBVERSION		FASL_C_CODE
+/* Oldest recognized input version.  */
+#define INPUT_FASL_VERSION FASL_VERSION_C_CODE
+
+typedef struct
+{
+  fasl_version_t version;
+  fasl_arch_t arch;
+  unsigned int cc_version;
+  unsigned int cc_arch;
+  bool band_p;
+  SCHEME_OBJECT * memory_base;
+  SCHEME_OBJECT * root_pointer;
+  SCHEME_OBJECT * heap_start;
+  SCHEME_OBJECT * heap_end;
+  unsigned long heap_reserved;
+  SCHEME_OBJECT * constant_start;
+  SCHEME_OBJECT * constant_end;
+  SCHEME_OBJECT * stack_start;
+  SCHEME_OBJECT * stack_end;
+  unsigned long n_primitives;
+  unsigned long primitive_table_size;
+  SCHEME_OBJECT utilities_vector;
+} fasl_header_t;
 
-/*
-  The definitions below correspond to the ones above.  They usually
-  have the same values.  They differ when the format is changing: A
-  system can be built which reads the old format, but dumps the new one.
- */
+#define FASLHDR_VERSION(h) ((h)->version)
+#define FASLHDR_ARCH(h) ((h)->arch)
+#define FASLHDR_CC_VERSION(h) ((h)->cc_version)
+#define FASLHDR_CC_ARCH(h) ((h)->cc_arch)
+#define FASLHDR_BAND_P(h) ((h)->band_p)
+#define FASLHDR_MEMORY_BASE(h) ((h)->memory_base)
+#define FASLHDR_ROOT_POINTER(h) ((h)->root_pointer)
+#define FASLHDR_HEAP_START(h) ((h)->heap_start)
+#define FASLHDR_HEAP_END(h) ((h)->heap_end)
+#define FASLHDR_HEAP_RESERVED(h) ((h)->heap_reserved)
+#define FASLHDR_CONSTANT_START(h) ((h)->constant_start)
+#define FASLHDR_CONSTANT_END(h) ((h)->constant_end)
+#define FASLHDR_STACK_START(h) ((h)->stack_start)
+#define FASLHDR_STACK_END(h) ((h)->stack_end)
+#define FASLHDR_N_PRIMITIVES(h) ((h)->n_primitives)
+#define FASLHDR_PRIMITIVE_TABLE_SIZE(h) ((h)->primitive_table_size)
+#define FASLHDR_UTILITIES_VECTOR(h) ((h)->utilities_vector)
 
-#ifndef FASL_READ_VERSION
-#define FASL_READ_VERSION	FASL_FORMAT_ADDED_STACK
-#endif
+#define FASLHDR_HEAP_SIZE(h)						\
+  ((unsigned long)							\
+   ((FASLHDR_HEAP_END (h)) - (FASLHDR_HEAP_START (h))))
 
-#ifndef FASL_READ_SUBVERSION
-#define FASL_READ_SUBVERSION	FASL_NEW_BIGNUMS
-#endif
+#define FASLHDR_CONSTANT_SIZE(h)					\
+  ((unsigned long)							\
+   ((FASLHDR_CONSTANT_END (h)) - (FASLHDR_CONSTANT_START (h))))
 
-/* These are for Bintopsb.
-   They are the values of the oldest supported formats.
- */
+#define FASLHDR_STACK_SIZE(h)						\
+  ((unsigned long)							\
+   ((FASLHDR_STACK_END (h)) - (FASLHDR_STACK_START (h))))
 
-#define FASL_OLDEST_VERSION	FASL_FORMAT_ADDED_STACK
-#define FASL_OLDEST_SUBVERSION	FASL_PADDED_STRINGS
+typedef enum
+{
+  FASL_FILE_FINE,
+  FASL_FILE_TOO_SHORT,
+  FASL_FILE_NOT_FASL,
+  FASL_FILE_BAD_MACHINE,
+  FASL_FILE_BAD_VERSION,
+  FASL_FILE_BAD_SUBVERSION,	/* unused */
+  FASL_FILE_BAD_PROCESSOR,
+  FASL_FILE_BAD_INTERFACE
+} fasl_read_status_t;
+
+#endif /* not SCM_FASL_H */

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os.h,v 1.9 2003/02/14 18:28:22 cph Exp $
+$Id: os.h,v 1.9.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1990-2000 Massachusetts Institute of Technology
+Copyright 1990,1993,1994,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -30,17 +30,10 @@ USA.
 
 typedef unsigned int Tchannel;
 
-extern PTR EXFUN (OS_malloc, (unsigned int));
-extern PTR EXFUN (OS_realloc, (PTR, unsigned int));
-extern void EXFUN (OS_free, (PTR));
+extern void * OS_malloc (unsigned int);
+extern void * OS_realloc (void *, unsigned int);
+extern void OS_free (void *);
 
-#define FASTCOPY(from, to, n)						\
-{									\
-  const char * FASTCOPY_scan_src = (from);				\
-  const char * FASTCOPY_end_src = (FASTCOPY_scan_src + (n));		\
-  char * FASTCOPY_scan_dst = (to);					\
-  while (FASTCOPY_scan_src < FASTCOPY_end_src)				\
-    (*FASTCOPY_scan_dst++) = (*FASTCOPY_scan_src++);			\
-}
+#define FASTCOPY(from, to, n) (memcpy ((to), (from), (n)))
 
 #endif /* SCM_OS_H */

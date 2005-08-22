@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ntsys.c,v 1.11 2003/02/14 18:28:21 cph Exp $
+$Id: ntsys.c,v 1.11.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1992-1999 Massachusetts Institute of Technology
+Copyright 1993,1996,1997,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -23,10 +23,9 @@ USA.
 
 */
 
-#include <stdio.h>
 #include "nt.h"
 #include "ntsys.h"
-
+
 int
 nt_console_write (void * vbuffer, size_t nsize)
 {

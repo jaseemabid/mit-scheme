@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: prntfs.c,v 1.19 2003/02/14 18:28:23 cph Exp $
+$Id: prntfs.c,v 1.19.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1993-2001 Massachusetts Institute of Technology
+Copyright 1993,1995,1996,1997,2000,2001 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -32,9 +33,8 @@ USA.
 
 #include <sys/utime.h>
 #include <memory.h>
-#include <math.h>
 
-extern void EXFUN (OS_file_copy, (CONST char *, CONST char *));
+extern void OS_file_copy (const char *, const char *);
 extern int win32_directory_read (unsigned int, WIN32_FIND_DATA *);
 
 static double ut_zero = 0.0;
@@ -324,7 +324,7 @@ DEFINE_PRIMITIVE ("NT-GET-FILE-ATTRIBUTES", Prim_NT_get_file_attributes, 1, 1, 0
 {
   PRIMITIVE_HEADER (1);
   {
-    CONST char * filename = (STRING_ARG (1));
+    const char * filename = (STRING_ARG (1));
     DWORD attributes = (GetFileAttributes (filename));
     if (attributes == 0xFFFFFFFF)
       {
@@ -346,10 +346,10 @@ DEFINE_PRIMITIVE ("NT-SET-FILE-ATTRIBUTES", Prim_NT_set_file_attributes, 2, 2, 0
 }
 
 static unsigned int
-DEFUN (arg_directory_index, (argument), unsigned int argument)
+arg_directory_index (unsigned int argument)
 {
-  long index = (arg_integer (argument));
-  if (! (OS_directory_valid_p (index)))
+  unsigned int index = (arg_ulong_integer (argument));
+  if (!OS_directory_valid_p (index))
     error_bad_range_arg (argument);
   return (index);
 }

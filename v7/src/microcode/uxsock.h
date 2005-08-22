@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: uxsock.h,v 1.12 2003/02/14 18:28:24 cph Exp $
+$Id: uxsock.h,v 1.12.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1990-2001 Massachusetts Institute of Technology
+Copyright 1990,1992,1993,1997,1998,1999 Massachusetts Institute of Technology
+Copyright 2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,25 +29,24 @@ USA.
 
 #include "osio.h"
 
-extern Tchannel EXFUN (OS_open_tcp_stream_socket, (PTR, unsigned int));
-extern int EXFUN (OS_get_service_by_name, (CONST char *, CONST char *));
-extern unsigned long EXFUN (OS_get_service_by_number, (CONST unsigned long));
-extern unsigned int EXFUN (OS_host_address_length, (void));
-extern char ** EXFUN (OS_get_host_by_name, (CONST char *));
-extern CONST char * EXFUN (OS_get_host_name, (void));
-extern CONST char * EXFUN (OS_canonical_host_name, (CONST char *));
-extern CONST char * EXFUN (OS_get_host_by_address, (CONST char *));
-extern void EXFUN (OS_host_address_any, (PTR));
-extern void EXFUN (OS_host_address_loopback, (PTR));
+extern Tchannel OS_open_tcp_stream_socket (void *, unsigned int);
+extern int OS_get_service_by_name (const char *, const char *);
+extern unsigned long OS_get_service_by_number (const unsigned long);
+extern unsigned int OS_host_address_length (void);
+extern char ** OS_get_host_by_name (const char *);
+extern const char * OS_get_host_name (void);
+extern const char * OS_canonical_host_name (const char *);
+extern const char * OS_get_host_by_address (const char *);
+extern void OS_host_address_any (void *);
+extern void OS_host_address_loopback (void *);
 
 #ifdef HAVE_UNIX_SOCKETS
-extern Tchannel EXFUN (OS_open_unix_stream_socket, (CONST char *));
+   extern Tchannel OS_open_unix_stream_socket (const char *);
 #endif
 
-extern Tchannel EXFUN (OS_create_tcp_server_socket, (void));
-extern void EXFUN (OS_bind_tcp_server_socket, (Tchannel, PTR, unsigned int));
-extern void EXFUN (OS_listen_tcp_server_socket, (Tchannel));
-extern Tchannel EXFUN
- (OS_server_connection_accept, (Tchannel, PTR, unsigned int *));
+extern Tchannel OS_create_tcp_server_socket (void);
+extern void OS_bind_tcp_server_socket (Tchannel, void *, unsigned int);
+extern void OS_listen_tcp_server_socket (Tchannel);
+extern Tchannel OS_server_connection_accept (Tchannel, void *, unsigned int *);
 
 #endif /* SCM_UXSOCK_H */

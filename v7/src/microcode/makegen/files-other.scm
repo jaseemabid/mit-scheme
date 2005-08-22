@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: files-other.scm,v 1.4 2003/02/14 18:28:31 cph Exp $
+$Id: files-other.scm,v 1.4.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 2000 Massachusetts Institute of Technology
+Copyright 2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -25,7 +25,4 @@ USA.
 
 ;;;; C files for programs other than Scheme.
 
-"bchdrn"
-"bintopsb"
 "findprim"
-"psbtobin"

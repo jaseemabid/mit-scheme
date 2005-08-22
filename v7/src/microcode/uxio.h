@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: uxio.h,v 1.7 2003/02/14 18:28:24 cph Exp $
+$Id: uxio.h,v 1.7.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,1994,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -56,6 +56,6 @@ struct channel
 }
 
 extern struct channel * channel_table;
-extern Tchannel EXFUN (channel_allocate, (void));
+extern Tchannel channel_allocate (void);
 
 #endif /* SCM_UXIO_H */

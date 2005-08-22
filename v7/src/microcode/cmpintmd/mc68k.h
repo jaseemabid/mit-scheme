@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: mc68k.h,v 1.38 2003/02/14 18:28:31 cph Exp $
+$Id: mc68k.h,v 1.38.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1989-1999 Massachusetts Institute of Technology
+Copyright 1989,1990,1991,1992,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -79,7 +79,7 @@ typedef unsigned short format_word;
 
 #ifdef _NEXTOS
 
-extern void EXFUN (NeXT_cacheflush, (void));
+extern void NeXT_cacheflush (void);
 
 #  ifdef IN_CMPINT_C
 
@@ -90,7 +90,7 @@ extern void EXFUN (NeXT_cacheflush, (void));
  */
 
 void
-DEFUN_VOID (NeXT_cacheflush)
+NeXT_cacheflush (void)
 {
   asm ("trap #2");
   return;
@@ -120,7 +120,7 @@ DEFUN_VOID (NeXT_cacheflush)
 
 #    ifdef SWITZERLAND
 
-extern void EXFUN (swiss_cachectl, (int, void *, unsigned long));
+extern void swiss_cachectl (int, void *, unsigned long);
 
 #      define FLUSH_CACHE_INITIALIZE() swiss_cachectl_init_p = 0
 
@@ -131,20 +131,19 @@ static int
   swiss_cachectl_flush_p = 0;
 
 void
-DEFUN (swiss_cachectl,
-       (mode, base, count),
-       int mode AND PTR base AND unsigned long count)
+swiss_cachectl (int mode, void * base, unsigned long count)
 {
   if (swiss_cachectl_init_p == 0)
   {
     int length;
     char *string, *posn;
-    extern char * EXFUN (strstr, (char *, char *));
-    extern int EXFUN (getcontext, (char *, int));
+    extern char * strstr (char *, char *);
+    extern int getcontext (char *, int);
 
     string = ((char *) Free);
     length = (getcontext (string,
-			  ((MemTop - Free) * (sizeof (SCHEME_OBJECT)))));
+			  ((heap_alloc_limit - Free)
+			   * (sizeof (SCHEME_OBJECT)))));
     swiss_cachectl_flush_p =
       (((strstr (string, "HP-MC68040")) == ((char *) NULL)) ? 0 : 1);
     swiss_cachectl_init_p = 1;
@@ -162,7 +161,7 @@ DEFUN (swiss_cachectl,
 #    endif /* SWITZERLAND */
 
 extern void
-  EXFUN (operate_on_cache_region, (int, char *, unsigned long));
+  operate_on_cache_region (int, char *, unsigned long);
 
 #    define SPLIT_CACHES
 
@@ -184,21 +183,19 @@ do									\
 			   ((char *)					\
 			    (((unsigned long *) base) + (len - 1))),	\
 			    1);						\
-} while (0)  
+} while (0)
 
 #    ifdef IN_CMPINT_C
 
-void 
-DEFUN (operate_on_cache_region,
-       (cachecmd, bptr, nwords),
-       int cachecmd AND char * bptr AND unsigned long nwords)
+void
+operate_on_cache_region (int cachecmd, char * bptr, unsigned long nwords)
 {
   char * eptr;
   unsigned long nbytes, quantum;
 
   if (nwords == 0)
     return;
-  
+
   nbytes = (nwords * (sizeof (long)));
   eptr = (bptr + (nbytes - 1));
   quantum = ((nbytes <= 0x40) ? 0x10 : 0x1000);
@@ -213,16 +210,16 @@ DEFUN (operate_on_cache_region,
 
 #    endif /* IN_CMPINT_C */
 #  else  /* S2DATA_WT */
-#    define FLUSH_I_CACHE() NOP()
+#    define FLUSH_I_CACHE() do {} while (0)
 #  endif /* S2DATA_WT */
 #endif /* __hpux */
 
 #ifndef FLUSH_CACHE_INITIALIZE
-#  define FLUSH_CACHE_INITIALIZE() NOP()
+#  define FLUSH_CACHE_INITIALIZE() do {} while (0)
 #endif /* FLUSH_CACHE_INITIALIZE */
 
 #ifndef FLUSH_I_CACHE_REGION
-#  define FLUSH_I_CACHE_REGION(addr, nwords) NOP()
+#  define FLUSH_I_CACHE_REGION(addr, nwords) do {} while (0)
 #endif /* not FLUSH_I_CACHE_REGION */
 
 #ifndef PUSH_D_CACHE_REGION
@@ -257,12 +254,12 @@ do {									\
 		 magic_constant));					\
 } while (0)
 
-/* Manifest closure entry block size. 
+/* Manifest closure entry block size.
    Size in bytes of a compiled closure's header excluding the
    TC_MANIFEST_CLOSURE header.
 
    On the 68k, this is the format word and gc offset word and 6 bytes
-   more for the jsr instruction.  
+   more for the jsr instruction.
 */
 
 #  define COMPILED_CLOSURE_ENTRY_SIZE					\
@@ -300,9 +297,9 @@ do {									\
 
 /* On the MC68040, closure entry points are aligned, so this is a NOP. */
 
-#  define ADJUST_CLOSURE_AT_CALL(entry_point, location) NOP()
+#  define ADJUST_CLOSURE_AT_CALL(entry_point, location) do {} while (0)
 
-/* Manifest closure entry block size. 
+/* Manifest closure entry block size.
    Size in bytes of a compiled closure's header excluding the
    TC_MANIFEST_CLOSURE header.
 
@@ -489,7 +486,7 @@ do {									\
 
 #define SETUP_REGISTER(hook) do						\
 {									\
-  extern void EXFUN (hook, (void));					\
+  extern void hook, (void);						\
   (* ((unsigned short *) (a6_value + offset))) = 0x4ef9;		\
   (* ((unsigned long *)							\
       (((unsigned short *) (a6_value + offset)) + 1))) =		\
@@ -500,9 +497,9 @@ do {									\
 #endif
 
 void
-DEFUN_VOID (mc68k_reset_hook)
+mc68k_reset_hook (void)
 {
-  extern void EXFUN (interface_initialize, (void));
+  extern void interface_initialize (void);
 
   unsigned char * a6_value = ((unsigned char *) (&Registers[0]));
   int offset = (COMPILER_REGBLOCK_START_HOOKS * (sizeof (SCHEME_OBJECT)));
@@ -598,7 +595,7 @@ static long closure_chunk = (1024 * CLOSURE_ENTRY_WORDS);
 static long last_chunk_size;
 
 SCHEME_OBJECT *
-DEFUN (allocate_closure, (size), long size)
+allocate_closure (long size)
 {
   long space;
   SCHEME_OBJECT *result;
@@ -610,8 +607,8 @@ DEFUN (allocate_closure, (size), long size)
 
 #else /* (COMPILER_PROCESSOR_TYPE == COMPILER_MC68040_TYPE) */
 
-  space = ((long) (Registers[REGBLOCK_CLOSURE_SPACE]));
-  result = ((SCHEME_OBJECT *) (Registers[REGBLOCK_CLOSURE_FREE]));
+  space = ((long) GET_CLOSURE_SPACE);
+  result = GET_CLOSURE_FREE;
 
   if (size > space)
   {
@@ -637,16 +634,16 @@ DEFUN (allocate_closure, (size), long size)
        */
     }
 
-    if ((size <= closure_chunk) && (!(GC_Check (closure_chunk))))
+    if ((size <= closure_chunk) && (!GC_NEEDED_P (closure_chunk)))
     {
       start = Free;
       eptr = (start + closure_chunk);
     }
     else
     {
-      if (GC_Check (size))
+      if (GC_NEEDED_P (size))
       {
-	if ((Heap_Top - Free) < size)
+	if ((active_heap_end - Free) < size)
 	{
 	  /* No way to back out -- die. */
 
@@ -654,11 +651,11 @@ DEFUN (allocate_closure, (size), long size)
 	  Microcode_Termination (TERM_NO_SPACE);
 	  /* NOTREACHED */
 	}
-	Request_GC (0);
+	REQUEST_GC (0);
       }
       else if (size <= closure_chunk)
       {
-	Request_GC (0);
+	REQUEST_GC (0);
       }
       start = Free;
       eptr = (start + size);
@@ -681,8 +678,8 @@ DEFUN (allocate_closure, (size), long size)
     PUSH_D_CACHE_REGION (start, space);
   }
 
-  Registers[REGBLOCK_CLOSURE_FREE] = ((SCHEME_OBJECT) (result + size));
-  Registers[REGBLOCK_CLOSURE_SPACE] = ((SCHEME_OBJECT) (space - size));
+  SET_CLOSURE_FREE (result + size);
+  SET_CLOSURE_SPACE (space - size);
   return (result);
 
 #endif /* (COMPILER_PROCESSOR_TYPE == COMPILER_MC68040_TYPE) */

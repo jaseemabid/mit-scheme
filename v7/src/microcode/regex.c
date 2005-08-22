@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: regex.c,v 1.22 2003/02/14 18:28:23 cph Exp $
+$Id: regex.c,v 1.22.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright 1987,1988,1989,1992,1993,1994 Massachusetts Institute of Technology
+Copyright 1996,1997,1998,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -23,31 +24,20 @@ USA.
 
 */
 
-/* Regular expression matching and search. */
+/* Regular expression matching and search */
 
 /* NOTE: This program was created by translation from the regular
-expression code of GNU Emacs; it was translated from the original C to
-68000 assembly language (in 1986), and then translated back from 68000
-assembly language to C (in 1987).  Users should be aware that the GNU
-GENERAL PUBLIC LICENSE may apply to this code.  A copy of that license
-should have been included along with this file. */
+   expression code of GNU Emacs; it was translated from the original C
+   to 68000 assembly language (in 1986), and then translated back from
+   68000 assembly language to C (in 1987).  */
 
 #include "scheme.h"
 #include "syntax.h"
 #include "regex.h"
-
-#ifdef STDC_HEADERS
-#  include <stdlib.h>
-#else
-   extern char * malloc ();
-   extern char * realloc ();
-   extern void free ();
-#endif
 
 #if defined(__IRIX__) || defined(_AIX)
-#define SIGN_EXTEND_CHAR(x) ((((int) (x)) >= 0x80)			\
-			     ? (((int) (x)) - 0x100)			\
-			     : ((int) (x)))
+#define SIGN_EXTEND_CHAR(x)						\
+  ((((int) (x)) >= 0x80) ? (((int) (x)) - 0x100) : ((int) (x)))
 #endif
 
 #ifndef SIGN_EXTEND_CHAR
@@ -103,11 +93,11 @@ should have been included along with this file. */
 
 #define READ_PATTERN_OFFSET(target) do					\
 {									\
-  SIGNED char _fetched;							\
+  signed char _fetched;							\
   if ((pattern_pc + 1) >= pattern_end)					\
     BAD_PATTERN ();							\
   (target) = (*pattern_pc++);						\
-  _fetched = (* ((SIGNED char *) (pattern_pc++)));			\
+  _fetched = (* ((signed char *) (pattern_pc++)));			\
   (target) += ((SIGN_EXTEND_CHAR (_fetched)) << ASCII_LENGTH);		\
   if (((pattern_pc + (target)) < pattern_start) ||			\
       ((pattern_pc + (target)) > pattern_end))				\
@@ -175,18 +165,14 @@ should have been included along with this file. */
 }
 
 void
-DEFUN (re_buffer_initialize,
-       (buffer, translation, syntax_table, text,
-	text_start_index, text_end_index,
-	gap_start_index, gap_end_index),
-       struct re_buffer * buffer
-       AND unsigned char * translation
-       AND SYNTAX_TABLE_TYPE syntax_table
-       AND unsigned char * text
-       AND unsigned long text_start_index
-       AND unsigned long text_end_index
-       AND unsigned long gap_start_index
-       AND unsigned long gap_end_index)
+re_buffer_initialize (struct re_buffer * buffer,
+       unsigned char * translation,
+       SYNTAX_TABLE_TYPE syntax_table,
+       unsigned char * text,
+       unsigned long text_start_index,
+       unsigned long text_end_index,
+       unsigned long gap_start_index,
+       unsigned long gap_end_index)
 {
   unsigned char *text_start, *text_end, *gap_start, *gap_end;
 
@@ -232,15 +218,13 @@ DEFUN (re_buffer_initialize,
 #define FASTMAP_TRUE '\1'
 
 int
-DEFUN (re_compile_fastmap,
-       (pattern_start, pattern_end, translation, syntax_table, fastmap),
-       unsigned char * pattern_start
-       AND fast unsigned char * pattern_end
-       AND unsigned char * translation
-       AND SYNTAX_TABLE_TYPE syntax_table
-       AND fast unsigned char * fastmap)
+re_compile_fastmap (unsigned char * pattern_start,
+       unsigned char * pattern_end,
+       unsigned char * translation,
+       SYNTAX_TABLE_TYPE syntax_table,
+       unsigned char * fastmap)
 {
-  fast unsigned char *pattern_pc;
+  unsigned char *pattern_pc;
   unsigned char *stack_start[RE_NFAILURES];
   unsigned char **stack_pointer;
   int return_value;
@@ -250,7 +234,7 @@ DEFUN (re_compile_fastmap,
   stack_pointer = stack_start;
 
   {
-    fast int i;
+    int i;
 
     FOR_ALL_ASCII (i)
       (fastmap [i]) = FASTMAP_FALSE;
@@ -282,7 +266,7 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_exact_1:
       {
-	fast int ascii;
+	int ascii;
 
 	READ_PATTERN_CHAR (ascii);
 	(fastmap [(TRANSLATE_CHAR (ascii))]) = FASTMAP_TRUE;
@@ -291,7 +275,7 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_exact_n:
       {
-	fast int length;
+	int length;
 
 	READ_PATTERN_LENGTH (length);
 	if (length == 0)
@@ -302,7 +286,7 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_any_char:
       {
-	fast int ascii;
+	int ascii;
 
 	FOR_ALL_ASCII_SUCH_THAT (ascii, (ascii != '\n'))
 	  (fastmap [(TRANSLATE_CHAR (ascii))]) = FASTMAP_TRUE;
@@ -313,8 +297,8 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_char_set:
       {
-	fast int length;
-	fast int ascii;
+	int length;
+	int ascii;
 
 	READ_PATTERN_LENGTH (length);
 	length = (length * ASCII_LENGTH);
@@ -326,8 +310,8 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_not_char_set:
       {
-	fast int length;
-	fast int ascii;
+	int length;
+	int ascii;
 
 	READ_PATTERN_LENGTH (length);
 	length = (length * ASCII_LENGTH);
@@ -341,7 +325,7 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_word_char:
       {
-	fast int ascii;
+	int ascii;
 
 	FOR_ALL_ASCII_SUCH_THAT (ascii, (WORD_CONSTITUENT_P (ascii)))
 	  (fastmap [(TRANSLATE_CHAR (ascii))]) = FASTMAP_TRUE;
@@ -350,7 +334,7 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_not_word_char:
       {
-	fast int ascii;
+	int ascii;
 
 	FOR_ALL_ASCII_SUCH_THAT (ascii, (! (WORD_CONSTITUENT_P (ascii))))
 	  (fastmap [(TRANSLATE_CHAR (ascii))]) = FASTMAP_TRUE;
@@ -359,8 +343,8 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_syntax_spec:
       {
-	fast enum syntaxcode code;
-	fast int ascii;
+	enum syntaxcode code;
+	int ascii;
 
 	READ_PATTERN_SYNTAXCODE (code);
 	FOR_ALL_ASCII_SUCH_THAT (ascii, (SYNTAX_CONSTITUENT_P (code, ascii)))
@@ -370,8 +354,8 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_not_syntax_spec:
       {
-	fast enum syntaxcode code;
-	fast int ascii;
+	enum syntaxcode code;
+	int ascii;
 
 	READ_PATTERN_SYNTAXCODE (code);
 	FOR_ALL_ASCII_SUCH_THAT (ascii,
@@ -383,7 +367,7 @@ DEFUN (re_compile_fastmap,
     case regexpcode_start_memory:
     case regexpcode_stop_memory:
       {
-	fast int register_number;
+	int register_number;
 
 	READ_PATTERN_REGISTER (register_number);
 	goto loop;
@@ -391,8 +375,8 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_duplicate:
       {
-	fast int register_number;
-	fast int ascii;
+	int register_number;
+	int ascii;
 
 	READ_PATTERN_REGISTER (register_number);
 	FOR_ALL_ASCII (ascii)
@@ -405,7 +389,7 @@ DEFUN (re_compile_fastmap,
     case regexpcode_maybe_finalize_jump:
     case regexpcode_dummy_failure_jump:
       {
-	fast int offset;
+	int offset;
 
 	return_value = 1;
 	READ_PATTERN_OFFSET (offset);
@@ -433,7 +417,7 @@ DEFUN (re_compile_fastmap,
 
     case regexpcode_on_failure_jump:
       {
-	fast int offset;
+	int offset;
 
 	READ_PATTERN_OFFSET (offset);
 	(*stack_pointer++) = (pattern_pc + offset);
@@ -498,11 +482,10 @@ DEFUN (re_compile_fastmap,
     match_pc = gap_end;							\
 } while (0)
 
-static Boolean
-DEFUN (beq_translate, (scan1, scan2, length, translation),
-       unsigned char * scan1 AND
-       unsigned char * scan2 AND
-       long length AND
+static bool
+beq_translate (unsigned char * scan1,
+       unsigned char * scan2,
+       long length,
        unsigned char * translation)
 {
   while ((length--) > 0)
@@ -514,16 +497,14 @@ DEFUN (beq_translate, (scan1, scan2, length, translation),
 int re_max_failures = 1000;
 
 int
-DEFUN (re_match,
-       (pattern_start, pattern_end, buffer, registers, match_start, match_end),
-       unsigned char * pattern_start
-       AND unsigned char * pattern_end
-       AND struct re_buffer * buffer
-       AND struct re_registers * registers
-       AND unsigned char * match_start
-       AND unsigned char * match_end)
+re_match (unsigned char * pattern_start,
+       unsigned char * pattern_end,
+       struct re_buffer * buffer,
+       struct re_registers * registers,
+       unsigned char * match_start,
+       unsigned char * match_end)
 {
-  fast unsigned char *pattern_pc, *match_pc;
+  unsigned char *pattern_pc, *match_pc;
   unsigned char *gap_start, *gap_end;
   unsigned char *translation;
   SYNTAX_TABLE_TYPE syntax_table;
@@ -571,7 +552,7 @@ DEFUN (re_match,
   stack_pointer = stack_start;
 
   {
-    fast int i;
+    int i;
 
     FOR_INDEX_BELOW (i, RE_NREGS)
       {
@@ -586,7 +567,7 @@ DEFUN (re_match,
       /* Reaching here indicates that match was successful. */
       if (registers != NULL)
 	{
-	  fast int i;
+	  int i;
 
 	  (register_start [0]) = match_start;
 	  (register_end [0]) = match_pc;
@@ -612,8 +593,8 @@ DEFUN (re_match,
 
     case regexpcode_exact_1:
       {
-	fast int ascii;
-	fast int ascii_p;
+	int ascii;
+	int ascii_p;
 
 	READ_MATCH_CHAR (ascii);
 	READ_PATTERN_CHAR (ascii_p);
@@ -624,8 +605,8 @@ DEFUN (re_match,
 
     case regexpcode_exact_n:
       {
-	fast int length;
-	fast int ascii;
+	int length;
+	int ascii;
 
 	READ_PATTERN_LENGTH (length);
 	while ((length--) > 0)
@@ -639,7 +620,7 @@ DEFUN (re_match,
 
     case regexpcode_any_char:
       {
-	fast int ascii;
+	int ascii;
 
 	READ_MATCH_CHAR (ascii);
 	if (ascii == '\n')
@@ -649,8 +630,8 @@ DEFUN (re_match,
 
 #define RE_MATCH_CHAR_SET(winning_label, losing_label)			\
       {									\
-	fast int ascii;							\
-	fast int length;						\
+	int ascii;							\
+	int length;							\
 									\
 	READ_MATCH_CHAR (ascii);					\
 	READ_PATTERN_LENGTH (length);					\
@@ -683,7 +664,7 @@ DEFUN (re_match,
 
     case regexpcode_start_memory:
       {
-	fast int register_number;
+	int register_number;
 
 	READ_PATTERN_REGISTER (register_number);
 	(register_start [register_number]) = match_pc;
@@ -692,7 +673,7 @@ DEFUN (re_match,
 
     case regexpcode_stop_memory:
       {
-	fast int register_number;
+	int register_number;
 
 	READ_PATTERN_REGISTER (register_number);
 	(register_end [register_number]) =
@@ -702,7 +683,7 @@ DEFUN (re_match,
 
     case regexpcode_duplicate:
       {
-	fast int register_number;
+	int register_number;
 	unsigned char *start, *end, *new_end;
 	long length;
 
@@ -827,8 +808,8 @@ DEFUN (re_match,
 
     case regexpcode_syntax_spec:
       {
-	fast int ascii;
-	fast enum syntaxcode code;
+	int ascii;
+	enum syntaxcode code;
 
 	READ_MATCH_CHAR (ascii);
 	READ_PATTERN_SYNTAXCODE (code);
@@ -839,8 +820,8 @@ DEFUN (re_match,
 
     case regexpcode_not_syntax_spec:
       {
-	fast int ascii;
-	fast enum syntaxcode code;
+	int ascii;
+	enum syntaxcode code;
 
 	READ_MATCH_CHAR (ascii);
 	READ_PATTERN_SYNTAXCODE (code);
@@ -851,7 +832,7 @@ DEFUN (re_match,
 
     case regexpcode_word_char:
       {
-	fast int ascii;
+	int ascii;
 
 	READ_MATCH_CHAR (ascii);
 	if (WORD_CONSTITUENT_P (ascii))
@@ -861,7 +842,7 @@ DEFUN (re_match,
 
     case regexpcode_not_word_char:
       {
-	fast int ascii;
+	int ascii;
 
 	READ_MATCH_CHAR (ascii);
 	if (! (WORD_CONSTITUENT_P (ascii)))
@@ -887,7 +868,7 @@ DEFUN (re_match,
 
     case regexpcode_on_failure_jump:
       {
-	fast long offset;
+	long offset;
 
 	READ_PATTERN_OFFSET (offset);
 	PUSH_FAILURE_POINT ((pattern_pc + offset), match_pc);
@@ -899,8 +880,8 @@ DEFUN (re_match,
 
     case regexpcode_maybe_finalize_jump:
       {
-	fast long offset;
-	fast long ascii;
+	long offset;
+	long ascii;
 
 	READ_PATTERN_OFFSET (offset);
 	if (pattern_pc == pattern_end)
@@ -989,7 +970,7 @@ DEFUN (re_match,
     case regexpcode_jump:
     re_match_jump:
       {
-	fast long offset;
+	long offset;
 
 	READ_PATTERN_OFFSET (offset);
 	pattern_pc += offset;
@@ -1025,25 +1006,22 @@ DEFUN (re_match,
 
 #define DEFINE_RE_SEARCH(name)						\
 int									\
-DEFUN (name,								\
-       (pattern_start, pattern_end, buffer, registers,			\
-	match_start, match_end),					\
-       unsigned char * pattern_start					\
-       AND unsigned char * pattern_end					\
-       AND struct re_buffer * buffer					\
-       AND struct re_registers * registers				\
-       AND unsigned char * match_start					\
-       AND unsigned char * match_end)
+name (unsigned char * pattern_start,					\
+      unsigned char * pattern_end,					\
+      struct re_buffer * buffer,					\
+      struct re_registers * registers,					\
+      unsigned char * match_start,					\
+      unsigned char * match_end)
 
 #define INITIALIZE_RE_SEARCH(pc, limit, gap_limit)			\
   int can_be_null;							\
   unsigned char *translation;						\
   int match_result;							\
 									\
-  fast unsigned char *match_pc;						\
-  fast unsigned char *match_limit;					\
-  fast unsigned char *gap_limit;					\
-  fast unsigned char *fastmap;						\
+  unsigned char *match_pc;						\
+  unsigned char *match_limit;						\
+  unsigned char *gap_limit;						\
+  unsigned char *fastmap;						\
   unsigned char fastmap_array[MAX_ASCII];				\
 									\
   fastmap = &fastmap_array[0];						\

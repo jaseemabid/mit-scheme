@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: vax.h,v 1.11 2003/02/14 18:28:31 cph Exp $
+$Id: vax.h,v 1.11.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1991-1999 Massachusetts Institute of Technology
+Copyright 1991,1992,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -99,12 +99,12 @@ do {									\
 		 magic_constant));					\
 } while (0)
 
-/* Manifest closure entry block size. 
+/* Manifest closure entry block size.
    Size in bytes of a compiled closure's header excluding the
    TC_MANIFEST_CLOSURE header.
 
    On the Vax, this is the format word and gc offset word and 6 bytes
-   more for the jsb instruction.  
+   more for the jsb instruction.
 */
 
 #define COMPILED_CLOSURE_ENTRY_SIZE					\
@@ -241,7 +241,7 @@ do {									\
 
 #define SETUP_REGISTER(hook)						\
 {									\
-  extern void EXFUN (hook, (void));					\
+  extern void hook (void);						\
   (* ((unsigned short *) (r10_value + offset))) =			\
     ((unsigned short) 0x9f17);						\
   (* ((unsigned long *)							\
@@ -253,7 +253,7 @@ do {									\
 #endif
 
 void
-DEFUN_VOID (vax_reset_hook)
+vax_reset_hook (void)
 {
   unsigned char * r10_value = ((unsigned char *) (&Registers[0]));
   int offset = (COMPILER_REGBLOCK_N_FIXED * (sizeof (SCHEME_OBJECT)));
@@ -343,7 +343,7 @@ DEFUN_VOID (vax_reset_hook)
 
 #define TRAMPOLINE_STORAGE(tramp_entry)					\
   ((((SCHEME_OBJECT *) tramp_entry) - TRAMPOLINE_BLOCK_TO_ENTRY) +	\
-   (2 + TRAMPOLINE_ENTRY_SIZE)) 
+   (2 + TRAMPOLINE_ENTRY_SIZE))
 
 #define STORE_TRAMPOLINE_ENTRY(entry_address, code)			\
 {									\

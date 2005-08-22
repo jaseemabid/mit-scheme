@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([MIT/GNU Scheme], [14.16], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6 2005/06/26 05:36:52 cph Exp $])
+AC_INIT([MIT/GNU Scheme], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
+AC_REVISION([$Id: configure.ac,v 1.6.2.1 2005/08/22 18:05:58 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -111,23 +111,27 @@ AH_BOTTOM(
 
 dnl Feature options.
 AC_ARG_ENABLE([static-libs],
-[[  --enable-static-libs    Link some libraries statically [no]]])
+[[  --enable-static-libs     Link some libraries statically [no]]])
 AC_ARG_ENABLE([dynamic-modules],
 [[  --enable-dynamic-modules Link some primitives dynamically [yes]]])
 AC_ARG_ENABLE([valgrind-mode],
-[[  --enable-valgrind-mode  Support running under valgrind [no]]])
+[[  --enable-valgrind-mode   Support running under valgrind [no]]])
+AC_ARG_ENABLE([debugging],
+[[  --enable-debugging       Compile with debugging support [no]]])
+AC_ARG_WITH([svm],
+[[  --with-svm               Support Scheme Virtual Machine (svm) [no]]])
 AC_ARG_WITH([openssl],
-[[  --with-openssl          Use OpenSSL crypto library if available [yes]]])
+[[  --with-openssl           Use OpenSSL crypto library if available [yes]]])
 AC_ARG_WITH([mhash],
-[[  --with-mhash            Use mhash library if available [yes]]])
+[[  --with-mhash             Use mhash library if available [yes]]])
 AC_ARG_WITH([mcrypt],
-[[  --with-mcrypt           Use mcrypt library if available [yes]]])
+[[  --with-mcrypt            Use mcrypt library if available [yes]]])
 AC_ARG_WITH([gdbm],
-[[  --with-gdbm             Use gdbm library if available [yes]]])
+[[  --with-gdbm              Use gdbm library if available [yes]]])
 AC_ARG_WITH([db4],
-[[  --with-db4              Use Berkeley DB v4 library if available [yes]]])
+[[  --with-db4               Use Berkeley DB v4 library if available [yes]]])
 AC_ARG_WITH([libpq],
-[[  --with-libpq            Use PostgreSQL libpq library if available [yes]]])
+[[  --with-libpq             Use PostgreSQL libpq library if available [yes]]])
 
 dnl Substitution variables to be filled in below.
 AS_FLAGS=
@@ -151,12 +155,30 @@ MODULE_LDFLAGS=
 
 dnl Checks for programs.
 AC_PROG_CC
-AC_PROG_GCC_TRADITIONAL
+AC_C_BACKSLASH_A
+AC_C_BIGENDIAN
+AC_C_CONST
+AC_C_RESTRICT
+AC_C_VOLATILE
+AC_C_INLINE
+AC_C_STRINGIZE
+AC_C_PROTOTYPES
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 if test "${GCC}" = "yes"; then
-    CFLAGS="${CFLAGS} -Wall"
+    if test "${enable_debugging:-no}" = "yes"; then
+	CFLAGS="-O0 -g -DENABLE_DEBUGGING_TOOLS"
+	LDFLAGS="${LDFLAGS} -g"
+    else
+	CFLAGS="-O3"
+    fi
+    CFLAGS="${CFLAGS} -Wall -Wundef -Wpointer-arith -Winline"
+    CFLAGS="${CFLAGS} -Wstrict-prototypes -Wold-style-definition"
+    CFLAGS="${CFLAGS} -Wextra -Wno-sign-compare -Wno-unused-parameter"
+    CFLAGS="${CFLAGS} -Wnested-externs -Wredundant-decls"
+    # other possibilities:
+    # -Wmissing-prototypes -Wunreachable-code -Wwrite-strings
 fi
 if test "$(${INSTALL} --help 2> /dev/null | fgrep -e --preserve-timestamps)"
 then
@@ -228,15 +250,16 @@ fi
 dnl Checks for header files.
 AC_HEADER_DIRENT
 AC_HEADER_STDC
+AC_HEADER_STDBOOL
 AC_HEADER_SYS_WAIT
 AC_HEADER_TIME
 AC_CHECK_HEADERS([bsdtty.h fcntl.h limits.h malloc.h sgtty.h stropts.h time.h])
 AC_CHECK_HEADERS([sys/file.h sys/ioctl.h sys/mount.h sys/param.h sys/poll.h])
 AC_CHECK_HEADERS([sys/ptyio.h sys/socket.h sys/time.h sys/un.h sys/vfs.h])
-AC_CHECK_HEADERS([stdbool.h termio.h termios.h unistd.h utime.h])
+AC_CHECK_HEADERS([termio.h termios.h unistd.h utime.h])
 AC_CHECK_HEADERS([openssl/blowfish.h openssl/md5.h blowfish.h md5.h])
 AC_CHECK_HEADERS([mhash.h mcrypt.h gdbm.h db.h curses.h term.h dlfcn.h])
-AC_CHECK_HEADERS([sys/mman.h libpq-fe.h])
+AC_CHECK_HEADERS([sys/mman.h libpq-fe.h float.h assert.h stdint.h])
 
 dnl Checks for typedefs
 AC_TYPE_MODE_T
@@ -245,7 +268,27 @@ AC_TYPE_PID_T
 AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T
-AC_CHECK_TYPE([nlink_t], [short])
+
+AC_CHECK_TYPE([nlink_t],,
+    [AC_DEFINE_UNQUOTED([nlink_t], [short],
+                        [Define to 'short' if undefined.])])
+
+AC_CHECK_TYPE([intptr_t],
+    [AC_CHECK_SIZEOF([intptr_t])],
+    [AC_DEFINE_UNQUOTED([intptr_t], [long],
+                        [Define to 'long' if undefined.])
+     AC_DEFINE_UNQUOTED([SIZEOF_INTPTR_T], [SIZEOF_LONG],
+                        [Define to 'SIZEOF_LONG' if undefined.])])
+
+AC_CHECK_TYPE([uintptr_t],
+    [AC_CHECK_SIZEOF([uintptr_t])],
+    [AC_DEFINE_UNQUOTED([uintptr_t], [unsigned long],
+                        [Define to 'unsigned long' if undefined.])
+     AC_DEFINE_UNQUOTED([SIZEOF_UINTPTR_T], [SIZEOF_UNSIGNED_LONG],
+                        [Define to 'SIZEOF_UNSIGNED_LONG' if undefined.])])
+    
+    
+
 
 AC_MSG_CHECKING([for clock_t])
 AC_TRY_COMPILE([
@@ -344,41 +387,28 @@ dnl Checks for structures.
 AC_STRUCT_TM
 AC_STRUCT_TIMEZONE
 
-
 dnl Timezone stuff is hairy; there's no standard.
-have_timezone_info=no
+have_timezone_info="no"
 
 if test "${have_timezone_info}" = "no"; then
-    AC_MSG_CHECKING([for tm_gmtoff in struct tm])
-    AC_TRY_LINK(
-	[#include <time.h>],
-	[struct tm t; t.tm_gmtoff],
-	[scheme_cv_struct_tm_gmtoff=yes],
-	[scheme_cv_struct_tm_gmtoff=no])
-    AC_MSG_RESULT(${scheme_cv_struct_tm_gmtoff})
-    if test "${scheme_cv_struct_tm_gmtoff}" = "yes"; then
+    AC_CHECK_MEMBER([struct tm.tm_gmtoff], , , [#include <time.h>])
+    if test "${ac_cv_member_struct_tm_tm_gmtoff}" = "yes"; then
 	AC_DEFINE([HAVE_TM_GMTOFF], [1],
 	    [Define if `struct tm' has the `tm_gmtoff' member.])
 	AC_DEFINE([TM_GMTOFF], [tm_gmtoff],
 	    [Define to name of `tm_gmtoff' member if available.])
-	have_timezone_info=yes
+	have_timezone_info="yes"
     fi
 fi
 
 if test "${have_timezone_info}" = "no"; then
-    AC_MSG_CHECKING([for __tm_gmtoff in struct tm])
-    AC_TRY_LINK(
-	[#include <time.h>],
-	[struct tm t; t.__tm_gmtoff],
-	[scheme_cv_struct___tm_gmtoff=yes],
-	[scheme_cv_struct___tm_gmtoff=no])
-    AC_MSG_RESULT(${scheme_cv_struct___tm_gmtoff})
-    if test "${scheme_cv_struct___tm_gmtoff}" = "yes"; then
+    AC_CHECK_MEMBER([struct tm.__tm_gmtoff], , , [#include <time.h>])
+    if test "${ac_cv_member_struct_tm___tm_gmtoff}" = "yes"; then
 	AC_DEFINE([HAVE_TM_GMTOFF], [1],
 	    [Define if `struct tm' has the `tm_gmtoff' member.])
 	AC_DEFINE([TM_GMTOFF], [__tm_gmtoff],
 	    [Define to name of `tm_gmtoff' member if available.])
-	have_timezone_info=yes
+	have_timezone_info="yes"
     fi
 fi
 
@@ -404,7 +434,7 @@ if test "${have_timezone_info}" = "no"; then
 	    [Define if timezone variable is available.])
 	AC_DEFINE([TIMEZONE], [__timezone],
 	    [Define to name of timezone variable if available.])
-	have_timezone_info=yes
+	have_timezone_info="yes"
     fi
 fi
 
@@ -430,7 +460,7 @@ if test "${have_timezone_info}" = "no"; then
 	    [Define if timezone variable is available.])
 	AC_DEFINE([TIMEZONE], [_timezone],
 	    [Define to name of timezone variable if available.])
-	have_timezone_info=yes
+	have_timezone_info="yes"
     fi
 fi
 
@@ -456,7 +486,7 @@ if test "${have_timezone_info}" = "no"; then
 	    [Define if timezone variable is available.])
 	AC_DEFINE([TIMEZONE], [timezone],
 	    [Define to name of timezone variable if available.])
-	have_timezone_info=yes
+	have_timezone_info="yes"
     fi
 fi
 
@@ -502,7 +532,9 @@ dnl Checks for compiler characteristics.
 AC_C_BIGENDIAN
 AC_C_CHAR_UNSIGNED
 AC_C_CONST
+AC_CHECK_SIZEOF([long])
 AC_CHECK_SIZEOF([unsigned long])
+AC_CHECK_SIZEOF([void *])
 
 dnl Checks for C library functions.
 AC_FUNC_GETPGRP
@@ -809,35 +841,41 @@ dnl This is mostly support for native-code compilation.
 scheme_arch=
 OPTIONAL_BASES="${OPTIONAL_BASES} cmpint"
 GC_HEAD_FILES="gccode.h cmpgc.h"
-case "$host_cpu" in
-alpha*)
-    scheme_arch=alpha
-    ;;
-hppa*)
-    scheme_arch=hppa
-    GC_HEAD_FILES="${GC_HEAD_FILES} hppacach.h"
-    ;;
-i?86)
-    scheme_arch=i386
-    ;;
-m68k|m680?0)
-    scheme_arch=mc68k
-    ;;
-mips*)
-    scheme_arch=mips
-    ;;
-vax)
-    scheme_arch=vax
-    ;;
-esac
-if test "${scheme_arch}" != ""; then
-    AC_DEFINE([HAS_COMPILER_SUPPORT], [1],
-	[Define if architecture has native-code compiler support.])
-    test -f cmpauxmd.m4 || ${LN_S} cmpauxmd/${scheme_arch}.m4 cmpauxmd.m4
-    test -f cmpintmd.h || ${LN_S} cmpintmd/${scheme_arch}.h cmpintmd.h
-    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpauxmd.m4"
-    OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpauxmd.o"
+
+if test "${with_svm:-no}" = "yes"; then
+    test -f cmpintmd.h || ${LN_S} cmpintmd/svm1.h cmpintmd.h
+    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} svm1.c"
+    OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} svm1.o"
     GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
+else
+    case "$host_cpu" in
+    alpha*)
+	scheme_arch=alpha
+	;;
+    hppa*)
+	scheme_arch=hppa
+	GC_HEAD_FILES="${GC_HEAD_FILES} hppacach.h"
+	;;
+    i?86)
+	scheme_arch=i386
+	;;
+    m68k|m680?0)
+	scheme_arch=mc68k
+	;;
+    mips*)
+	scheme_arch=mips
+	;;
+    vax)
+	scheme_arch=vax
+	;;
+    esac
+    if test "${scheme_arch}" != ""; then
+	test -f cmpauxmd.m4 || ${LN_S} cmpauxmd/${scheme_arch}.m4 cmpauxmd.m4
+	test -f cmpintmd.h || ${LN_S} cmpintmd/${scheme_arch}.h cmpintmd.h
+	OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpauxmd.m4"
+	OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpauxmd.o"
+	GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
+    fi
 fi
 
 for base in ${OPTIONAL_BASES}; do

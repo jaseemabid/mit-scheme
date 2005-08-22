@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2tty.c,v 1.4 2003/02/14 18:28:22 cph Exp $
+$Id: os2tty.c,v 1.4.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1994, 1999 Massachusetts Institute of Technology
+Copyright 1994,1999,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -35,7 +35,7 @@ static Tchannel output_channel;
 void
 OS2_initialize_tty (void)
 {
-  extern Tchannel EXFUN (OS_open_fd, (int fd));
+  extern Tchannel OS_open_fd (int fd);
   input_channel = (OS2_make_channel (0, CHANNEL_READ));
   (CHANNEL_INTERNAL (input_channel)) = 1;
   output_channel = (OS2_make_channel (1, CHANNEL_WRITE));

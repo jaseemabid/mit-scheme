@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: nttrap.h,v 1.7 2003/02/14 18:28:21 cph Exp $
+$Id: nttrap.h,v 1.7.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1992-1999 Massachusetts Institute of Technology
+Copyright 1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -25,7 +25,7 @@ USA.
 
 #ifndef SCM_NTTRAP_H
 #define SCM_NTTRAP_H
-
+
 enum trap_state
 {
   trap_state_trapped,
@@ -37,6 +37,6 @@ enum trap_state
   trap_state_exitting_hard
 };
 
-extern enum trap_state EXFUN (OS_set_trap_state, (enum trap_state state));
+extern enum trap_state OS_set_trap_state (enum trap_state state);
 
 #endif /* SCM_NTTRAP_H */

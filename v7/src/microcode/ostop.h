@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ostop.h,v 1.7 2003/02/14 18:28:22 cph Exp $
+$Id: ostop.h,v 1.7.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,15 +28,15 @@ USA.
 
 #include "os.h"
 
-extern int EXFUN (OS_under_emacs_p, (void));
-extern void EXFUN (OS_initialize, (void));
-extern void EXFUN (OS_reset, (void));
-extern void EXFUN (OS_quit, (int code, int abnormal_p));
-extern void EXFUN (OS_restartable_exit, (void));
-extern void EXFUN (OS_save_external_state, (void));
-extern void EXFUN (OS_save_internal_state, (void));
-extern void EXFUN (OS_restore_internal_state, (void));
-extern void EXFUN (OS_restore_external_state, (void));
-extern CONST char * EXFUN (OS_error_code_to_message, (unsigned int code));
+extern int OS_under_emacs_p (void);
+extern void OS_initialize (void);
+extern void OS_reset (void);
+extern void OS_quit (int code, int abnormal_p);
+extern void OS_restartable_exit (void);
+extern void OS_save_external_state (void);
+extern void OS_save_internal_state (void);
+extern void OS_restore_internal_state (void);
+extern void OS_restore_external_state (void);
+extern const char * OS_error_code_to_message (unsigned int code);
 
 #endif /* SCM_OSTOP_H */

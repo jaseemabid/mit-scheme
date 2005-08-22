@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: ntfs.c,v 1.30 2003/02/14 18:28:20 cph Exp $
+$Id: ntfs.c,v 1.30.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1992-2001 Massachusetts Institute of Technology
+Copyright 1993,1994,1995,1996,1997,1998 Massachusetts Institute of Technology
+Copyright 1999,2000,2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -200,7 +201,7 @@ OS_file_type_indirect (const char * name)
 #define X_OK 1
 
 int
-DEFUN (OS_file_access, (name, mode), CONST char * name AND unsigned int mode)
+OS_file_access (const char * name, unsigned int mode)
 {
   BY_HANDLE_FILE_INFORMATION info;
   if ((NT_get_file_info (name, (&info), 1)) != gfi_ok)
@@ -221,7 +222,7 @@ DEFUN (OS_file_access, (name, mode), CONST char * name AND unsigned int mode)
 }
 
 int
-DEFUN (OS_file_directory_p, (name), CONST char * name)
+OS_file_directory_p (const char * name)
 {
   BY_HANDLE_FILE_INFORMATION info;
   return
@@ -229,15 +230,14 @@ DEFUN (OS_file_directory_p, (name), CONST char * name)
      && (((info . dwFileAttributes) & FILE_ATTRIBUTE_DIRECTORY) != 0));
 }
 
-CONST char *
-DEFUN (OS_file_soft_link_p, (name), CONST char * name)
+const char *
+OS_file_soft_link_p (const char * name)
 {
   return (0);
 }
 
 static void
-DEFUN (guarantee_writable, (name, errorp),
-       CONST char * name AND
+guarantee_writable (const char * name,
        int errorp)
 {
   DWORD attributes = (GetFileAttributes (name));
@@ -259,14 +259,14 @@ DEFUN (guarantee_writable, (name, errorp),
 }
 
 void
-DEFUN (OS_file_remove, (name), CONST char * name)
+OS_file_remove (const char * name)
 {
   guarantee_writable (name, 1);
   STD_BOOL_API_CALL (DeleteFile, (name));
 }
 
 void
-DEFUN (OS_file_remove_link, (name), CONST char * name)
+OS_file_remove_link (const char * name)
 {
   struct stat s;
   if ((stat (name, (&s)) == 0)
@@ -278,52 +278,44 @@ DEFUN (OS_file_remove_link, (name), CONST char * name)
 }
 
 void
-DEFUN (OS_file_rename, (from, to),
-       CONST char * from AND
-       CONST char * to)
+OS_file_rename (const char * from, const char * to)
 {
   guarantee_writable (to, 1);
   STD_BOOL_API_CALL (MoveFile, (from, to));
 }
 
 void
-DEFUN (OS_file_copy, (from, to),
-       CONST char * from AND
-       CONST char * to)
+OS_file_copy (const char * from, const char * to)
 {
   guarantee_writable (to, 1);
   STD_BOOL_API_CALL (CopyFile, (from, to, FALSE));
 }
 
 void
-DEFUN (OS_file_link_hard, (from_name, to_name),
-       CONST char * from_name AND
-       CONST char * to_name)
+OS_file_link_hard (const char * from_name, const char * to_name)
 {
   error_unimplemented_primitive ();
 }
 
 void
-DEFUN (OS_file_link_soft, (from_name, to_name),
-       CONST char * from_name AND
-       CONST char * to_name)
+OS_file_link_soft (const char * from_name, const char * to_name)
 {
   error_unimplemented_primitive ();
 }
 
 void
-DEFUN (OS_directory_make, (name), CONST char * name)
+OS_directory_make (const char * name)
 {
   STD_BOOL_API_CALL (CreateDirectory, (name, 0));
 }
 
 void
-DEFUN (OS_directory_delete, (name), CONST char * name)
+OS_directory_delete (const char * name)
 {
   STD_BOOL_API_CALL (RemoveDirectory, (name));
 }
 
-static void EXFUN (protect_fd, (int fd));
+static void protect_fd (int fd);
 
 int
 OS_file_touch (const char * filename)
@@ -392,13 +384,13 @@ OS_file_touch (const char * filename)
 }
 
 static void
-DEFUN (protect_fd_close, (ap), PTR ap)
+protect_fd_close (void * ap)
 {
   close (* ((int *) ap));
 }
 
 static void
-DEFUN (protect_fd, (fd), int fd)
+protect_fd (int fd)
 {
   int * p = (dstack_alloc (sizeof (int)));
   (*p) = fd;
@@ -416,14 +408,14 @@ static nt_dir ** directory_pointers;
 static unsigned int n_directory_pointers;
 
 void
-DEFUN_VOID (NT_initialize_directory_reader)
+NT_initialize_directory_reader (void)
 {
   directory_pointers = 0;
   n_directory_pointers = 0;
 }
 
 static unsigned int
-DEFUN (allocate_directory_pointer, (pointer), nt_dir * pointer)
+allocate_directory_pointer (nt_dir * pointer)
 {
   if (n_directory_pointers == 0)
     {
@@ -453,7 +445,7 @@ DEFUN (allocate_directory_pointer, (pointer), nt_dir * pointer)
     unsigned int result = n_directory_pointers;
     unsigned int n_pointers = (2 * n_directory_pointers);
     nt_dir ** pointers
-      = (OS_realloc (((PTR) directory_pointers),
+      = (OS_realloc (((void *) directory_pointers),
 		     ((sizeof (nt_dir *)) * n_pointers)));
     {
       nt_dir ** scan = (pointers + result);
@@ -472,16 +464,15 @@ DEFUN (allocate_directory_pointer, (pointer), nt_dir * pointer)
 #define DEALLOCATE_DIRECTORY(index) ((directory_pointers[(index)]) = 0)
 
 int
-DEFUN (OS_directory_valid_p, (index), long index)
+OS_directory_valid_p (unsigned int index)
 {
   return
-    ((0 <= index)
-     && (index < (long) n_directory_pointers)
+    ((index < n_directory_pointers)
      && ((REFERENCE_DIRECTORY (index)) != 0));
 }
 
 unsigned int
-DEFUN (OS_directory_open, (name), CONST char * search_pattern)
+OS_directory_open (const char * search_pattern)
 {
   char pattern [MAX_PATH];
   nt_dir * dir = (OS_malloc (sizeof (nt_dir)));
@@ -521,8 +512,8 @@ win32_directory_read (unsigned int index, WIN32_FIND_DATA * info)
   return (1);
 }
 
-CONST char *
-DEFUN (OS_directory_read, (index), unsigned int index)
+const char *
+OS_directory_read (unsigned int index)
 {
   static WIN32_FIND_DATA info;
   return
@@ -531,15 +522,13 @@ DEFUN (OS_directory_read, (index), unsigned int index)
      : 0);
 }
 
-CONST char *
-DEFUN (OS_directory_read_matching, (index, prefix),
-       unsigned int index AND
-       CONST char * prefix)
+const char *
+OS_directory_read_matching (unsigned int index, const char * prefix)
 {
   unsigned int n = (strlen (prefix));
   while (1)
     {
-      CONST char * pathname = (OS_directory_read (index));
+      const char * pathname = (OS_directory_read (index));
       if (pathname == 0)
 	return (0);
       if ((strnicmp (pathname, prefix, n)) == 0)
@@ -548,7 +537,7 @@ DEFUN (OS_directory_read_matching, (index, prefix),
 }
 
 void
-DEFUN (OS_directory_close, (index), unsigned int index)
+OS_directory_close (unsigned int index)
 {
   nt_dir * dir = (REFERENCE_DIRECTORY (index));
   if (dir)

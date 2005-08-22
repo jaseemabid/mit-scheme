@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: config.h,v 1.7 2003/07/22 02:19:51 cph Exp $
+$Id: config.h,v 1.7.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright 2000,2001,2002,2003 Massachusetts Institute of Technology
+Copyright 2000,2001,2002,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -70,9 +70,6 @@ typedef unsigned char cc_t;
 
 /* Define if you have the <fcntl.h> header file.  */
 #define HAVE_FCNTL_H 1
-
-/* Define if architecture has native-code compiler support.  */
-#define HAS_COMPILER_SUPPORT 1
 
 /* Define if you have the <blowfish.h> header file.  */
 #define HAVE_BLOWFISH_H 1

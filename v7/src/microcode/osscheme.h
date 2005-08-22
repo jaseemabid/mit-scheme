@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: osscheme.h,v 1.13 2003/02/14 18:28:22 cph Exp $
+$Id: osscheme.h,v 1.13.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1990-2000 Massachusetts Institute of Technology
+Copyright 1990,1991,1992,1993,1994,2000 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -24,47 +25,36 @@ USA.
 */
 
 #ifndef SCM_OSSCHEME_H
-#define SCM_OSSCHEME_H
+#define SCM_OSSCHEME_H 1
 
 #include "outf.h"
 #include "os.h"
 
-extern Tchannel EXFUN (arg_channel, (int arg_number));
+extern Tchannel arg_channel (int);
 
-extern int option_emacs_subprocess;
+extern int executing_scheme_primitive_p (void);
 
-extern int EXFUN (executing_scheme_primitive_p, (void));
+extern void debug_edit_flags (void);
+extern void debug_back_trace (outf_channel);
+extern void debug_examine_memory (long, const char *);
 
-extern void EXFUN (debug_edit_flags, (void));
-extern void EXFUN (debug_back_trace, (outf_channel));
-extern void EXFUN (debug_examine_memory, (long address, CONST char * label));
-
-extern void EXFUN (error_out_of_channels, (void));
-extern void EXFUN (error_unimplemented_primitive, (void));
-extern void EXFUN (error_external_return, (void));
-extern void EXFUN (error_out_of_processes, (void));
-extern void EXFUN (error_floating_point_exception, (void));
-
-extern void EXFUN (termination_eof, (void));
-extern void EXFUN (termination_normal, (CONST int));
-extern void EXFUN (termination_init_error, (void));
-extern void EXFUN (termination_signal, (CONST char * signal_name));
-extern void EXFUN (termination_trap, (void));
+extern void error_out_of_channels (void) NORETURN;
+extern void error_unimplemented_primitive (void) NORETURN;
+extern void error_out_of_processes (void) NORETURN;
+extern void error_floating_point_exception (void) NORETURN;
 
 #ifdef __OS2__
-extern void EXFUN (request_attention_interrupt, (void));
-extern int  EXFUN (test_and_clear_attention_interrupt, (void));
-#endif /* __OS2__ */
+   extern void request_attention_interrupt (void);
+   extern int test_and_clear_attention_interrupt (void);
+#endif
 
-extern void EXFUN (request_character_interrupt, (void));
-extern void EXFUN (request_timer_interrupt, (void));
-extern void EXFUN (request_suspend_interrupt, (void));
-extern void EXFUN (deliver_pending_interrupts, (void));
-extern int  EXFUN (pending_interrupts_p, (void));
-extern long EXFUN (get_interrupt_mask, (void));
-extern void EXFUN (set_interrupt_mask, (long mask));
-extern void EXFUN (signal_interrupt_for_primitive, (void));
-extern void EXFUN (preserve_interrupt_mask, (void));
-extern void EXFUN (back_out_of_primitive, (void));
+extern void request_character_interrupt (void);
+extern void request_timer_interrupt (void);
+extern void request_suspend_interrupt (void);
+extern void deliver_pending_interrupts (void);
+extern int pending_interrupts_p (void);
+extern unsigned long get_interrupt_mask (void);
+extern void set_interrupt_mask (unsigned long mask);
+extern void signal_interrupt_for_primitive (void) NORETURN;
 
 #endif /* SCM_OSSCHEME_H */

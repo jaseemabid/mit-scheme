@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prpgsql.c,v 1.9 2005/06/26 05:36:52 cph Exp $
+$Id: prpgsql.c,v 1.9.2.1 2005/08/22 18:06:00 cph Exp $
 
 Copyright 2003,2005 Massachusetts Institute of Technology
 
@@ -193,7 +193,7 @@ DEFINE_PRIMITIVE ("PQ-GET-LINE", Prim_pq_get_line, 2, 2, 0)
   CHECK_ARG (2, STRING_P);
   PRIMITIVE_RETURN
     (long_to_integer (PQgetline ((ARG_CONN (1)),
-				 (STRING_LOC ((ARG_REF (2)), 0)),
+				 (STRING_POINTER (ARG_REF (2))),
 				 (STRING_LENGTH (ARG_REF (2))))));
 }
 
@@ -203,7 +203,7 @@ DEFINE_PRIMITIVE ("PQ-PUT-LINE", Prim_pq_put_line, 2, 2, 0)
   CHECK_ARG (2, STRING_P);
   PRIMITIVE_RETURN
     (long_to_integer (PQputnbytes ((ARG_CONN (1)),
-				   (STRING_LOC ((ARG_REF (2)), 0)),
+				   (STRING_POINTER (ARG_REF (2))),
 				   (STRING_LENGTH (ARG_REF (2))))));
 }
 
@@ -216,7 +216,7 @@ DEFINE_PRIMITIVE ("PQ-ESCAPE-STRING", Prim_pq_escape_string, 2, 2, 0)
   CHECK_ARG (1, STRING_P);
   PRIMITIVE_RETURN
     (ulong_to_integer (PQescapeString ((STRING_ARG (2)),
-				       (STRING_LOC ((ARG_REF (1)), 0)),
+				       (STRING_POINTER (ARG_REF (1))),
 				       (STRING_LENGTH (ARG_REF (1))))));
 }
 
@@ -227,10 +227,10 @@ DEFINE_PRIMITIVE ("PQ-ESCAPE-BYTEA", Prim_pq_escape_bytea, 1, 1, 0)
   {
     size_t escaped_length;
     unsigned char * escaped
-      = (PQescapeBytea ((STRING_LOC ((ARG_REF (1)), 0)),
-			 (STRING_LENGTH (ARG_REF (1))),
-			 (&escaped_length)));
-    SCHEME_OBJECT s = (char_pointer_to_string (escaped));
+      = (PQescapeBytea ((STRING_BYTE_PTR (ARG_REF (1))),
+			(STRING_LENGTH (ARG_REF (1))),
+			(&escaped_length)));
+    SCHEME_OBJECT s = (memory_to_string ((escaped_length - 1), escaped));
     PQfreemem (escaped);
     PRIMITIVE_RETURN (s);
   }
@@ -242,7 +242,8 @@ DEFINE_PRIMITIVE ("PQ-UNESCAPE-BYTEA", Prim_pq_unescape_bytea, 1, 1, 0)
   {
     size_t unescaped_length;
     unsigned char * unescaped
-      = (PQunescapeBytea ((STRING_ARG (1)), (&unescaped_length)));
+      = (PQunescapeBytea (((unsigned char *) (STRING_ARG (1))),
+			  (&unescaped_length)));
     if (unescaped == 0)
       error_bad_range_arg (1);
     {
@@ -256,7 +257,7 @@ DEFINE_PRIMITIVE ("PQ-UNESCAPE-BYTEA", Prim_pq_unescape_bytea, 1, 1, 0)
 #ifdef COMPILE_AS_MODULE
 
 char *
-DEFUN_VOID (dload_initialize_file)
+dload_initialize_file (void)
 {
   declare_primitive ("PQ-CONNECT-DB", Prim_pq_connect_db, 2, 2, 0);
   declare_primitive ("PQ-CONNECT-START", Prim_pq_connect_start, 2, 2, 0);

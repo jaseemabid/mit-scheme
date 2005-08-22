@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: usrdef.h,v 9.46 2003/02/14 18:28:24 cph Exp $
+$Id: usrdef.h,v 9.46.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright 1987,1988,1992,1993,1996,2001 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -31,15 +32,11 @@ USA.
 #include "scheme.h"
 #include "prims.h"
 
-extern SCHEME_OBJECT EXFUN ((* (Static_Primitive_Procedure_Table[])), (void));
+extern SCHEME_OBJECT (* (Static_Primitive_Procedure_Table[])) (void);
 extern int Static_Primitive_Arity_Table[];
 extern int Static_Primitive_Count_Table[];
-extern CONST char * Static_Primitive_Name_Table[];
-extern CONST char * Static_Primitive_Documentation_Table[];
+extern const char * Static_Primitive_Name_Table[];
+extern const char * Static_Primitive_Documentation_Table[];
 extern long MAX_STATIC_PRIMITIVE;
-
-extern void
-  EXFUN (Microcode_Termination, (int)),
-  EXFUN (signal_error_from_primitive, (long));
 
 #endif /* SCM_USRDEF_H */

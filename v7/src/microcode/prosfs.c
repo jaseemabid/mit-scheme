@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: prosfs.c,v 1.18 2003/02/14 18:28:23 cph Exp $
+$Id: prosfs.c,v 1.18.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright 1990,1991,1992,1995,1999,2000 Massachusetts Institute of Technology
+Copyright 2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -31,20 +32,14 @@ USA.
 #include "osfs.h"
 #include "osio.h"
 
-extern int EXFUN (OS_channel_copy,
-		  (off_t source_length,
-		   Tchannel source_channel,
-		   Tchannel destination_channel));
-extern void EXFUN (OS_file_copy, (CONST char *, CONST char *));
-
-#define STRING_RESULT(expression)					\
+#define STRING_RESULT(expression) do					\
 {									\
-  CONST char * result = (expression);					\
+  const char * result = (expression);					\
   PRIMITIVE_RETURN							\
     ((result == 0)							\
      ? SHARP_F								\
-     : (char_pointer_to_string ((unsigned char *) result)));		\
-}
+     : (char_pointer_to_string (result)));				\
+} while (0)
 
 DEFINE_PRIMITIVE ("FILE-EXISTS?", Prim_file_exists_p, 1, 1,
   "Return #T iff FILENAME refers to an existing file.\n\
@@ -193,8 +188,8 @@ If third arg HARD? is #F, a soft link is created;\n\
 {
   PRIMITIVE_HEADER (3);
   {
-    CONST char * from_name = (STRING_ARG (1));
-    CONST char * to_name = (STRING_ARG (2));
+    const char * from_name = (STRING_ARG (1));
+    const char * to_name = (STRING_ARG (2));
     if ((ARG_REF (3)) != SHARP_F)
       OS_file_link_hard (from_name, to_name);
     else
@@ -204,13 +199,12 @@ If third arg HARD? is #F, a soft link is created;\n\
 }
 
 #ifndef FILE_COPY_BUFFER_LENGTH
-#define FILE_COPY_BUFFER_LENGTH 8192
+#  define FILE_COPY_BUFFER_LENGTH 8192
 #endif
 
 int
-DEFUN (OS_channel_copy, (source_length, source_channel, destination_channel),
-       off_t source_length AND
-       Tchannel source_channel AND
+OS_channel_copy (off_t source_length,
+       Tchannel source_channel,
        Tchannel destination_channel)
 {
   char buffer [FILE_COPY_BUFFER_LENGTH];
@@ -235,7 +229,7 @@ DEFUN (OS_channel_copy, (source_length, source_channel, destination_channel),
       transfer_length = source_length;
   }
   return (0);
-}  
+}
 
 DEFINE_PRIMITIVE ("FILE-COPY", Prim_file_copy, 2, 2,
   "Make a new copy of the file FROM-NAME, called TO-NAME.")
@@ -270,7 +264,7 @@ Otherwise the file did not exist and it was created.")
 {
   PRIMITIVE_HEADER (1);
   PRIMITIVE_RETURN
-    (BOOLEAN_TO_OBJECT (OS_file_touch ((CONST char *) (STRING_ARG (1)))));
+    (BOOLEAN_TO_OBJECT (OS_file_touch ((const char *) (STRING_ARG (1)))));
 }
 
 DEFINE_PRIMITIVE ("NEW-DIRECTORY-OPEN", Prim_new_directory_open, 1, 1,
@@ -281,10 +275,10 @@ DEFINE_PRIMITIVE ("NEW-DIRECTORY-OPEN", Prim_new_directory_open, 1, 1,
 }
 
 static unsigned int
-DEFUN (arg_directory_index, (argument), unsigned int argument)
+arg_directory_index (unsigned int argument)
 {
-  long index = (arg_integer (argument));
-  if (! (OS_directory_valid_p (index)))
+  unsigned int index = (arg_ulong_integer (argument));
+  if (!OS_directory_valid_p (index))
     error_bad_range_arg (argument);
   return (index);
 }

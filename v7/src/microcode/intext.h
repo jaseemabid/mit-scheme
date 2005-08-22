@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: intext.h,v 1.7 2003/02/14 18:28:19 cph Exp $
+$Id: intext.h,v 1.7.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -26,23 +26,21 @@ USA.
 #ifndef SCM_INTEXT_H
 #define SCM_INTEXT_H
 
-#include "ansidecl.h"
 #include "dstack.h"
 
 struct interruptable_extent
 {
-  PTR position;
+  void * position;
   jmp_buf control_point;
   int interrupted;
 };
 
 extern struct interruptable_extent * current_interruptable_extent;
-extern void EXFUN (initialize_interruptable_extent, (void));
-extern void EXFUN (reset_interruptable_extent, (void));
-extern struct interruptable_extent * EXFUN
-  (enter_interruptable_extent, (void));
-extern int EXFUN (enter_interruption_extent, (void));
-extern void EXFUN (exit_interruption_extent, (void));
+extern void initialize_interruptable_extent (void);
+extern void reset_interruptable_extent (void);
+extern struct interruptable_extent * enter_interruptable_extent (void);
+extern int enter_interruption_extent (void);
+extern void exit_interruption_extent (void);
 
 #define INTERRUPTABLE_EXTENT(result, expression)			\
 {									\

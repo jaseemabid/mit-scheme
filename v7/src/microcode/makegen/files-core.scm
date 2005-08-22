@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: files-core.scm,v 1.4 2003/02/14 18:28:31 cph Exp $
+$Id: files-core.scm,v 1.4.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 2000 Massachusetts Institute of Technology
+Copyright 2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -27,6 +27,7 @@ USA.
 
 "artutl"
 "avltree"
+"bkpt"
 "bignum"
 "bigprm"
 "bitstr"
@@ -38,9 +39,11 @@ USA.
 "dfloat"
 "error"
 "extern"
+"fasdump"
 "fasload"
 "fixnum"
 "flonum"
+"gcloop"
 "generic"
 "hooks"
 "hunk"
@@ -50,6 +53,7 @@ USA.
 "list"
 "lookprm"
 "lookup"
+"memmag"
 "missing"
 "obstack"
 "option"
@@ -58,8 +62,8 @@ USA.
 "outf"
 "prim"
 "primutl"
-"prmcon"
 "ptrvec"
+"purify"
 "purutl"
 "regex"
 "rgxprim"
@@ -69,8 +73,8 @@ USA.
 "syntax"
 "sysprim"
 "term"
-"tterm"
 "transact"
+"tterm"
 "utils"
 "vector"
 "wind"

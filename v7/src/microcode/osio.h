@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: osio.h,v 1.19 2003/02/14 18:28:22 cph Exp $
+$Id: osio.h,v 1.19.2.1 2005/08/22 18:06:00 cph Exp $
 
 Copyright 1990,1991,1993,1994,1995,1997 Massachusetts Institute of Technology
-Copyright 2000,2003 Massachusetts Institute of Technology
+Copyright 2000,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -53,37 +53,36 @@ enum channel_type
 
 extern size_t OS_channel_table_size;
 #define NO_CHANNEL OS_channel_table_size
-extern int EXFUN (OS_channel_open_p, (Tchannel channel));
-extern void EXFUN (OS_channel_close, (Tchannel channel));
-extern void EXFUN (OS_channel_close_noerror, (Tchannel channel));
-extern void EXFUN (OS_channel_close_on_abort, (Tchannel channel));
-extern enum channel_type EXFUN (OS_channel_type, (Tchannel channel));
-extern size_t EXFUN
-  (OS_channel_read_load_file, (Tchannel channel, PTR buffer, size_t nbytes));
-extern size_t EXFUN
-  (OS_channel_write_dump_file,
-   (Tchannel channel, CONST PTR buffer, size_t nbytes));
-extern long EXFUN
-  (OS_channel_read, (Tchannel channel, PTR buffer, size_t nbytes));
-extern long EXFUN
-  (OS_channel_write, (Tchannel channel, CONST PTR buffer, size_t nbytes));
-extern void EXFUN
-  (OS_channel_write_string, (Tchannel channel, CONST char * string));
-extern void EXFUN
-  (OS_make_pipe, (Tchannel * readerp, Tchannel * writerp));
-extern int EXFUN (OS_channel_nonblocking_p, (Tchannel channel));
-extern void EXFUN (OS_channel_nonblocking, (Tchannel channel));
-extern void EXFUN (OS_channel_blocking, (Tchannel channel));
+extern int OS_channel_open_p (Tchannel channel);
+extern void OS_channel_close (Tchannel channel);
+extern void OS_channel_close_noerror (Tchannel channel);
+extern void OS_channel_close_on_abort (Tchannel channel);
+extern enum channel_type OS_channel_type (Tchannel channel);
+extern size_t OS_channel_read_load_file
+  (Tchannel channel, void * buffer, size_t nbytes);
+extern size_t OS_channel_write_dump_file
+  (Tchannel channel, const void * buffer, size_t nbytes);
+extern long OS_channel_read
+  (Tchannel channel, void * buffer, size_t nbytes);
+extern long OS_channel_write
+  (Tchannel channel, const void * buffer, size_t nbytes);
+extern void OS_channel_write_string
+  (Tchannel channel, const char * string);
+extern void OS_make_pipe
+  (Tchannel * readerp, Tchannel * writerp);
+extern int OS_channel_nonblocking_p (Tchannel channel);
+extern void OS_channel_nonblocking (Tchannel channel);
+extern void OS_channel_blocking (Tchannel channel);
 
 /* Interface to poll(2) or select(2) */
 
 #ifdef __WIN32__
 extern int OS_have_select_p;
 #else
-extern CONST int OS_have_select_p;
+extern const int OS_have_select_p;
 #endif
 
-typedef PTR select_registry_t;
+typedef void * select_registry_t;
 #define SELECT_MODE_READ 1
 #define SELECT_MODE_WRITE 2
 #define SELECT_MODE_ERROR 4
@@ -92,25 +91,22 @@ typedef PTR select_registry_t;
 #define SELECT_INTERRUPT (-1)
 #define SELECT_PROCESS_STATUS_CHANGE (-2)
 
-extern select_registry_t EXFUN
-  (OS_allocate_select_registry, (void));
-extern void EXFUN
-  (OS_deallocate_select_registry, (select_registry_t registry));
-extern void EXFUN
-  (OS_add_to_select_registry,
-   (select_registry_t registry, int fd, unsigned int mode));
-extern void EXFUN
-  (OS_remove_from_select_registry,
-   (select_registry_t registry, int fd, unsigned int mode));
-extern unsigned int EXFUN
-  (OS_select_registry_length, (select_registry_t registry));
-extern void EXFUN
-  (OS_select_registry_result,
-   (select_registry_t registry, unsigned int index,
-    int * fd_r, unsigned int * mode_r));
-extern int EXFUN
-  (OS_test_select_registry, (select_registry_t registry, int blockp));
-extern int EXFUN
-  (OS_test_select_descriptor, (int fd, int blockp, unsigned int mode));
+extern select_registry_t OS_allocate_select_registry
+  (void);
+extern void OS_deallocate_select_registry
+  (select_registry_t registry);
+extern void OS_add_to_select_registry
+  (select_registry_t registry, int fd, unsigned int mode);
+extern void OS_remove_from_select_registry
+  (select_registry_t registry, int fd, unsigned int mode);
+extern unsigned int OS_select_registry_length
+  (select_registry_t registry);
+extern void OS_select_registry_result
+  (select_registry_t registry, unsigned int index,
+    int * fd_r, unsigned int * mode_r);
+extern int OS_test_select_registry
+  (select_registry_t registry, int blockp);
+extern int OS_test_select_descriptor
+  (int fd, int blockp, unsigned int mode);
 
 #endif /* SCM_OSIO_H */

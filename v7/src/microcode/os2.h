@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2.h,v 1.10 2003/02/14 18:28:22 cph Exp $
+$Id: os2.h,v 1.10.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1994-2001 Massachusetts Institute of Technology
+Copyright 1994,1995,1996,2000,2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -36,13 +36,7 @@ USA.
 #define INCL_BASE
 #define INCL_PM
 #include <os2.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
-#include <ctype.h>
 #include <setjmp.h>
-#include <limits.h>
 
 #include "os2api.h"
 #include "os2msg.h"

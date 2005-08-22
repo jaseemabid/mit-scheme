@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ntio.h,v 1.14 2003/03/29 05:35:52 cph Exp $
+$Id: ntio.h,v 1.14.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright 1993,1994,1997,2003 Massachusetts Institute of Technology
+Copyright 1993,1994,1997,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -98,7 +98,7 @@ extern long NT_channel_n_read (Tchannel);
 #define CNTRL_Z			'\032'
 #define ASCII_DELETE		'\177'
 
-extern BOOL EXFUN (Screen_IsScreenHandle, (HANDLE));
+extern BOOL Screen_IsScreenHandle (HANDLE);
 
 #ifndef GUI
 #  define CONSOLE_HANDLE (STDIN_HANDLE)

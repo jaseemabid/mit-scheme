@@ -1,9 +1,10 @@
 /* -*-C-*-
 
-$Id: const.h,v 9.52 2004/12/06 21:32:46 cph Exp $
+$Id: const.h,v 9.52.2.1 2005/08/22 18:05:58 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1997,2000,2002,2004 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -26,14 +27,7 @@ USA.
 
 /* Named constants used throughout the interpreter */
 
-#if (CHAR_BIT != 8)
-#define MAX_CHAR		((1<<CHAR_BIT)-1)
-#else
-#define MAX_CHAR		0xFF
-#endif
-
-#define PI			3.1415926535
-#define STACK_FRAME_HEADER	1
+#define PI 3.1415926535
 
 /* Assigned TC_CONSTANT datum values:
    0 #t
@@ -56,48 +50,44 @@ USA.
 #define FIXNUM_ZERO		MAKE_OBJECT (TC_FIXNUM, 0)
 #define BROKEN_HEART_ZERO	MAKE_OBJECT (TC_BROKEN_HEART, 0)
 
-#define EMPTY_LIST_P(object) ((object) == EMPTY_LIST)
-
 /* Assorted sizes used in various places */
 
+/* Maximum # of chars in a file name.  */
 #ifdef MAXPATHLEN
-#define FILE_NAME_LENGTH	MAXPATHLEN
+#  define FILE_NAME_LENGTH MAXPATHLEN
 #else
-#define FILE_NAME_LENGTH	1024   	/* Max. chars. in a file name */
+#  define FILE_NAME_LENGTH 1024
 #endif
 
-#define OBARRAY_SIZE		3001	/* Interning hash table */
+/* Interning hash table */
+#define OBARRAY_SIZE 3001
 
+/* Cells between constant and stack before overflow occurs.  */
 #ifndef STACK_GUARD_SIZE
-#define STACK_GUARD_SIZE	4096	/* Cells between constant and
-					   stack before overflow
-					   occurs */
+#  define STACK_GUARD_SIZE 4096
 #endif
 
 /* Some versions of stdio define this. */
 #ifndef _NFILE
-#define _NFILE		15
+#  define _NFILE 15
 #endif
 
-#define FILE_CHANNELS		_NFILE
+#define FILE_CHANNELS _NFILE
 
-#define MAX_LIST_PRINT		10
+#define MAX_LIST_PRINT 10
 
-#define ILLEGAL_PRIMITIVE	-1
+#define ILLEGAL_PRIMITIVE -1
 
 /* Last immediate reference trap. */
-
-#define TRAP_MAX_IMMEDIATE	9
+#define TRAP_MAX_IMMEDIATE 9
 
 /* For headers in pure / constant area */
+#define END_OF_BLOCK	TC_FIXNUM
+#define CONSTANT_PART	TC_CONSTANT
+#define PURE_PART	TC_FALSE
 
-#define END_OF_BLOCK		TC_FIXNUM
-#define CONSTANT_PART		TC_CONSTANT
-#define PURE_PART		TC_FALSE
-
-/* Primitive flow control codes: directs computation after
- * processing a primitive application.
- */
+/* Primitive flow control codes: directs computation after processing
+   a primitive application.  */
 
 #define PRIM_DONE			-1
 #define PRIM_DO_EXPRESSION		-2
@@ -108,7 +98,7 @@ USA.
 #define PRIM_POP_RETURN			-7
 #define PRIM_TOUCH			-8
 #define PRIM_APPLY_INTERRUPT		-9
-#define PRIM_REENTER			-10
+/* #define PRIM_REENTER			-10 */
 #define PRIM_NO_TRAP_POP_RETURN		-11
 
 #define ABORT_NAME_TABLE						\
@@ -130,7 +120,7 @@ USA.
 
 #define LEXPR_PRIMITIVE_ARITY		-1
 #define UNKNOWN_PRIMITIVE_ARITY		-2
-
+
 /* Error case detection for precomputed constants */
 /* VMS preprocessor does not like line continuations in conditionals */
 
@@ -153,7 +143,7 @@ USA.
 #define REGBLOCK_INT_MASK		1
 #define REGBLOCK_VAL			2
 #define REGBLOCK_ENV			3
-#define REGBLOCK_COMPILER_TEMP		4	/* For use by compiler */
+#define REGBLOCK_CC_TEMP		4	/* For use by compiler */
 #define REGBLOCK_EXPR			5
 #define REGBLOCK_RETURN			6
 #define REGBLOCK_LEXPR_ACTUALS		7
@@ -165,7 +155,7 @@ USA.
 #define REGBLOCK_REFLECT_TO_INTERFACE	13	/* For use by compiler */
 
 #define REGBLOCK_MINIMUM_LENGTH		14
-
+
 /* Codes specifying how to start scheme at boot time. */
 
 #define BOOT_FASLOAD		0

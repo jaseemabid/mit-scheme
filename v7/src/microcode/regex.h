@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: regex.h,v 1.9 2003/02/14 18:28:23 cph Exp $
+$Id: regex.h,v 1.9.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1987,1988,1989,1992,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -24,11 +24,9 @@ USA.
 */
 
 /* NOTE: This program was created by translation from the regular
-expression code of GNU Emacs; it was translated from the original C to
-68000 assembly language (in 1986), and then translated back from 68000
-assembly language to C (in 1987).  Users should be aware that the GNU
-GENERAL PUBLIC LICENSE may apply to this code.  A copy of that license
-should have been included along with this file. */
+   expression code of GNU Emacs; it was translated from the original C
+   to 68000 assembly language (in 1986), and then translated back from
+   68000 assembly language to C (in 1987).  */
 
 /* Structure to represent a buffer of text to match against.
    This contains the information that an editor buffer would have
@@ -189,27 +187,22 @@ enum regexpcode
   };
 
 extern void
-  EXFUN (re_buffer_initialize,
-	 (struct re_buffer *, unsigned char *, SYNTAX_TABLE_TYPE,
+  re_buffer_initialize (struct re_buffer *, unsigned char *, SYNTAX_TABLE_TYPE,
 	  unsigned char *, unsigned long, unsigned long,
-	  unsigned long, unsigned long));
+	  unsigned long, unsigned long);
 
 extern int
-  EXFUN (re_compile_fastmap,
-	 (unsigned char *, unsigned char *, unsigned char *,
-	  SYNTAX_TABLE_TYPE, unsigned char *));
+  re_compile_fastmap (unsigned char *, unsigned char *, unsigned char *,
+	  SYNTAX_TABLE_TYPE, unsigned char *);
 
 extern int
-  EXFUN (re_match,
-	 (unsigned char *, unsigned char *, struct re_buffer *,
-	  struct re_registers *, unsigned char *, unsigned char *));
+  re_match (unsigned char *, unsigned char *, struct re_buffer *,
+	  struct re_registers *, unsigned char *, unsigned char *);
 
 extern int
-  EXFUN (re_search_forward,
-	 (unsigned char *, unsigned char *, struct re_buffer *,
-	  struct re_registers *, unsigned char *, unsigned char *));
+  re_search_forward (unsigned char *, unsigned char *, struct re_buffer *,
+	  struct re_registers *, unsigned char *, unsigned char *);
 
 extern int
-  EXFUN (re_search_backward,
-	 (unsigned char *, unsigned char *, struct re_buffer *,
-	  struct re_registers *, unsigned char *, unsigned char *));
+  re_search_backward (unsigned char *, unsigned char *, struct re_buffer *,
+	  struct re_registers *, unsigned char *, unsigned char *);

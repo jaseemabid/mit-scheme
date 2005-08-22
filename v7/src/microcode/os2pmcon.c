@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: os2pmcon.c,v 1.31 2003/07/22 02:19:51 cph Exp $
+$Id: os2pmcon.c,v 1.31.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright 1994-2000 Massachusetts Institute of Technology
+Copyright 1994,1995,1996,1997,1999,2000 Massachusetts Institute of Technology
+Copyright 2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -101,7 +102,7 @@ static short console_point_x;
 static short console_point_y;
 
 static const char * console_font_specs [] =
-  { "8.Courier", "10.Courier", "12.Courier", 
+  { "8.Courier", "10.Courier", "12.Courier",
     "4.System VIO", "10.System Monospaced" };
 
 #define CHAR_WIDTH (FONT_METRICS_WIDTH (console_metrics))

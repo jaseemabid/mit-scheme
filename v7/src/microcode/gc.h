@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: gc.h,v 9.36 2003/02/14 18:28:19 cph Exp $
+$Id: gc.h,v 9.36.2.1 2005/08/22 18:05:58 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1992,1993 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -23,102 +24,117 @@ USA.
 
 */
 
-/* 
- * Garbage collection related macros of sufficient utility to be
- * included in all compilations.
- */
+/* Garbage collection related macros of sufficient utility to be
+   included in all compilations.  */
+
+#ifndef SCM_GC_H
+#define SCM_GC_H 1
 
 /* GC Types. */
 
-#ifdef HAS_COMPILER_SUPPORT
-#ifndef BAD_TYPES_LETHAL
-#ifndef BAD_TYPES_INNOCUOUS
-#define BAD_TYPES_INNOCUOUS
-#endif /* BAD_TYPES_INNOCUOUS */
-#endif /* BAD_TYPES_LETHAL */
-#endif /* HAS_COMPILER_SUPPORT */
+typedef enum
+{
+  GC_COMPILED = -4,
+  GC_VECTOR,
+  GC_SPECIAL,			/* Internal GC types */
+  GC_UNDEFINED,
+  GC_NON_POINTER,
+  GC_CELL,
+  GC_PAIR,
+  GC_TRIPLE,
+  GC_QUADRUPLE
+} gc_type_t;
+
+#define GC_TYPE_TO_INT(type) ((int) (type))
 
 #ifdef BAD_TYPES_INNOCUOUS
-#ifdef BAD_TYPES_LETHAL
-#include "error: gc.h: BAD_TYPES both lethal and innocuous"
-#endif /* BAD_TYPES_LETHAL */
-#else /* not BAD_TYPES_INNOCUOUS */
-#ifndef BAD_TYPES_LETHAL
-#define BAD_TYPES_LETHAL
-#endif /* BAD_TYPES_LETHAL */
-#endif /* BAD_TYPES_INNOCUOUS */
+#  define GC_TYPE_CODE(type) (gc_type_map[(type)])
+#else
+#  define GC_TYPE_CODE gc_type_code
+   extern gc_type_t gc_type_code (unsigned int);
+#endif
 
-#define GC_Non_Pointer 			0
-#define GC_Cell				1
-#define GC_Pair				2
-#define GC_Triple			3
-#define GC_Hunk3			3
-#define GC_Quadruple    		4
-#define GC_Hunk4        		4
-#define GC_Undefined			-1 /* Undefined types */
-#define GC_Special			-2 /* Internal GC types */
-#define GC_Vector			-3
-#define GC_Compiled			-4
-
-#ifdef BAD_TYPES_INNOCUOUS
-#define INVALID_TYPE_CODE(TC)		GC_Undefined
+#define GC_TYPE(object) (GC_TYPE_CODE (OBJECT_TYPE (object)))
 
-#else /* not BAD_TYPES_INNOCUOUS */
+extern gc_type_t gc_type_map [];
 
-/* Some C compilers complain if the expression below does not yield
-   a value, and Microcode_Termination yields void.
- */
+#define GC_TYPE_NON_POINTER(object)	((GC_TYPE (object)) == GC_NON_POINTER)
+#define GC_TYPE_CELL(object)		((GC_TYPE (object)) == GC_CELL)
+#define GC_TYPE_PAIR(object)		((GC_TYPE (object)) == GC_PAIR)
+#define GC_TYPE_TRIPLE(object)		((GC_TYPE (object)) == GC_TRIPLE)
+#define GC_TYPE_QUADRUPLE(object)	((GC_TYPE (object)) == GC_QUADRUPLE)
+#define GC_TYPE_UNDEFINED(object)	((GC_TYPE (object)) == GC_UNDEFINED)
+#define GC_TYPE_SPECIAL(object)		((GC_TYPE (object)) == GC_SPECIAL)
+#define GC_TYPE_VECTOR(object)		((GC_TYPE (object)) == GC_VECTOR)
+#define GC_TYPE_COMPILED(object)	((GC_TYPE (object)) == GC_COMPILED)
 
-#define INVALID_TYPE_CODE(TC)						\
-  (outf_fatal  ("\nGC_Type_Code: Bad Type code = 0x%02x\n", TC),	\
-   Microcode_Termination(TERM_INVALID_TYPE_CODE),			\
-   GC_Undefined)
+typedef enum
+{
+  GC_POINTER_NORMAL,
+  GC_POINTER_COMPILED,
+  GC_POINTER_NOT
+} gc_ptr_type_t;
 
-#endif /* BAD_TYPES_INNOCUOUS */
-
-#define GC_Type_Code(TC)						\
- ((GC_Type_Map[TC] != GC_Undefined)	?				\
-  GC_Type_Map[TC]			:				\
-  (INVALID_TYPE_CODE(TC)))
-
-#define GC_Type(Object)			GC_Type_Code(OBJECT_TYPE (Object))
-
-#define GC_Type_Non_Pointer(Object)	(GC_Type(Object) == GC_Non_Pointer)
-#define GC_Type_Cell(Object)		(GC_Type(Object) == GC_Cell)
-#define GC_Type_List(Object)		(GC_Type(Object) == GC_Pair)
-#define GC_Type_Triple(Object)		(GC_Type(Object) == GC_Triple)
-#define GC_Type_Quadruple(Object)	(GC_Type(Object) == GC_Quadruple)
-#define GC_Type_Undefined(Object)	(GC_Type(Object) == GC_Undefined)
-#define GC_Type_Special(Object)		(GC_Type(Object) == GC_Special)
-#define GC_Type_Vector(Object)		(GC_Type(Object) == GC_Vector)
-#define GC_Type_Compiled(Object)	(GC_Type(Object) == GC_Compiled)
+extern gc_ptr_type_t gc_ptr_type (SCHEME_OBJECT);
+extern SCHEME_OBJECT * get_object_address (SCHEME_OBJECT);
+extern bool object_in_active_heap_p (SCHEME_OBJECT);
+extern bool object_in_constant_space_p (SCHEME_OBJECT);
+extern bool object_pure_p (SCHEME_OBJECT);
 
 /* Overflow detection, various cases */
 
 #define GC_ENABLED_P() (INTERRUPT_ENABLED_P (INT_GC))
 
-#define GC_Check(Amount)						\
-  (((Amount + Free) >= MemTop) && (GC_ENABLED_P ()))
+#define HEAP_AVAILABLE							\
+  ((unsigned long) ((FREE_OK_P (Free)) ? (heap_alloc_limit - Free) : 0))
 
-#define Space_Before_GC()						\
+#define FREE_OK_P(free)							\
+  (((free) >= active_heap_start) && ((free) <= heap_alloc_limit))
+
+#define HEAP_AVAILABLE_P(n_words)					\
+  ((FREE_OK_P (Free)) && ((Free + (n_words)) <= heap_alloc_limit))
+
+#define GC_NEEDED_P(n_words)						\
+  ((!HEAP_AVAILABLE_P (n_words)) && (GC_ENABLED_P ()))
+
+#define SPACE_BEFORE_GC()						\
   ((GC_ENABLED_P ())							\
-   ? ((Free <= MemTop) ? (MemTop - Free) : 0)				\
-   : (Heap_Top - Free))
+   ? HEAP_AVAILABLE							\
+   : (ADDRESS_IN_ACTIVE_HEAP_P (Free))					\
+   ? ((unsigned long) (active_heap_end - Free))				\
+   : 0)
 
-#define Request_GC(Amount)						\
+#define REQUEST_GC(n_words) do						\
 {									\
   REQUEST_INTERRUPT (INT_GC);						\
-  GC_Space_Needed = Amount;						\
-}
+  gc_space_needed = (n_words);						\
+} while (0)
 
-#define SET_MEMTOP(addr)						\
+#define SET_HEAP_ALLOC_LIMIT(addr) do					\
 {									\
-  MemTop = (addr);							\
+  heap_alloc_limit = (addr);						\
   COMPILER_SETUP_INTERRUPT ();						\
-}
+} while (0)
 
-#define SET_STACK_GUARD(addr)						\
-{									\
-  Stack_Guard = (addr);							\
-  COMPILER_SETUP_INTERRUPT ();						\
-}
+#define RESET_HEAP_ALLOC_LIMIT()					\
+  SET_HEAP_ALLOC_LIMIT (active_heap_end - active_heap_reserved)
+
+#define ARG_HEAP_RESERVED(n)						\
+  (arg_ulong_index_integer ((n), ((active_heap_end - active_heap_start) / 2)))
+
+#define ADDRESS_IN_MEMORY_BLOCK_P(address)				\
+  (((address) >= memory_block_start) && ((address) < memory_block_end))
+
+#define ADDRESS_IN_ACTIVE_HEAP_P(address)				\
+  (((address) >= active_heap_start) && ((address) < active_heap_end))
+
+#define ADDRESS_IN_INACTIVE_HEAP_P(address)				\
+  (((address) >= inactive_heap_start) && ((address) < inactive_heap_end))
+
+#define ADDRESS_IN_STACK_P(address)					\
+  (((address) >= stack_start) && ((address) < stack_end))
+
+#define ADDRESS_IN_CONSTANT_P(address)					\
+  (((address) >= constant_start) && ((address) < constant_end))
+
+#endif /* not SCM_GC_H */

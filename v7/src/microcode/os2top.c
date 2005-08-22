@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: os2top.c,v 1.23 2003/02/14 18:28:22 cph Exp $
+$Id: os2top.c,v 1.23.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1994-2000 Massachusetts Institute of Technology
+Copyright 1994,1995,1996,1997,1998,2000 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -2513,15 +2514,15 @@ static char * syserr_names_table [] =
 };
 
 void
-OS_syserr_names (unsigned int * length, unsigned char *** names)
+OS_syserr_names (unsigned long * length, const char *** names)
 {
   (*length) = ((sizeof (syserr_names_table)) / (sizeof (char *)));
-  (*names) = ((unsigned char **) syserr_names_table);
+  (*names) = syserr_names_table;
 }
 
 void
-OS_syscall_names (unsigned int * length, unsigned char *** names)
+OS_syscall_names (unsigned long * length, const char *** names)
 {
   (*length) = ((sizeof (syscall_names_table)) / (sizeof (char *)));
-  (*names) = ((unsigned char **) syscall_names_table);
+  (*names) = syscall_names_table;
 }

@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: prntenv.c,v 1.12 2003/02/14 18:28:23 cph Exp $
+$Id: prntenv.c,v 1.12.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1993-2000 Massachusetts Institute of Technology
+Copyright 1993,1995,1997,1998,1999,2000 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -42,7 +43,7 @@ DEFINE_PRIMITIVE ("FILE-TIME->STRING", Prim_file_time_to_string, 1, 1,
     if (time_string == 0)
       PRIMITIVE_RETURN (SHARP_F);
     (time_string[24]) = '\0';
-    PRIMITIVE_RETURN (char_pointer_to_string ((unsigned char *) time_string));
+    PRIMITIVE_RETURN (char_pointer_to_string (time_string));
   }
 }
 
@@ -54,11 +55,11 @@ The result is either a string (the variable's value),\n\
 {
   PRIMITIVE_HEADER (1);
   {
-    CONST char * variable_value = (getenv (STRING_ARG (1)));
+    const char * variable_value = (getenv (STRING_ARG (1)));
     PRIMITIVE_RETURN
       ((variable_value == 0)
        ? SHARP_F
-       : (char_pointer_to_string ((unsigned char *) variable_value)));
+       : (char_pointer_to_string (variable_value)));
   }
 }
 
@@ -268,12 +269,12 @@ DEFINE_PRIMITIVE ("win32-set-registry-value", Prim_win32_set_registry_value, 4, 
       case REG_MULTI_SZ:
 	CHECK_ARG (4, STRING_P);
 	data_length = ((STRING_LENGTH (ARG_REF (4))) + 1);
-	data = ((BYTE *) (STRING_LOC ((ARG_REF (4)), 0)));
+	data = ((BYTE *) (STRING_BYTE_PTR (ARG_REF (4))));
 	break;
       default:
 	CHECK_ARG (4, STRING_P);
 	data_length = (STRING_LENGTH (ARG_REF (4)));
-	data = ((BYTE *) (STRING_LOC ((ARG_REF (4)), 0)));
+	data = ((BYTE *) (STRING_BYTE_PTR (ARG_REF (4))));
 	break;
 	break;
       }
@@ -309,7 +310,7 @@ DEFINE_PRIMITIVE ("win32-enumerate-registry-key", Prim_win32_enumerate_registry_
     LONG code
       = (RegEnumKeyEx ((HKEY_ARG (1)),
 		       ((DWORD) (arg_ulong_integer (2))),
-		       ((CHAR *) (STRING_LOC ((ARG_REF (3)), 0))),
+		       (STRING_POINTER (ARG_REF (3))),
 		       (&buffer_size),
 		       0, 0, 0, (&last_write_time)));
     if (code == ERROR_NO_MORE_ITEMS)
@@ -373,13 +374,13 @@ DEFINE_PRIMITIVE ("win32-enumerate-registry-value", Prim_win32_enumerate_registr
     LONG code
       = (RegEnumValue ((HKEY_ARG (1)),
 		       ((DWORD) (arg_ulong_integer (2))),
-		       ((LPTSTR) (STRING_LOC ((ARG_REF (3)), 0))),
+		       ((LPTSTR) (STRING_POINTER (ARG_REF (3)))),
 		       (&name_size),
 		       0,
 		       (&data_type),
 		       (((ARG_REF (4)) == SHARP_F)
 			? 0
-			: ((LPBYTE) (STRING_LOC ((ARG_REF (4)), 0)))),
+			: ((LPBYTE) (STRING_POINTER (ARG_REF (4))))),
 		       (&data_size)));
     if (code == ERROR_NO_MORE_ITEMS)
       PRIMITIVE_RETURN (SHARP_F);
@@ -450,12 +451,12 @@ DEFINE_PRIMITIVE ("win32-query-registry-value", Prim_win32_query_registry_value,
       case REG_EXPAND_SZ:
       case REG_MULTI_SZ:
 	result = (allocate_string (data_size - 1));
-	data = ((BYTE *) (STRING_LOC (result, 0)));
+	data = ((BYTE *) (STRING_BYTE_PTR (result)));
 	break;
 
       default:
 	result = (allocate_string (data_size));
-	data = ((BYTE *) (STRING_LOC (result, 0)));
+	data = ((BYTE *) (STRING_BYTE_PTR (result)));
 	break;
       }
     REGISTRY_API_CALL
@@ -491,9 +492,10 @@ DEFINE_PRIMITIVE ("win32-expand-environment-strings", Prim_win32_expand_environm
   CHECK_ARG (2, STRING_P);
   {
     DWORD n_chars
-      = (ExpandEnvironmentStrings (((LPCTSTR) (STRING_LOC ((ARG_REF (1)), 0))),
-				   ((LPTSTR) (STRING_LOC ((ARG_REF (2)), 0))),
-				   ((STRING_LENGTH (ARG_REF (2))) + 1)));
+      = (ExpandEnvironmentStrings
+	 (((LPCTSTR) (STRING_POINTER (ARG_REF (1)))),
+	  ((LPTSTR) (STRING_POINTER (ARG_REF (2)))),
+	  ((STRING_LENGTH (ARG_REF (2))) + 1)));
     if (n_chars == 0)
       NT_error_api_call ((GetLastError ()), apicall_ExpandEnvironmentStrings);
     PRIMITIVE_RETURN (ulong_to_integer (n_chars - 1));

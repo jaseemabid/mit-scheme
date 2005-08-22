@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2env.c,v 1.16 2003/02/14 18:28:22 cph Exp $
+$Id: os2env.c,v 1.16.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1994-1999, 2002 Massachusetts Institute of Technology
+Copyright 1994,1995,1996,1999,2002,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -98,7 +98,7 @@ OS_decode_time (time_t t, struct time_structure * buffer)
     int wday = (ts -> tm_wday);
     (buffer -> day_of_week) = ((wday == 0) ? 6 : (wday - 1));
   }
-}  
+}
 
 void
 OS_decode_utc (time_t t, struct time_structure * buffer)
@@ -119,7 +119,7 @@ OS_decode_utc (time_t t, struct time_structure * buffer)
     int wday = (ts -> tm_wday);
     (buffer -> day_of_week) = ((wday == 0) ? 6 : (wday - 1));
   }
-}  
+}
 
 time_t
 OS_encode_time (struct time_structure * buffer)

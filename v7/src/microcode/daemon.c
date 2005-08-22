@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: daemon.c,v 9.34 2004/11/21 04:17:22 cph Exp $
+$Id: daemon.c,v 9.34.2.1 2005/08/22 18:05:58 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
+Copyright 1992,2004,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -54,12 +55,12 @@ DEFINE_PRIMITIVE ("CLOSE-LOST-OPEN-FILES", Prim_close_lost_open_files, 1, 1, 0)
     SCHEME_OBJECT cell = (*smash);
     while (!EMPTY_LIST_P (cell))
       {
-	SCHEME_OBJECT weak_cell = (FAST_PAIR_CAR (cell));
-	if ((FAST_PAIR_CAR (weak_cell)) == SHARP_F)
+	SCHEME_OBJECT weak_cell = (PAIR_CAR (cell));
+	if ((PAIR_CAR (weak_cell)) == SHARP_F)
 	  {
 	    OS_channel_close_noerror
-	      (UNSIGNED_FIXNUM_TO_LONG (FAST_PAIR_CDR (weak_cell)));
-	    cell = (FAST_PAIR_CDR (cell));
+	      (UNSIGNED_FIXNUM_TO_LONG (PAIR_CDR (weak_cell)));
+	    cell = (PAIR_CDR (cell));
 	    (*smash) = cell;
 	  }
 	else
@@ -81,34 +82,32 @@ DEFINE_PRIMITIVE ("CLOSE-LOST-OPEN-FILES", Prim_close_lost_open_files, 1, 1, 0)
    Therefore, there is no gc check here. */
 
 static void
-DEFUN (rehash_pair, (pair, hash_table, table_size),
-       SCHEME_OBJECT pair AND SCHEME_OBJECT hash_table
-       AND long table_size)
+rehash_pair (SCHEME_OBJECT pair, SCHEME_OBJECT hash_table,
+       long table_size)
 {
   long object_datum, hash_address;
   SCHEME_OBJECT * new_pair;
 
-  object_datum = (OBJECT_DATUM (FAST_PAIR_CAR (pair)));
+  object_datum = (OBJECT_DATUM (PAIR_CAR (pair)));
   hash_address = (2 + (object_datum % table_size));
   new_pair = Free;
   *Free++ = (OBJECT_NEW_TYPE (TC_LIST, pair));
-  *Free++ = (FAST_MEMORY_REF (hash_table, hash_address));
-  FAST_MEMORY_SET (hash_table,
+  *Free++ = (MEMORY_REF (hash_table, hash_address));
+  MEMORY_SET (hash_table,
 		   hash_address,
 		   (MAKE_POINTER_OBJECT (TC_LIST, new_pair)));
 }
 
 static void
-DEFUN (rehash_bucket, (bucket, hash_table, table_size),
-       SCHEME_OBJECT * bucket AND SCHEME_OBJECT hash_table
-       AND long table_size)
+rehash_bucket (SCHEME_OBJECT * bucket, SCHEME_OBJECT hash_table,
+       long table_size)
 {
-  fast SCHEME_OBJECT weak_pair;
+  SCHEME_OBJECT weak_pair;
 
   while (!EMPTY_LIST_P (*bucket))
   {
-    weak_pair = (FAST_PAIR_CAR (*bucket));
-    if ((FAST_PAIR_CAR (weak_pair)) != SHARP_F)
+    weak_pair = (PAIR_CAR (*bucket));
+    if ((PAIR_CAR (weak_pair)) != SHARP_F)
     {
       rehash_pair (weak_pair, hash_table, table_size);
     }
@@ -117,22 +116,21 @@ DEFUN (rehash_bucket, (bucket, hash_table, table_size),
 }
 
 static void
-DEFUN (splice_and_rehash_bucket, (bucket, hash_table, table_size),
-       SCHEME_OBJECT * bucket AND SCHEME_OBJECT hash_table
-       AND long table_size)
+splice_and_rehash_bucket (SCHEME_OBJECT * bucket, SCHEME_OBJECT hash_table,
+       long table_size)
 {
-  fast SCHEME_OBJECT weak_pair;
+  SCHEME_OBJECT weak_pair;
 
   while (!EMPTY_LIST_P (*bucket))
   {
-    weak_pair = (FAST_PAIR_CAR (*bucket));
-    if ((FAST_PAIR_CAR (weak_pair)) != SHARP_F)
+    weak_pair = (PAIR_CAR (*bucket));
+    if ((PAIR_CAR (weak_pair)) != SHARP_F)
     {
       rehash_pair (weak_pair, hash_table, table_size);
       bucket = (PAIR_CDR_LOC (*bucket));
     }
     else
-      *bucket = (FAST_PAIR_CDR (*bucket));
+      *bucket = (PAIR_CDR (*bucket));
   }
 }
 
@@ -160,7 +158,7 @@ DEFINE_PRIMITIVE ("REHASH", Prim_rehash, 2, 2, 0)
   bucket = (MEMORY_LOC ((ARG_REF (1)), 1));
   while ((counter--) > 0)
     {
-      if ((FAST_PAIR_CAR (*bucket)) == SHARP_T)
+      if ((PAIR_CAR (*bucket)) == SHARP_T)
 	splice_and_rehash_bucket
 	  ((PAIR_CDR_LOC (*bucket)), (ARG_REF (2)), table_size);
       else

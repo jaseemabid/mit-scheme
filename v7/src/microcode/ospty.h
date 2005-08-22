@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ospty.h,v 1.6 2003/02/14 18:28:22 cph Exp $
+$Id: ospty.h,v 1.6.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1992, 1999 Massachusetts Institute of Technology
+Copyright 1992,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,14 +28,14 @@ USA.
 
 #include "os.h"
 
-extern CONST char * EXFUN
-  (OS_open_pty_master, (Tchannel * master_fd, CONST char ** master_fname));
-extern void EXFUN (OS_pty_master_send_signal, (Tchannel channel, int sig));
-extern void EXFUN (OS_pty_master_kill, (Tchannel channel));
-extern void EXFUN (OS_pty_master_stop, (Tchannel channel));
-extern void EXFUN (OS_pty_master_continue, (Tchannel channel));
-extern void EXFUN (OS_pty_master_interrupt, (Tchannel channel));
-extern void EXFUN (OS_pty_master_quit, (Tchannel channel));
-extern void EXFUN (OS_pty_master_hangup, (Tchannel channel));
+extern const char * OS_open_pty_master
+  (Tchannel * master_fd, const char ** master_fname);
+extern void OS_pty_master_send_signal (Tchannel channel, int sig);
+extern void OS_pty_master_kill (Tchannel channel);
+extern void OS_pty_master_stop (Tchannel channel);
+extern void OS_pty_master_continue (Tchannel channel);
+extern void OS_pty_master_interrupt (Tchannel channel);
+extern void OS_pty_master_quit (Tchannel channel);
+extern void OS_pty_master_hangup (Tchannel channel);
 
 #endif /* SCM_OSPTY_H */

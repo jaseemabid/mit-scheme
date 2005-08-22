@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: tterm.c,v 1.16 2003/02/14 18:28:24 cph Exp $
+$Id: tterm.c,v 1.16.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1990-2002 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,1998,2001,2002 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -41,15 +42,15 @@ USA.
 #  include <curses.h>
 #  include <term.h>
 #else
-   extern int EXFUN (tgetent, (char *, CONST char *));
-   extern int EXFUN (tgetnum, (CONST char *));
-   extern int EXFUN (tgetflag, (CONST char *));
-   extern char * EXFUN (tgetstr, (CONST char *, char **));
-   extern char * EXFUN (tgoto, (CONST char *, int, int));
-   extern int EXFUN (tputs, (CONST char *, int, void (*) (int)));
+   extern int tgetent (char *, const char *);
+   extern int tgetnum (const char *);
+   extern int tgetflag (const char *);
+   extern char * tgetstr (const char *, char **);
+   extern char * tgoto (const char *, int, int);
+   extern int tputs (const char *, int, void (*) (int));
 #endif
 
-extern char * EXFUN (tparam, (CONST char *, PTR, int, ...));
+extern char * tparam (const char *, void *, int, ...);
 extern char * BC;
 extern char * UP;
 extern char PC;
@@ -67,7 +68,7 @@ static char tputs_output [TERMCAP_BUFFER_SIZE];
 static char * tputs_output_scan;
 
 static int
-DEFUN (tputs_write_char, (c), int c)
+tputs_write_char (int c)
 {
   (*tputs_output_scan++) = c;
   return (c);
@@ -101,9 +102,9 @@ DEFINE_PRIMITIVE ("TERMCAP-GET-STRING", Prim_termcap_get_string, 1, 1, 0)
   PRIMITIVE_HEADER (1);
   {
     char * result = (tgetstr ((STRING_ARG (1)), (&tgetstr_pointer)));
-    PRIMITIVE_RETURN
-      ((result == 0) ? SHARP_F
-       : (char_pointer_to_string ((unsigned char *) result)));
+    PRIMITIVE_RETURN ((result == 0)
+		      ? SHARP_F
+		      : (char_pointer_to_string (result)));
   }
 }
 
@@ -118,7 +119,7 @@ DEFINE_PRIMITIVE ("TERMCAP-PARAM-STRING", Prim_termcap_param_string, 5, 5, 0)
        (arg_nonnegative_integer (3)),
        (arg_nonnegative_integer (4)),
        (arg_nonnegative_integer (5)));
-    PRIMITIVE_RETURN (char_pointer_to_string ((unsigned char *) s));
+    PRIMITIVE_RETURN (char_pointer_to_string (s));
   }
 }
 
@@ -129,11 +130,9 @@ DEFINE_PRIMITIVE ("TERMCAP-GOTO-STRING", Prim_termcap_goto_string, 5, 5, 0)
     BC = (((ARG_REF (4)) == SHARP_F) ? 0 : (STRING_ARG (4)));
     UP = (((ARG_REF (5)) == SHARP_F) ? 0 : (STRING_ARG (5)));
     PRIMITIVE_RETURN
-      (char_pointer_to_string
-       ((unsigned char *)
-	(tgoto ((STRING_ARG (1)),
-		(arg_nonnegative_integer (2)),
-		(arg_nonnegative_integer (3))))));
+      (char_pointer_to_string (tgoto ((STRING_ARG (1)),
+				      (arg_nonnegative_integer (2)),
+				      (arg_nonnegative_integer (3)))));
   }
 }
 

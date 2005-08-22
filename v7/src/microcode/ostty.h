@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ostty.h,v 1.7 2003/02/14 18:28:22 cph Exp $
+$Id: ostty.h,v 1.7.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1990, 1999 Massachusetts Institute of Technology
+Copyright 1990,1992,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,13 +28,13 @@ USA.
 
 #include "os.h"
 
-extern Tchannel EXFUN (OS_tty_input_channel, (void));
-extern Tchannel EXFUN (OS_tty_output_channel, (void));
-extern unsigned int EXFUN (OS_tty_x_size, (void));
-extern unsigned int EXFUN (OS_tty_y_size, (void));
-extern CONST char * EXFUN (OS_tty_command_beep, (void));
-extern CONST char * EXFUN (OS_tty_command_clear, (void));
-extern cc_t EXFUN (OS_tty_next_interrupt_char, (void));
-extern cc_t EXFUN (OS_tty_map_interrupt_char, (cc_t));
+extern Tchannel OS_tty_input_channel (void);
+extern Tchannel OS_tty_output_channel (void);
+extern unsigned int OS_tty_x_size (void);
+extern unsigned int OS_tty_y_size (void);
+extern const char * OS_tty_command_beep (void);
+extern const char * OS_tty_command_clear (void);
+extern cc_t OS_tty_next_interrupt_char (void);
+extern cc_t OS_tty_map_interrupt_char (cc_t);
 
 #endif /* SCM_OSTTY_H */

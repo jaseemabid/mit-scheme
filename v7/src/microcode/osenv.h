@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: osenv.h,v 1.12 2003/02/14 18:28:22 cph Exp $
+$Id: osenv.h,v 1.12.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1990-2000 Massachusetts Institute of Technology
+Copyright 1990,1992,1993,1995,1996,2000 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -41,19 +42,19 @@ struct time_structure
   int time_zone;
 };
 
-extern time_t EXFUN (OS_encoded_time, (void));
-extern void EXFUN (OS_decode_time, (time_t, struct time_structure *));
-extern void EXFUN (OS_decode_utc, (time_t, struct time_structure *));
-extern time_t EXFUN (OS_encode_time, (struct time_structure *));
-extern double EXFUN (OS_process_clock, (void));
-extern double EXFUN (OS_real_time_clock, (void));
-extern void EXFUN (OS_process_timer_set, (clock_t, clock_t));
-extern void EXFUN (OS_process_timer_clear, (void));
-extern void EXFUN (OS_profile_timer_set, (clock_t, clock_t));
-extern void EXFUN (OS_profile_timer_clear, (void));
-extern void EXFUN (OS_real_timer_set, (clock_t, clock_t));
-extern void EXFUN (OS_real_timer_clear, (void));
-extern CONST char * EXFUN (OS_working_dir_pathname, (void));
-extern void EXFUN (OS_set_working_dir_pathname, (CONST char *));
+extern time_t OS_encoded_time (void);
+extern void OS_decode_time (time_t, struct time_structure *);
+extern void OS_decode_utc (time_t, struct time_structure *);
+extern time_t OS_encode_time (struct time_structure *);
+extern double OS_process_clock (void);
+extern double OS_real_time_clock (void);
+extern void OS_process_timer_set (clock_t, clock_t);
+extern void OS_process_timer_clear (void);
+extern void OS_profile_timer_set (clock_t, clock_t);
+extern void OS_profile_timer_clear (void);
+extern void OS_real_timer_set (clock_t, clock_t);
+extern void OS_real_timer_clear (void);
+extern const char * OS_working_dir_pathname (void);
+extern void OS_set_working_dir_pathname (const char *);
 
 #endif /* SCM_OSENV_H */

@@ -1,8 +1,9 @@
 /* Interface from Emacs to terminfo.
    Copyright (C) 1985, 1986 Free Software Foundation, Inc.
-   Copyright (C) 1998-2001 Massachusetts Institute of Technology
 
-$Id: terminfo.c,v 1.7 2001/03/03 05:14:10 cph Exp $
+Copyright 1990,1998,2000,2001,2005 Massachusetts Institute of Technology
+
+$Id: terminfo.c,v 1.7.10.1 2005/08/22 18:06:00 cph Exp $
 
 This file is part of GNU Emacs.
 
@@ -23,12 +24,7 @@ and this notice must be preserved on all copies.  */
 
 #include "config.h"
 
-#ifdef STDC_HEADERS
-#  include <stdlib.h>
-#  include <string.h>
-#endif
-
-extern char * EXFUN (tparm, (CONST char *, ...));
+extern char * tparm (const char *, ...);
 
 /* Interface to curses/terminfo library.
    Turns out that all of the terminfo-level routines look
@@ -37,18 +33,17 @@ extern char * EXFUN (tparm, (CONST char *, ...));
    format is different too.  */
 
 char *
-DEFUN (tparam, (string, outstring, len, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9),
-       CONST char * string AND
-       char * outstring AND
-       int len AND
-       int arg1 AND
-       int arg2 AND
-       int arg3 AND
-       int arg4 AND
-       int arg5 AND
-       int arg6 AND
-       int arg7 AND
-       int arg8 AND
+tparam (const char * string,
+       char * outstring,
+       int len,
+       int arg1,
+       int arg2,
+       int arg3,
+       int arg4,
+       int arg5,
+       int arg6,
+       int arg7,
+       int arg8,
        int arg9)
 {
   char * temp = (tparm (string, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9));

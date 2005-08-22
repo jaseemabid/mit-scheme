@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: uxterm.c,v 1.31 2004/01/18 06:04:49 cph Exp $
+$Id: uxterm.c,v 1.31.2.1 2005/08/22 18:06:01 cph Exp $
 
 Copyright 1991,1992,1993,1995,1997,2000 Massachusetts Institute of Technology
-Copyright 2004 Massachusetts Institute of Technology
+Copyright 2004,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -30,8 +30,7 @@ USA.
 #include "ospty.h"
 #include "prims.h"
 
-extern long EXFUN (arg_nonnegative_integer, (int));
-extern long EXFUN (arg_index_integer, (int, long));
+extern int UX_terminal_control_ok (int fd);
 
 #if defined(HAVE_TERMIOS_H) || defined(HAVE_TERMIO_H)
 #  ifndef ISTRIP
@@ -64,7 +63,7 @@ static struct terminal_state * terminal_table;
 #define TERMINAL_ORIGINAL_STATE(channel) ((terminal_table[(channel)]) . state)
 
 void
-DEFUN_VOID (UX_initialize_terminals)
+UX_initialize_terminals (void)
 {
   terminal_table =
     (UX_malloc (OS_channel_table_size * (sizeof (struct terminal_state))));
@@ -77,7 +76,7 @@ DEFUN_VOID (UX_initialize_terminals)
 }
 
 void
-DEFUN_VOID (UX_reset_terminals)
+UX_reset_terminals (void)
 {
   UX_free (terminal_table);
   terminal_table = 0;
@@ -85,14 +84,14 @@ DEFUN_VOID (UX_reset_terminals)
 
 /* This is called from the file-opening code. */
 void
-DEFUN (terminal_open, (channel), Tchannel channel)
+terminal_open (Tchannel channel)
 {
   (TERMINAL_BUFFER (channel)) = (-1);
   get_terminal_state (channel, (& (TERMINAL_ORIGINAL_STATE (channel))));
 }
 
 void
-DEFUN (get_terminal_state, (channel, s), Tchannel channel AND Ttty_state * s)
+get_terminal_state (Tchannel channel, Ttty_state * s)
 {
   STD_VOID_SYSTEM_CALL
     (syscall_terminal_get_state,
@@ -100,9 +99,8 @@ DEFUN (get_terminal_state, (channel, s), Tchannel channel AND Ttty_state * s)
 }
 
 void
-DEFUN (set_terminal_state, (channel, s), Tchannel channel AND Ttty_state * s)
+set_terminal_state (Tchannel channel, Ttty_state * s)
 {
-  extern int EXFUN (UX_terminal_control_ok, (int fd));
   if (UX_terminal_control_ok (CHANNEL_DESCRIPTOR (channel)))
     STD_VOID_SYSTEM_CALL
       (syscall_terminal_set_state,
@@ -110,7 +108,7 @@ DEFUN (set_terminal_state, (channel, s), Tchannel channel AND Ttty_state * s)
 }
 
 unsigned int
-DEFUN (terminal_state_get_ospeed, (s), Ttty_state * s)
+terminal_state_get_ospeed (Ttty_state * s)
 {
 #ifdef HAVE_TERMIOS_H
   return (cfgetospeed (TIO (s)));
@@ -126,7 +124,7 @@ DEFUN (terminal_state_get_ospeed, (s), Ttty_state * s)
 }
 
 unsigned int
-DEFUN (terminal_state_get_ispeed, (s), Ttty_state * s)
+terminal_state_get_ispeed (Ttty_state * s)
 {
 #ifdef HAVE_TERMIOS_H
   return (cfgetispeed (TIO (s)));
@@ -142,9 +140,7 @@ DEFUN (terminal_state_get_ispeed, (s), Ttty_state * s)
 }
 
 void
-DEFUN (terminal_state_set_ospeed, (s, b),
-       Ttty_state * s AND
-       unsigned int b)
+terminal_state_set_ospeed (Ttty_state * s, unsigned int b)
 {
 #ifdef HAVE_TERMIOS_H
   cfsetospeed ((TIO (s)), b);
@@ -160,9 +156,7 @@ DEFUN (terminal_state_set_ospeed, (s, b),
 }
 
 void
-DEFUN (terminal_state_set_ispeed, (s, b),
-       Ttty_state * s AND
-       unsigned int b)
+terminal_state_set_ispeed (Ttty_state * s, unsigned int b)
 {
 #ifdef HAVE_TERMIOS_H
   cfsetispeed ((TIO (s)), b);
@@ -179,7 +173,7 @@ DEFUN (terminal_state_set_ispeed, (s, b),
 }
 
 int
-DEFUN (terminal_state_cooked_output_p, (s), Ttty_state * s)
+terminal_state_cooked_output_p (Ttty_state * s)
 {
 #if defined(HAVE_TERMIOS_H) || defined(HAVE_TERMIO_H)
   return ((((TIO (s)) -> c_oflag) & OPOST) != 0);
@@ -191,7 +185,7 @@ DEFUN (terminal_state_cooked_output_p, (s), Ttty_state * s)
 }
 
 void
-DEFUN (terminal_state_raw_output, (s), Ttty_state * s)
+terminal_state_raw_output (Ttty_state * s)
 {
 #if defined(HAVE_TERMIOS_H) || defined(HAVE_TERMIO_H)
   ((TIO (s)) -> c_oflag) &=~ OPOST;
@@ -204,8 +198,7 @@ DEFUN (terminal_state_raw_output, (s), Ttty_state * s)
 }
 
 void
-DEFUN (terminal_state_cooked_output, (s, channel),
-       Ttty_state * s AND Tchannel channel)
+terminal_state_cooked_output (Ttty_state * s, Tchannel channel)
 {
   Ttty_state * os = (& (TERMINAL_ORIGINAL_STATE (channel)));
 #if defined(HAVE_TERMIOS_H) || defined(HAVE_TERMIO_H)
@@ -220,7 +213,7 @@ DEFUN (terminal_state_cooked_output, (s, channel),
 }
 
 int
-DEFUN (terminal_state_buffered_p, (s), Ttty_state * s)
+terminal_state_buffered_p (Ttty_state * s)
 {
 #if defined(HAVE_TERMIOS_H) || defined(HAVE_TERMIO_H)
   return ((((TIO (s)) -> c_lflag) & ICANON) != 0);
@@ -232,10 +225,7 @@ DEFUN (terminal_state_buffered_p, (s), Ttty_state * s)
 }
 
 void
-DEFUN (terminal_state_nonbuffered, (s, fd, polling),
-       Ttty_state * s AND
-       int fd AND
-       int polling)
+terminal_state_nonbuffered (Ttty_state * s, int fd, int polling)
 {
 #if defined(HAVE_TERMIOS_H) || defined(HAVE_TERMIO_H)
 
@@ -280,7 +270,7 @@ DEFUN (terminal_state_nonbuffered, (s, fd, polling),
 }
 
 void
-DEFUN (terminal_state_raw, (s, fd), Ttty_state * s AND int fd)
+terminal_state_raw (Ttty_state * s, int fd)
 {
   terminal_state_nonbuffered (s, fd, 0);
 
@@ -305,9 +295,7 @@ DEFUN (terminal_state_raw, (s, fd), Ttty_state * s AND int fd)
 }
 
 void
-DEFUN (terminal_state_buffered, (s, channel),
-       Ttty_state * s AND
-       Tchannel channel)
+terminal_state_buffered (Ttty_state * s, Tchannel channel)
 {
   Ttty_state * os = (& (TERMINAL_ORIGINAL_STATE (channel)));
 
@@ -356,7 +344,7 @@ DEFUN (terminal_state_buffered, (s, channel),
 }
 
 unsigned int
-DEFUN (OS_terminal_get_ispeed, (channel), Tchannel channel)
+OS_terminal_get_ispeed (Tchannel channel)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -364,7 +352,7 @@ DEFUN (OS_terminal_get_ispeed, (channel), Tchannel channel)
 }
 
 unsigned int
-DEFUN (OS_terminal_get_ospeed, (channel), Tchannel channel)
+OS_terminal_get_ospeed (Tchannel channel)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -372,9 +360,7 @@ DEFUN (OS_terminal_get_ospeed, (channel), Tchannel channel)
 }
 
 void
-DEFUN (OS_terminal_set_ispeed, (channel, baud),
-       Tchannel channel AND
-       unsigned int baud)
+OS_terminal_set_ispeed (Tchannel channel, unsigned int baud)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -383,9 +369,7 @@ DEFUN (OS_terminal_set_ispeed, (channel, baud),
 }
 
 void
-DEFUN (OS_terminal_set_ospeed, (channel, baud),
-       Tchannel channel AND
-       unsigned int baud)
+OS_terminal_set_ospeed (Tchannel channel, unsigned int baud)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -394,9 +378,9 @@ DEFUN (OS_terminal_set_ospeed, (channel, baud),
 }
 
 unsigned int
-DEFUN (arg_baud_index, (argument), unsigned int argument)
+arg_baud_index (unsigned int argument)
 {
-  unsigned long index = (arg_nonnegative_integer (argument));
+  unsigned long index = (arg_ulong_integer (argument));
   switch (index)
     {
     case B0:
@@ -468,7 +452,7 @@ DEFUN (arg_baud_index, (argument), unsigned int argument)
 }
 
 unsigned int
-DEFUN (OS_baud_index_to_rate, (index), unsigned int index)
+OS_baud_index_to_rate (unsigned int index)
 {
   switch (index)
     {
@@ -538,7 +522,7 @@ DEFUN (OS_baud_index_to_rate, (index), unsigned int index)
 }
 
 int
-DEFUN (OS_baud_rate_to_index, (rate), unsigned int rate)
+OS_baud_rate_to_index (unsigned int rate)
 {
   switch (rate)
     {
@@ -608,29 +592,25 @@ DEFUN (OS_baud_rate_to_index, (rate), unsigned int rate)
 }
 
 unsigned int
-DEFUN_VOID (OS_terminal_state_size)
+OS_terminal_state_size (void)
 {
   return (sizeof (Ttty_state));
 }
 
 void
-DEFUN (OS_terminal_get_state, (channel, statep),
-       Tchannel channel AND
-       PTR statep)
+OS_terminal_get_state (Tchannel channel, void * statep)
 {
   get_terminal_state (channel, statep);
 }
 
 void
-DEFUN (OS_terminal_set_state, (channel, statep),
-       Tchannel channel AND
-       PTR statep)
+OS_terminal_set_state (Tchannel channel, void * statep)
 {
   set_terminal_state (channel, statep);
 }
 
 int
-DEFUN (OS_terminal_cooked_output_p, (channel), Tchannel channel)
+OS_terminal_cooked_output_p (Tchannel channel)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -638,7 +618,7 @@ DEFUN (OS_terminal_cooked_output_p, (channel), Tchannel channel)
 }
 
 void
-DEFUN (OS_terminal_raw_output, (channel), Tchannel channel)
+OS_terminal_raw_output (Tchannel channel)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -647,7 +627,7 @@ DEFUN (OS_terminal_raw_output, (channel), Tchannel channel)
 }
 
 void
-DEFUN (OS_terminal_cooked_output, (channel), Tchannel channel)
+OS_terminal_cooked_output (Tchannel channel)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -656,7 +636,7 @@ DEFUN (OS_terminal_cooked_output, (channel), Tchannel channel)
 }
 
 int
-DEFUN (OS_terminal_buffered_p, (channel), Tchannel channel)
+OS_terminal_buffered_p (Tchannel channel)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -664,7 +644,7 @@ DEFUN (OS_terminal_buffered_p, (channel), Tchannel channel)
 }
 
 void
-DEFUN (OS_terminal_buffered, (channel), Tchannel channel)
+OS_terminal_buffered (Tchannel channel)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -673,7 +653,7 @@ DEFUN (OS_terminal_buffered, (channel), Tchannel channel)
 }
 
 void
-DEFUN (OS_terminal_nonbuffered, (channel), Tchannel channel)
+OS_terminal_nonbuffered (Tchannel channel)
 {
   Ttty_state s;
   get_terminal_state (channel, (&s));
@@ -682,34 +662,34 @@ DEFUN (OS_terminal_nonbuffered, (channel), Tchannel channel)
 }
 
 void
-DEFUN (OS_terminal_flush_input, (channel), Tchannel channel)
+OS_terminal_flush_input (Tchannel channel)
 {
   STD_VOID_SYSTEM_CALL
     (syscall_tcflush, (UX_tcflush ((CHANNEL_DESCRIPTOR (channel)), TCIFLUSH)));
 }
 
 void
-DEFUN (OS_terminal_flush_output, (channel), Tchannel channel)
+OS_terminal_flush_output (Tchannel channel)
 {
   STD_VOID_SYSTEM_CALL
     (syscall_tcflush, (UX_tcflush ((CHANNEL_DESCRIPTOR (channel)), TCOFLUSH)));
 }
 
 void
-DEFUN (OS_terminal_drain_output, (channel), Tchannel channel)
+OS_terminal_drain_output (Tchannel channel)
 {
   STD_VOID_SYSTEM_CALL
     (syscall_tcdrain, (UX_tcdrain (CHANNEL_DESCRIPTOR (channel))));
 }
 
 int
-DEFUN_VOID (OS_job_control_p)
+OS_job_control_p (void)
 {
   return (UX_SC_JOB_CONTROL ());
 }
 
 int
-DEFUN_VOID (OS_have_ptys_p)
+OS_have_ptys_p (void)
 {
 #ifdef HAVE_GRANTPT
   return (1);
@@ -741,10 +721,8 @@ DEFUN_VOID (OS_have_ptys_p)
 #endif
 }
 
-static CONST char *
-DEFUN (open_pty_master_bsd, (master_fd, master_fname),
-       Tchannel * master_fd AND
-       CONST char ** master_fname)
+static const char *
+open_pty_master_bsd (Tchannel * master_fd, const char ** master_fname)
 {
   static char master_name [24];
   static char slave_name [24];
@@ -788,10 +766,8 @@ DEFUN (open_pty_master_bsd, (master_fd, master_fname),
    and return the file name of the pty.
    Signal error if none available.  */
 
-CONST char *
-DEFUN (OS_open_pty_master, (master_fd, master_fname),
-       Tchannel * master_fd AND
-       CONST char ** master_fname)
+const char *
+OS_open_pty_master (Tchannel * master_fd, const char ** master_fname)
 {
 #ifdef HAVE_GRANTPT
   while (1)
@@ -837,7 +813,7 @@ DEFUN (OS_open_pty_master, (master_fd, master_fname),
 }
 
 void
-DEFUN (OS_pty_master_send_signal, (channel, sig), Tchannel channel AND int sig)
+OS_pty_master_send_signal (Tchannel channel, int sig)
 {
 #ifdef TIOCSIGSEND
   STD_VOID_SYSTEM_CALL
@@ -857,37 +833,37 @@ DEFUN (OS_pty_master_send_signal, (channel, sig), Tchannel channel AND int sig)
 }
 
 void
-DEFUN (OS_pty_master_kill, (channel), Tchannel channel)
+OS_pty_master_kill (Tchannel channel)
 {
   OS_pty_master_send_signal (channel, SIGKILL);
 }
 
 void
-DEFUN (OS_pty_master_stop, (channel), Tchannel channel)
+OS_pty_master_stop (Tchannel channel)
 {
   OS_pty_master_send_signal (channel, SIGTSTP);
 }
 
 void
-DEFUN (OS_pty_master_continue, (channel), Tchannel channel)
+OS_pty_master_continue (Tchannel channel)
 {
   OS_pty_master_send_signal (channel, SIGCONT);
 }
 
 void
-DEFUN (OS_pty_master_interrupt, (channel), Tchannel channel)
+OS_pty_master_interrupt (Tchannel channel)
 {
   OS_pty_master_send_signal (channel, SIGINT);
 }
 
 void
-DEFUN (OS_pty_master_quit, (channel), Tchannel channel)
+OS_pty_master_quit (Tchannel channel)
 {
   OS_pty_master_send_signal (channel, SIGQUIT);
 }
 
 void
-DEFUN (OS_pty_master_hangup, (channel), Tchannel channel)
+OS_pty_master_hangup (Tchannel channel)
 {
   OS_pty_master_send_signal (channel, SIGHUP);
 }

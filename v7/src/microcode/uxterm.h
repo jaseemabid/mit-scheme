@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: uxterm.h,v 1.7 2003/02/14 18:28:24 cph Exp $
+$Id: uxterm.h,v 1.7.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1990, 1991, 1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,13 +28,11 @@ USA.
 
 #include "osterm.h"
 
-extern int EXFUN (terminal_state_buffered_p, (Ttty_state * s));
-extern void EXFUN
-  (terminal_state_buffered, (Ttty_state * s, Tchannel channel));
-extern void EXFUN
-  (terminal_state_nonbuffered, (Ttty_state * s, int fd, int polling));
-extern void EXFUN (terminal_state_raw, (Ttty_state * s, int fd));
-extern void EXFUN (get_terminal_state, (Tchannel channel, Ttty_state * s));
-extern void EXFUN (set_terminal_state, (Tchannel channel, Ttty_state * s));
+extern int terminal_state_buffered_p (Ttty_state * s);
+extern void terminal_state_buffered (Ttty_state * s, Tchannel channel);
+extern void terminal_state_nonbuffered (Ttty_state * s, int fd, int polling);
+extern void terminal_state_raw (Ttty_state * s, int fd);
+extern void get_terminal_state (Tchannel channel, Ttty_state * s);
+extern void set_terminal_state (Tchannel channel, Ttty_state * s);
 
 #endif /* SCM_UXTERM_H */

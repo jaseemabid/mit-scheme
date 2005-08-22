@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: prntio.c,v 1.15 2003/02/14 18:28:23 cph Exp $
+$Id: prntio.c,v 1.15.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1993-2000 Massachusetts Institute of Technology
+Copyright 1993,1996,1997,1998,1999,2000 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -37,7 +38,7 @@ USA.
 #include "ostty.h"
 
 extern HANDLE master_tty_window;
-extern Tchannel EXFUN (arg_to_channel, (SCHEME_OBJECT, int));
+extern Tchannel arg_to_channel (SCHEME_OBJECT, int);
 
 static Tchannel * object_to_channel_vector
   (SCHEME_OBJECT, int, unsigned long *, long *);
@@ -244,10 +245,10 @@ OPTIONS is a vector of options.")
 {
   PRIMITIVE_HEADER (8);
   {
-    CONST char * filename = (STRING_ARG (1));
-    CONST char * command_line = (STRING_ARG (2));
-    CONST char * env = (((ARG_REF (3)) == SHARP_F) ? 0 : (STRING_ARG (3)));
-    CONST char * working_directory
+    const char * filename = (STRING_ARG (1));
+    const char * command_line = (STRING_ARG (2));
+    const char * env = (((ARG_REF (3)) == SHARP_F) ? 0 : (STRING_ARG (3)));
+    const char * working_directory
       = (((ARG_REF (4)) == SHARP_F) ? 0 : (STRING_ARG (4)));
     enum process_channel_type channel_in_type;
     Tchannel channel_in;

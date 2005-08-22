@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtrap.h,v 1.35 2005/06/27 06:03:43 cph Exp $
+$Id: uxtrap.h,v 1.35.2.1 2005/08/22 18:06:01 cph Exp $
 
 Copyright 1990,1991,1992,1993,1996,1998 Massachusetts Institute of Technology
 Copyright 2000,2001,2004,2005 Massachusetts Institute of Technology
@@ -208,7 +208,7 @@ struct full_sigcontext
 
 #define DECLARE_SIGCONTEXT(scp, arg)					\
   SIGCONTEXT_T scp [1];							\
-  static void EXFUN (sun3_save_regs, (int *));				\
+  static void sun3_save_regs, (int *);					\
   sun3_save_regs (& ((((scp) [0]) . fs_regs) [0]));			\
   (((scp) [0]) . fs_original) = (arg)
 
@@ -234,12 +234,12 @@ struct full_sigcontext
 /* r0 has to be kludged. */
 #define DECLARE_SIGCONTEXT(partial, full)				\
   SIGCONTEXT_T scp [1];							\
-  static int EXFUN (vax_get_r0, (void));				\
-  static int * EXFUN (vax_save_start, (int *, int));			\
-  static void EXFUN							\
-    (vax_save_finish, (int *,						\
+  static int vax_get_r0 (void);						\
+  static int * vax_save_start (int *, int);				\
+  static void vax_save_finish						\
+    (int *,								\
 		       struct sigcontext *,				\
-		       struct full_sigcontext *));			\
+		       struct full_sigcontext *);			\
   vax_save_finish ((vax_save_start ((& ((((full) [0]) . fs_regs) [0])),	\
 				    (vax_get_r0 ()))),			\
 		   (partial),						\
@@ -604,7 +604,7 @@ typedef struct
 #endif
 
 #ifndef SIGCONTEXT_RFREE
-#  define SIGCONTEXT_RFREE ((unsigned long) MemTop)
+#  define SIGCONTEXT_RFREE ((unsigned long) heap_alloc_limit)
 #endif
 
 #ifndef SIGCONTEXT_SCHSP
@@ -618,10 +618,6 @@ typedef struct
 /* PCs must be aligned according to this. */
 
 #define PC_ALIGNMENT_MASK ((1 << PC_ZERO_BITS) - 1)
-
-#ifndef HAS_COMPILER_SUPPORT
-#  define PLAUSIBLE_CC_BLOCK_P(block) 0
-#endif
 
 #ifdef _AIX
    extern int _etext;
@@ -656,12 +652,12 @@ enum trap_state
   trap_state_exitting_hard
 };
 
-extern void EXFUN (UX_initialize_trap_recovery, (void));
-extern enum trap_state EXFUN (OS_set_trap_state, (enum trap_state state));
-extern void EXFUN (hard_reset, (SIGCONTEXT_T * scp));
-extern void EXFUN (soft_reset, (void));
-extern void EXFUN
-  (trap_handler, (CONST char *, int, SIGINFO_T, SIGCONTEXT_T *));
+extern void UX_initialize_trap_recovery (void);
+extern enum trap_state OS_set_trap_state (enum trap_state state);
+extern void hard_reset (SIGCONTEXT_T * scp);
+extern void soft_reset (void);
+extern void trap_handler
+  (const char *, int, SIGINFO_T, SIGCONTEXT_T *);
 extern SCHEME_OBJECT find_ccblock (unsigned long);
 
 #define STATE_UNKNOWN		(LONG_TO_UNSIGNED_FIXNUM (0))

@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: bitstr.h,v 1.12 2003/02/14 18:28:15 cph Exp $
+$Id: bitstr.h,v 1.12.2.1 2005/08/22 18:05:57 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright 1987,1988,1989,1990,1992,2000 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -35,7 +36,7 @@ USA.
 #define ANY_MASK(nbits, offset) ((LOW_MASK (nbits)) << (offset))
 
 #define BIT_STRING_LENGTH(bit_string)					\
-  ((long) (FAST_MEMORY_REF ((bit_string), BIT_STRING_LENGTH_OFFSET)))
+  ((long) (MEMORY_REF ((bit_string), BIT_STRING_LENGTH_OFFSET)))
 
 #define BIT_STRING_MSW(bit_string)					\
   (BIT_STRING_WORD (BIT_STRING_HIGH_PTR (bit_string)))
@@ -85,7 +86,7 @@ The "size in bits" is a C "long" integer.
 #define BIT_STRING_WORD(ptr)		(*((ptr) - 1))
 #define DEC_BIT_STRING_PTR(ptr)		(--(ptr))
 #define INC_BIT_STRING_PTR(ptr)		((ptr)++)
- 
+
 /* This is off by one so BIT_STRING_WORD will get the correct word. */
 
 #define BIT_STRING_INDEX_TO_WORD(bit_string, index)			\

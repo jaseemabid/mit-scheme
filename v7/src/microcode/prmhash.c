@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: prmhash.c,v 11.6 2003/02/14 18:28:23 cph Exp $
+$Id: prmhash.c,v 11.6.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 2000-2001 Massachusetts Institute of Technology
+Copyright 2000,2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -190,7 +190,7 @@ DEFINE_PRIMITIVE ("MHASH_HMAC_INIT", Prim_mhash_hmac_init, 3, 3, 0)
     SCHEME_OBJECT key = (ARG_REF (2));
     PRIMITIVE_RETURN
       (store_context ((mhash_hmac_init (id,
-					(STRING_LOC (key, 0)),
+					(STRING_POINTER (key)),
 					(STRING_LENGTH (key)),
 					(arg_ulong_integer (3)))),
 		      id));
@@ -223,7 +223,7 @@ DEFINE_PRIMITIVE ("MHASH_END", Prim_mhash_end, 1, 1, 0)
     SCHEME_OBJECT sd = (allocate_string (block_size));
     void * digest = (mhash_end (context));
     forget_context (index);
-    memcpy ((STRING_LOC (sd, 0)), digest, block_size);
+    memcpy ((STRING_POINTER (sd)), digest, block_size);
     free (digest);
     PRIMITIVE_RETURN (sd);
   }
@@ -241,7 +241,7 @@ DEFINE_PRIMITIVE ("MHASH_HMAC_END", Prim_mhash_hmac_end, 1, 1, 0)
     SCHEME_OBJECT sd = (allocate_string (block_size));
     void * digest = (mhash_hmac_end (context));
     forget_context (index);
-    memcpy ((STRING_LOC (sd, 0)), digest, block_size);
+    memcpy ((STRING_POINTER (sd)), digest, block_size);
     free (digest);
     PRIMITIVE_RETURN (sd);
   }
@@ -333,7 +333,7 @@ DEFINE_PRIMITIVE ("MHASH_KEYGEN", Prim_mhash_keygen, 4, 4, 0)
 	  if ((salt_size != 0) && ((STRING_LENGTH (salt)) != salt_size))
 	    error_bad_range_arg (2);
 	}
-	(cparms . salt) = (STRING_LOC (salt, 0));
+	(cparms . salt) = (STRING_BYTE_PTR (salt));
 	(cparms . salt_size) = (STRING_LENGTH (salt));
       }
     else if (salt != SHARP_F)
@@ -366,9 +366,9 @@ DEFINE_PRIMITIVE ("MHASH_KEYGEN", Prim_mhash_keygen, 4, 4, 0)
     PRIMITIVE_RETURN
       (BOOLEAN_TO_OBJECT
        ((mhash_keygen_ext (id, cparms,
-			   (STRING_LOC (keyword, 0)),
+			   (STRING_POINTER (keyword)),
 			   (STRING_LENGTH (keyword)),
-			   (STRING_LOC (passphrase, 0)),
+			   (STRING_BYTE_PTR (passphrase)),
 			   (STRING_LENGTH (passphrase))))
 	== 0));
   }
@@ -377,7 +377,7 @@ DEFINE_PRIMITIVE ("MHASH_KEYGEN", Prim_mhash_keygen, 4, 4, 0)
 #ifdef COMPILE_AS_MODULE
 
 char *
-DEFUN_VOID (dload_initialize_file)
+dload_initialize_file (void)
 {
   declare_primitive
     ("MHASH_COUNT", Prim_mhash_count, 0, 0, 0);

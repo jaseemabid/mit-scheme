@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: prosfile.c,v 1.12 2004/12/20 04:37:09 cph Exp $
+$Id: prosfile.c,v 1.12.2.1 2005/08/22 18:06:00 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1996 Massachusetts Institute of Technology
-Copyright 2004 Massachusetts Institute of Technology
+Copyright 2004,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -30,7 +30,7 @@ USA.
 #include "prims.h"
 #include "osfile.h"
 
-extern Tchannel EXFUN (arg_channel, (int));
+extern Tchannel arg_channel (int);
 
 #ifndef OPEN_FILE_HOOK
 #define OPEN_FILE_HOOK(channel)
@@ -48,25 +48,29 @@ extern Tchannel EXFUN (arg_channel, (int));
   }									\
 }
 
-DEFINE_PRIMITIVE ("NEW-FILE-OPEN-INPUT-CHANNEL", Prim_new_file_open_input_channel, 2, 2,
+DEFINE_PRIMITIVE ("NEW-FILE-OPEN-INPUT-CHANNEL",
+		  Prim_new_file_open_input_channel, 2, 2,
   "Open an input file called FILENAME.\n\
 The channel number is saved in the cdr of WEAK-PAIR.")
   NEW_OPEN_FILE_PRIMITIVE (OS_open_input_file)
 
-DEFINE_PRIMITIVE ("NEW-FILE-OPEN-OUTPUT-CHANNEL", Prim_new_file_open_output_channel, 2, 2,
+DEFINE_PRIMITIVE ("NEW-FILE-OPEN-OUTPUT-CHANNEL",
+		  Prim_new_file_open_output_channel, 2, 2,
   "Open an output file called FILENAME.\n\
 The channel number is saved in the cdr of WEAK-PAIR.\n\
 If the file exists, it is rewritten.")
   NEW_OPEN_FILE_PRIMITIVE (OS_open_output_file)
 
-DEFINE_PRIMITIVE ("NEW-FILE-OPEN-IO-CHANNEL", Prim_new_file_open_io_channel, 2, 2,
+DEFINE_PRIMITIVE ("NEW-FILE-OPEN-IO-CHANNEL", Prim_new_file_open_io_channel,
+		  2, 2,
   "Open a file called FILENAME.\n\
 The channel number is saved in the cdr of WEAK-PAIR.\n\
 The file is opened for both input and output.\n\
 If the file exists, its contents are not disturbed.")
   NEW_OPEN_FILE_PRIMITIVE (OS_open_io_file)
 
-DEFINE_PRIMITIVE ("NEW-FILE-OPEN-APPEND-CHANNEL", Prim_new_file_open_append_channel, 2, 2,
+DEFINE_PRIMITIVE ("NEW-FILE-OPEN-APPEND-CHANNEL",
+		  Prim_new_file_open_append_channel, 2, 2,
   "Open an output file called FILENAME.\n\
 The channel number is saved in the cdr of WEAK-PAIR.\n\
 If the file exists, output is appended to its contents.")
@@ -82,11 +86,13 @@ If the file exists, output is appended to its contents.")
   }									\
 }
 
-DEFINE_PRIMITIVE ("FILE-OPEN-INPUT-CHANNEL", Prim_file_open_input_channel, 1, 1,
+DEFINE_PRIMITIVE ("FILE-OPEN-INPUT-CHANNEL", Prim_file_open_input_channel,
+		  1, 1,
   "Open an input file called FILENAME, returning a channel number.")
   OPEN_FILE_PRIMITIVE (OS_open_input_file)
 
-DEFINE_PRIMITIVE ("FILE-OPEN-OUTPUT-CHANNEL", Prim_file_open_output_channel, 1, 1,
+DEFINE_PRIMITIVE ("FILE-OPEN-OUTPUT-CHANNEL", Prim_file_open_output_channel,
+		  1, 1,
   "Open an output file called FILENAME, returning a channel number.\n\
 If the file exists, it is rewritten.")
   OPEN_FILE_PRIMITIVE (OS_open_output_file)
@@ -97,7 +103,8 @@ The file is opened for both input and output.\n\
 If the file exists, its contents are not disturbed.")
   OPEN_FILE_PRIMITIVE (OS_open_io_file)
 
-DEFINE_PRIMITIVE ("FILE-OPEN-APPEND-CHANNEL", Prim_file_open_append_channel, 1, 1,
+DEFINE_PRIMITIVE ("FILE-OPEN-APPEND-CHANNEL", Prim_file_open_append_channel,
+		  1, 1,
   "Open an output file called FILENAME, returning a channel number.\n\
 If the file exists, output is appended to its contents.")
   OPEN_FILE_PRIMITIVE (OS_open_append_file)

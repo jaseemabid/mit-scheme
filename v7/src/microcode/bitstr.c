@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: bitstr.c,v 9.65 2003/02/14 18:28:15 cph Exp $
+$Id: bitstr.c,v 9.65.2.1 2005/08/22 18:05:57 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
+Copyright 1992,1995,1996,1997,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -33,18 +34,18 @@ USA.
 #include "prims.h"
 #include "bitstr.h"
 
-static void EXFUN
-  (copy_bits, (SCHEME_OBJECT *, long, SCHEME_OBJECT *, long, long));
+static void copy_bits
+  (SCHEME_OBJECT *, long, SCHEME_OBJECT *, long, long);
 
 static SCHEME_OBJECT
-DEFUN (allocate_bit_string, (length), long length)
+allocate_bit_string (long length)
 {
   long total_pointers;
   SCHEME_OBJECT result;
 
   total_pointers = (1 + (BIT_STRING_LENGTH_TO_GC_LENGTH (length)));
   result = (allocate_non_marked_vector (TC_BIT_STRING, total_pointers, true));
-  FAST_MEMORY_SET (result, BIT_STRING_LENGTH_OFFSET, length);
+  MEMORY_SET (result, BIT_STRING_LENGTH_OFFSET, length);
   return (result);
 }
 
@@ -62,15 +63,12 @@ DEFINE_PRIMITIVE ("BIT-STRING-ALLOCATE", Prim_bit_string_allocate, 1, 1, 0)
 
 DEFINE_PRIMITIVE ("BIT-STRING?", Prim_bit_string_p, 1, 1, 0)
 {
-  fast SCHEME_OBJECT object;
   PRIMITIVE_HEADER (1);
-  TOUCH_IN_PRIMITIVE ((ARG_REF (1)), object);
-  PRIMITIVE_RETURN (BOOLEAN_TO_OBJECT (BIT_STRING_P (object)));
+  PRIMITIVE_RETURN (BOOLEAN_TO_OBJECT (BIT_STRING_P (ARG_REF (1))));
 }
 
 void
-DEFUN (fill_bit_string, (bit_string, sense),
-       SCHEME_OBJECT bit_string AND
+fill_bit_string (SCHEME_OBJECT bit_string,
        int sense)
 {
   SCHEME_OBJECT *scanner;
@@ -84,10 +82,10 @@ DEFUN (fill_bit_string, (bit_string, sense),
     (* (DEC_BIT_STRING_PTR (scanner))) = filler;
 }
 
-extern void EXFUN (clear_bit_string, (SCHEME_OBJECT));
+extern void clear_bit_string (SCHEME_OBJECT);
 
 void
-DEFUN (clear_bit_string, (bit_string), SCHEME_OBJECT bit_string)
+clear_bit_string (SCHEME_OBJECT bit_string)
 {
   SCHEME_OBJECT *scanner;
   long i;
@@ -133,10 +131,10 @@ Returns the number of bits in BIT-STRING.")
 }
 
 #define REF_INITIALIZATION()						\
-  fast SCHEME_OBJECT bit_string;					\
-  fast long index;							\
-  fast SCHEME_OBJECT *ptr;						\
-  fast long mask;							\
+  SCHEME_OBJECT bit_string;						\
+  long index;								\
+  SCHEME_OBJECT *ptr;							\
+  long mask;								\
   PRIMITIVE_HEADER (2);							\
 									\
   CHECK_ARG (1, BIT_STRING_P);						\
@@ -171,7 +169,7 @@ Sets the indexed bit to zero, returning its previous value as a boolean.")
   PRIMITIVE_RETURN (SHARP_T);
 }
 
-DEFINE_PRIMITIVE ("BIT-STRING-SET!", Prim_bit_string_set_x, 2, 2, 
+DEFINE_PRIMITIVE ("BIT-STRING-SET!", Prim_bit_string_set_x, 2, 2,
   "(BIT-STRING INDEX)\n\
 Sets the indexed bit to one, returning its previous value as a boolean.")
 {
@@ -194,9 +192,9 @@ DEFINE_PRIMITIVE ("BIT-STRING-ZERO?", Prim_bit_string_zero_p, 1, 1,
  "(BIT-STRING)\n\
 Returns true the argument has no \"set\" bits.")
 {
-  fast SCHEME_OBJECT bit_string;
-  fast SCHEME_OBJECT *scan;
-  fast long i;
+  SCHEME_OBJECT bit_string;
+  SCHEME_OBJECT *scan;
+  long i;
   long length, odd_bits;
   PRIMITIVE_HEADER (1);
   CHECK_ARG (1, BIT_STRING_P);
@@ -226,14 +224,14 @@ Returns true the argument has no \"set\" bits.")
   PRIMITIVE_RETURN (SHARP_T);						\
 }
 
-DEFINE_PRIMITIVE ("BIT-STRING=?", Prim_bit_string_equal_p, 2, 2, 
+DEFINE_PRIMITIVE ("BIT-STRING=?", Prim_bit_string_equal_p, 2, 2,
   "(BIT-STRING-1 BIT-STRING-2)\n\
 Returns true iff the two bit strings contain the same bits.")
 {
   SCHEME_OBJECT bit_string_1, bit_string_2;
   long length;
-  fast SCHEME_OBJECT *scan1, *scan2;
-  fast long i;
+  SCHEME_OBJECT *scan1, *scan2;
+  long i;
   long odd_bits;
   PRIMITIVE_HEADER (2);
   CHECK_ARG (1, BIT_STRING_P);
@@ -274,8 +272,8 @@ Returns true iff the two bit strings contain the same bits.")
 #define BITWISE_OP(action)						\
 {									\
   SCHEME_OBJECT bit_string_1, bit_string_2;				\
-  fast long i;								\
-  fast SCHEME_OBJECT *scan1, *scan2;					\
+  long i;								\
+  SCHEME_OBJECT *scan1, *scan2;						\
   PRIMITIVE_HEADER (2);							\
   bit_string_1 = (ARG_REF (1));						\
   bit_string_2 = (ARG_REF (2));						\
@@ -308,14 +306,14 @@ DEFINE_PRIMITIVE ("BIT-STRING-ANDC!", Prim_bit_string_andc_x, 2, 2, 0)
 DEFINE_PRIMITIVE ("BIT-STRING-XOR!", Prim_bit_string_xor_x, 2, 2, 0)
      BITWISE_OP (^=)
 
-DEFINE_PRIMITIVE ("BIT-SUBSTRING-MOVE-RIGHT!", Prim_bit_substring_move_right_x, 5, 5, 
+DEFINE_PRIMITIVE ("BIT-SUBSTRING-MOVE-RIGHT!", Prim_bit_substring_move_right_x, 5, 5,
  "(SOURCE START1 END1 DESTINATION START2)\n\
 Destructively copies the substring of SOURCE between START1 and \
 END1 into DESTINATION at START2.  The copying is done from the \
 MSB to the LSB (which only matters when SOURCE and DESTINATION \
 are the same).")
 {
-  fast SCHEME_OBJECT bit_string_1, bit_string_2;
+  SCHEME_OBJECT bit_string_1, bit_string_2;
   long start1, end1, start2, end2, nbits;
   long end1_mod, end2_mod;
   PRIMITIVE_HEADER (5);
@@ -367,12 +365,10 @@ are the same).")
    starting with the MSB of a bit string and moving down. */
 
 static void
-DEFUN (copy_bits,
-       (source, source_offset, destination, destination_offset, nbits),
-       SCHEME_OBJECT * source AND
-       long source_offset AND
-       SCHEME_OBJECT * destination AND
-       long destination_offset AND
+copy_bits (SCHEME_OBJECT * source,
+       long source_offset,
+       SCHEME_OBJECT * destination,
+       long destination_offset,
        long nbits)
 {
 
@@ -533,7 +529,7 @@ DEFUN (copy_bits,
 /* Integer <-> Bit-string Conversions */
 
 long
-DEFUN (count_significant_bits, (number, start), long number AND long start)
+count_significant_bits (long number, long start)
 {
   long significant_bits, i;
 
@@ -548,7 +544,7 @@ DEFUN (count_significant_bits, (number, start), long number AND long start)
 }
 
 long
-DEFUN (long_significant_bits, (number), long number)
+long_significant_bits (long number)
 {
   return
     ((number < 0)
@@ -557,7 +553,7 @@ DEFUN (long_significant_bits, (number), long number)
 }
 
 SCHEME_OBJECT
-DEFUN (zero_to_bit_string, (length), long length)
+zero_to_bit_string (long length)
 {
   SCHEME_OBJECT result;
 
@@ -567,7 +563,7 @@ DEFUN (zero_to_bit_string, (length), long length)
 }
 
 SCHEME_OBJECT
-DEFUN (long_to_bit_string, (length, number), long length AND long number)
+long_to_bit_string (long length, long number)
 {
   if (number < 0)
     error_bad_range_arg (2);
@@ -589,17 +585,15 @@ DEFUN (long_to_bit_string, (length, number), long length AND long number)
 }
 
 static void
-DEFUN (btbs_consumer, (result_ptr, digit),
-       PTR result_ptr
-       AND long digit)
+btbs_consumer (void * result_ptr,
+       long digit)
 {
   (* (INC_BIT_STRING_PTR (* ((unsigned char **) result_ptr))))
     = ((unsigned char) digit);
 }
 
 SCHEME_OBJECT
-DEFUN (bignum_to_bit_string, (length, bignum),
-       long length AND SCHEME_OBJECT bignum)
+bignum_to_bit_string (long length, SCHEME_OBJECT bignum)
 {
   switch (bignum_test (bignum))
     {
@@ -631,7 +625,7 @@ struct bitstr_to_bignm_context
 };
 
 static unsigned int
-DEFUN (bstb_producer, (context), PTR context)
+bstb_producer (void * context)
 {
   struct bitstr_to_bignm_context * c = context;
   unsigned int result = (c->mask & (BIT_STRING_WORD (c->source_ptr)));
@@ -641,8 +635,7 @@ DEFUN (bstb_producer, (context), PTR context)
 }
 
 SCHEME_OBJECT
-DEFUN (bit_string_to_bignum, (nbits, bitstr),
-       long nbits AND SCHEME_OBJECT bitstr)
+bit_string_to_bignum (long nbits, SCHEME_OBJECT bitstr)
 {
   struct bitstr_to_bignm_context context;
   int ndigits, skip;
@@ -670,14 +663,14 @@ DEFUN (bit_string_to_bignum, (nbits, bitstr),
 			     0));
 }
 
-DEFINE_PRIMITIVE ("UNSIGNED-INTEGER->BIT-STRING", Prim_unsigned_to_bit_string, 2, 2, 
+DEFINE_PRIMITIVE ("UNSIGNED-INTEGER->BIT-STRING", Prim_unsigned_to_bit_string, 2, 2,
  "(LENGTH INTEGER)\n\
 INTEGER, which must be a non-negative integer, is converted to \
 a bit-string of length LENGTH.  If INTEGER is too large, an \
 error is signalled.")
 {
-  fast long length;
-  fast SCHEME_OBJECT object;
+  long length;
+  SCHEME_OBJECT object;
   PRIMITIVE_HEADER (2);
   length = (arg_nonnegative_integer (1));
   object = (ARG_REF (2));
@@ -703,7 +696,7 @@ DEFINE_PRIMITIVE ("BIT-STRING->UNSIGNED-INTEGER", Prim_bit_string_to_unsigned, 1
 BIT-STRING is converted to the appropriate non-negative integer. \
 This operation is the inverse of `unsigned-integer->bit-string'.")
 {
-  fast SCHEME_OBJECT bit_string, *scan;
+  SCHEME_OBJECT bit_string, *scan;
   long nwords, nbits, word;
   PRIMITIVE_HEADER (1);
   CHECK_ARG (1, BIT_STRING_P);
@@ -857,11 +850,10 @@ DEFINE_PRIMITIVE ("BIT-SUBSTRING-FIND-NEXT-SET-BIT", Prim_bitstr_find_next_set_b
      (BIT_STRING_INDEX_PAIR_TO_INDEX (bit_string, word, bit)));
 }
 
-extern void EXFUN (bit_string_set, (SCHEME_OBJECT, long, int));
+extern void bit_string_set (SCHEME_OBJECT, long, int);
 
 void
-DEFUN (bit_string_set, (bitstr, index, value),
-       SCHEME_OBJECT bitstr AND long index AND int value)
+bit_string_set (SCHEME_OBJECT bitstr, long index, int value)
 {
   unsigned long mask;
   SCHEME_OBJECT * ptr;

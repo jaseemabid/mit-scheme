@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: uxenv.c,v 1.23 2003/02/14 18:28:24 cph Exp $
+$Id: uxenv.c,v 1.23.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1990-2001 Massachusetts Institute of Technology
+Copyright 1990,1991,1992,1993,1995,1996 Massachusetts Institute of Technology
+Copyright 1997,1999,2000,2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -23,12 +24,13 @@ USA.
 
 */
 
+#include "scheme.h"
+#include "prims.h"
 #include "ux.h"
 #include "osenv.h"
-#include "config.h"		/* For TRUE/FALSE & true/false */
 
 time_t
-DEFUN_VOID (OS_encoded_time)
+OS_encoded_time (void)
 {
   time_t t;
   STD_UINT_SYSTEM_CALL (syscall_time, t, (UX_time (0)));
@@ -36,7 +38,7 @@ DEFUN_VOID (OS_encoded_time)
 }
 
 void
-DEFUN (OS_decode_time, (t, buffer), time_t t AND struct time_structure * buffer)
+OS_decode_time (time_t t, struct time_structure * buffer)
 {
   struct tm * ts;
   STD_PTR_SYSTEM_CALL (syscall_localtime, ts, (UX_localtime (&t)));
@@ -67,7 +69,7 @@ DEFUN (OS_decode_time, (t, buffer), time_t t AND struct time_structure * buffer)
 }
 
 void
-DEFUN (OS_decode_utc, (t, buffer), time_t t AND struct time_structure * buffer)
+OS_decode_utc (time_t t, struct time_structure * buffer)
 {
   struct tm * ts;
   STD_PTR_SYSTEM_CALL (syscall_gmtime, ts, (UX_gmtime (&t)));
@@ -87,7 +89,7 @@ DEFUN (OS_decode_utc, (t, buffer), time_t t AND struct time_structure * buffer)
 }
 
 time_t
-DEFUN (OS_encode_time, (buffer), struct time_structure * buffer)
+OS_encode_time (struct time_structure * buffer)
 {
 #ifdef HAVE_MKTIME
   time_t t = 0;
@@ -131,11 +133,11 @@ DEFUN (OS_encode_time, (buffer), struct time_structure * buffer)
 }
 
 static void
-DEFUN_VOID (initialize_timezone)
+initialize_timezone (void)
 {
 #ifdef __CYGWIN__
   tzset ();
-#endif  
+#endif
 }
 
 #ifdef HAVE_TIMES
@@ -152,7 +154,7 @@ static clock_t initial_process_clock;
 #endif
 
 static void
-DEFUN_VOID (initialize_process_clock)
+initialize_process_clock (void)
 {
   struct tms buffer;
   UX_times (&buffer);
@@ -160,7 +162,7 @@ DEFUN_VOID (initialize_process_clock)
 }
 
 double
-DEFUN_VOID (OS_process_clock)
+OS_process_clock (void)
 {
   double ct = ((double) (UX_SC_CLK_TCK ()));
   struct tms buffer;
@@ -178,12 +180,12 @@ DEFUN_VOID (OS_process_clock)
 #else /* not HAVE_TIMES */
 
 static void
-DEFUN_VOID (initialize_process_clock)
+initialize_process_clock (void)
 {
 }
 
 double
-DEFUN_VOID (OS_process_clock)
+OS_process_clock (void)
 {
   /* This must not signal an error in normal use. */
   return (0.0);
@@ -196,14 +198,14 @@ DEFUN_VOID (OS_process_clock)
 static struct timeval initial_rtc;
 
 static void
-DEFUN_VOID (initialize_real_time_clock)
+initialize_real_time_clock (void)
 {
   struct timezone tz;
   UX_gettimeofday ((&initial_rtc), (&tz));
 }
 
 double
-DEFUN_VOID (OS_real_time_clock)
+OS_real_time_clock (void)
 {
   struct timeval rtc;
   struct timezone tz;
@@ -221,14 +223,14 @@ DEFUN_VOID (OS_real_time_clock)
 static clock_t initial_rtc;
 
 static void
-DEFUN_VOID (initialize_real_time_clock)
+initialize_real_time_clock (void)
 {
   struct tms buffer;
   initial_rtc = (UX_times (&buffer));
 }
 
 double
-DEFUN_VOID (OS_real_time_clock)
+OS_real_time_clock (void)
 {
   double ct = ((double) (UX_SC_CLK_TCK ()));
   struct tms buffer;
@@ -246,13 +248,13 @@ DEFUN_VOID (OS_real_time_clock)
 static time_t initial_rtc;
 
 static void
-DEFUN_VOID (initialize_real_time_clock)
+initialize_real_time_clock (void)
 {
   initial_rtc = (time (0));
 }
 
 double
-DEFUN_VOID (OS_real_time_clock)
+OS_real_time_clock (void)
 {
   time_t t;
   STD_UINT_SYSTEM_CALL (syscall_time, t, (UX_time (0)));
@@ -265,9 +267,8 @@ DEFUN_VOID (OS_real_time_clock)
 #ifdef HAVE_SETITIMER
 
 static void
-DEFUN (set_timer, (which, first, interval),
-       int which AND
-       clock_t first AND
+set_timer (int which,
+       clock_t first,
        clock_t interval)
 {
   struct itimerval value;
@@ -281,43 +282,40 @@ DEFUN (set_timer, (which, first, interval),
 }
 
 void
-DEFUN (OS_process_timer_set, (first, interval),
-       clock_t first AND
+OS_process_timer_set (clock_t first,
        clock_t interval)
 {
   set_timer (ITIMER_VIRTUAL, first, interval);
 }
 
 void
-DEFUN_VOID (OS_process_timer_clear)
+OS_process_timer_clear (void)
 {
   set_timer (ITIMER_VIRTUAL, 0, 0);
 }
 
 void
-DEFUN (OS_profile_timer_set, (first, interval),
-       clock_t first AND
+OS_profile_timer_set (clock_t first,
        clock_t interval)
 {
   set_timer (ITIMER_PROF, first, interval);
 }
 
 void
-DEFUN_VOID (OS_profile_timer_clear)
+OS_profile_timer_clear (void)
 {
   set_timer (ITIMER_PROF, 0, 0);
 }
 
 void
-DEFUN (OS_real_timer_set, (first, interval),
-       clock_t first AND
+OS_real_timer_set (clock_t first,
        clock_t interval)
 {
   set_timer (ITIMER_REAL, first, interval);
 }
 
 void
-DEFUN_VOID (OS_real_timer_clear)
+OS_real_timer_clear (void)
 {
   set_timer (ITIMER_REAL, 0, 0);
 }
@@ -327,42 +325,39 @@ DEFUN_VOID (OS_real_timer_clear)
 static unsigned int alarm_interval;
 
 void
-DEFUN_VOID (reschedule_alarm)
+reschedule_alarm (void)
 {
   UX_alarm (alarm_interval);
 }
 
 void
-DEFUN (OS_process_timer_set, (first, interval),
-       clock_t first AND
+OS_process_timer_set (clock_t first,
        clock_t interval)
 {
   error_unimplemented_primitive ();
 }
 
 void
-DEFUN_VOID (OS_process_timer_clear)
+OS_process_timer_clear (void)
 {
   return;
 }
 
 void
-DEFUN (OS_profile_timer_set, (first, interval),
-       clock_t first AND
+OS_profile_timer_set (clock_t first,
        clock_t interval)
 {
   error_unimplemented_primitive ();
 }
 
 void
-DEFUN_VOID (OS_profile_timer_clear)
+OS_profile_timer_clear (void)
 {
   return;
 }
 
 void
-DEFUN (OS_real_timer_set, (first, interval),
-       clock_t first AND
+OS_real_timer_set (clock_t first,
        clock_t interval)
 {
   alarm_interval = ((interval + 999) / 1000);
@@ -370,7 +365,7 @@ DEFUN (OS_real_timer_set, (first, interval),
 }
 
 void
-DEFUN_VOID (OS_real_timer_clear)
+OS_real_timer_clear (void)
 {
   alarm_interval = 0;
   UX_alarm (0);
@@ -379,7 +374,7 @@ DEFUN_VOID (OS_real_timer_clear)
 #endif /* HAVE_SETITIMER */
 
 void
-DEFUN_VOID (UX_initialize_environment)
+UX_initialize_environment (void)
 {
   initialize_timezone ();
   initialize_process_clock ();
@@ -392,8 +387,8 @@ DEFUN_VOID (UX_initialize_environment)
 static size_t current_dir_path_size = 0;
 static char * current_dir_path = 0;
 
-CONST char *
-DEFUN_VOID (OS_working_dir_pathname)
+const char *
+OS_working_dir_pathname (void)
 {
   if (current_dir_path) {
     return (current_dir_path);
@@ -425,7 +420,7 @@ DEFUN_VOID (OS_working_dir_pathname)
 }
 
 void
-DEFUN (OS_set_working_dir_pathname, (name), CONST char * name)
+OS_set_working_dir_pathname (const char * name)
 {
   size_t name_size = strlen (name);
   STD_VOID_SYSTEM_CALL (syscall_chdir, (UX_chdir (name)));
@@ -433,7 +428,7 @@ DEFUN (OS_set_working_dir_pathname, (name), CONST char * name)
     if (name_size < current_dir_path_size) {
       strcpy(current_dir_path, name);
       return;
-    } 
+    }
     current_dir_path_size *= 2;
     {
       char * new_current_dir_path =
@@ -445,11 +440,11 @@ DEFUN (OS_set_working_dir_pathname, (name), CONST char * name)
   }
 }
 
-CONST char *
-DEFUN_VOID (OS_current_user_name)
+const char *
+OS_current_user_name (void)
 {
   {
-    CONST char * result = (UX_getlogin ());
+    const char * result = (UX_getlogin ());
     if ((result != 0) && (*result != '\0'))
       return (result);
   }
@@ -462,8 +457,8 @@ DEFUN_VOID (OS_current_user_name)
   return (0);
 }
 
-CONST char *
-DEFUN_VOID (OS_current_user_home_directory)
+const char *
+OS_current_user_home_directory (void)
 {
   {
     char * user_name = (UX_getlogin ());

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: avltree.h,v 1.7 2003/02/14 18:48:11 cph Exp $
+$Id: avltree.h,v 1.7.2.1 2005/08/22 18:05:57 cph Exp $
 
-Copyright 1993, 1999-2001 Massachusetts Institute of Technology
+Copyright 1993,2000,2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -33,8 +33,8 @@ USA.
 
 #include "config.h"
 
-extern CONST char * tree_error_message;
-extern CONST char * tree_error_noise;
+extern const char * tree_error_message;
+extern const char * tree_error_noise;
 
 typedef struct tree_node_s * tree_node;
 
@@ -43,14 +43,13 @@ struct tree_node_s
   int height;
   tree_node left;
   tree_node rite;
-  CONST char * name;
+  const char * name;
   unsigned long value;
 };
 
-extern tree_node EXFUN
-  (tree_build, (unsigned long, CONST char **, unsigned long));
-extern tree_node EXFUN (tree_lookup, (tree_node, CONST char *));
-extern tree_node EXFUN (tree_insert, (tree_node, CONST char *, unsigned long));
-extern void EXFUN (tree_free, (tree_node));
+extern tree_node tree_build (unsigned long, const char **, unsigned long);
+extern tree_node tree_lookup (tree_node, const char *);
+extern tree_node tree_insert (tree_node, const char *, unsigned long);
+extern void tree_free (tree_node);
 
 #endif /* AVLTREE_H */

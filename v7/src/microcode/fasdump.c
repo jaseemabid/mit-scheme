@@ -1,8 +1,10 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68 2003/02/14 18:28:18 cph Exp $
+$Id: fasdump.c,v 9.68.2.1 2005/08/22 18:05:58 cph Exp $
 
-Copyright (c) 1987-2001 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
+Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -36,573 +38,582 @@ USA.
 #include "trap.h"
 #include "lookup.h"
 #include "fasl.h"
+#include <setjmp.h>
 
-static Tchannel dump_channel;
+typedef enum { FE_ERROR, FE_DUMP, FE_DROP_CC } env_mode_t;
 
-#define Write_Data(size, buffer)					\
-  ((long)								\
-   ((OS_channel_write_dump_file						\
-     (dump_channel,							\
-      ((char *) (buffer)),						\
-      ((size) * (sizeof (SCHEME_OBJECT)))))				\
-    / (sizeof (SCHEME_OBJECT))))
+typedef struct
+{
+  gc_ctx_t gc_ctx;
+  SCHEME_OBJECT ** pfix;
+  env_mode_t mode;
+  prim_renumber_t * pr;
+  bool cc_seen_p;
+} fd_ctx_t;
 
-#include "dump.c"
+#define CTX_PFIX(ctx) (((fd_ctx_t *) (ctx))->pfix)
+#define CTX_MODE(ctx) (((fd_ctx_t *) (ctx))->mode)
+#define CTX_PR(ctx) (((fd_ctx_t *) (ctx))->pr)
+#define CTX_CC_SEEN_P(ctx) (((fd_ctx_t *) (ctx))->cc_seen_p)
 
-extern SCHEME_OBJECT
-  EXFUN (dump_renumber_primitive, (SCHEME_OBJECT)),
-  * EXFUN (initialize_primitive_table, (SCHEME_OBJECT *, SCHEME_OBJECT *)),
-  * EXFUN (cons_primitive_table, (SCHEME_OBJECT *, SCHEME_OBJECT *, long *)),
-  * EXFUN (cons_whole_primitive_table,
-	   (SCHEME_OBJECT *, SCHEME_OBJECT *, long *)),
-  * EXFUN (cons_c_code_table, (SCHEME_OBJECT *, SCHEME_OBJECT *, long *));
+static jmp_buf fasdump_loop_env;
+static long fasdump_loop_result;
+
+static gc_table_t fasdump_table;
+static gc_handler_t handle_primitive;
+static gc_handler_t handle_manifest_closure;
+static gc_handler_t handle_linkage_section;
+static gc_handler_t handle_symbol;
+static gc_handler_t handle_variable;
+static gc_handler_t handle_environment;
+
+static long fasdump_loop
+  (env_mode_t, prim_renumber_t *, bool *,
+   SCHEME_OBJECT **, SCHEME_OBJECT **, SCHEME_OBJECT *);
+
+static gc_tuple_handler_t fasdump_tuple;
+static gc_vector_handler_t fasdump_vector;
+static gc_object_handler_t fasdump_cc_entry;
+static gc_object_handler_t fasdump_weak_pair;
+
+static SCHEME_OBJECT * fasdump_transport_words
+  (SCHEME_OBJECT *, unsigned long, bool, gc_ctx_t *);
+
+static void initialize_object_fasl_header (fasl_header_t *);
+static void initialize_band_fasl_header (fasl_header_t *);
+static void initialize_fasl_header_1 (fasl_header_t *);
+static void save_fasl_header_cc_info (fasl_header_t *, bool);
+static bool write_fasl_file (Tchannel, SCHEME_OBJECT *, fasl_header_t *);
+static void encode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
+static bool write_file_section (Tchannel, void *, size_t);
 
-/* Some statics used freely in this file */
-
-static SCHEME_OBJECT *NewFree, *NewMemTop, *Fixup;
-static Boolean compiled_code_present_p;
-static CONST char * dump_file_name = ((char *) 0);
-
 /* FASDUMP:
 
-   Hair squared! ... in order to dump an object it must be traced (as
-   in a garbage collection), but with some significant differences.
-   First, the copy must have the global value cell of symbols set to
-   UNBOUND and variables uncompiled.  Second, and worse, all the
-   broken hearts created during the process must be restored to their
-   original values.  This last is done by growing the copy of the
-   object in the bottom of spare heap, keeping track of the locations
-   of broken hearts and original contents at the top of the spare
-   heap.
+   In order to dump an object it must be traced (as in a garbage
+   collection), but with some significant differences.  First, the
+   copy must have the global value cell of symbols set to UNBOUND.
+   Second, and worse, all the broken hearts created during the process
+   must be restored to their original values.  This last is done by
+   growing the copy of the object in the bottom of spare heap, keeping
+   track of the locations of broken hearts and original contents at
+   the top of the spare heap.  */
 
-   FASDUMP is called with three arguments:
-   Argument 1: Object to dump.
-   Argument 2: File name.
-   Argument 3: Flag.
-   Currently, flag is ignored.
-*/
-
-/*
-   Copy of GCLoop, except (a) copies out of constant space into the
-   object to be dumped; (b) changes symbols and variables as
-   described; (c) keeps track of broken hearts and their original
-   contents (e) To_Pointer is now NewFree.
-*/
-
-#define Setup_Pointer_for_Dump(Extra_Code)				\
-  Dump_Pointer (Fasdump_Setup_Pointer (Extra_Code,			\
-				       Normal_BH (false, continue)))
-
-#define Dump_Pointer(Code)						\
-  Old = (OBJECT_ADDRESS (Temp));					\
-  Code
-
-#define DUMP_RAW_POINTER(Code)						\
-  Old = (SCHEME_ADDR_TO_ADDR (Temp));					\
-  Code
-
-/* This depends on the fact that the last word in a compiled code block
-   contains the environment, and that To will be pointing to the word
-   immediately after that!
- */
-
-#define Fasdump_Transport_Compiled()					\
-{									\
-  Transport_Compiled ();						\
-  if ((mode == 2) && ((OBJECT_TYPE (*(To - 1))) == TC_ENVIRONMENT))	\
-    *(To - 1) = SHARP_F;						\
-}
-
-#define FASDUMP_TRANSPORT_RAW_COMPILED()				\
-{									\
-  TRANSPORT_RAW_COMPILED ();						\
-  if ((mode == 2) && ((OBJECT_TYPE (*(To - 1))) == TC_ENVIRONMENT))	\
-    *(To - 1) = SHARP_F;						\
-}
-
-#define Dump_Compiled_Entry(label)					\
-{									\
-  Dump_Pointer								\
-    (Fasdump_Setup_Aligned (Fasdump_Transport_Compiled (),		\
-			    Compiled_BH (false, goto label)));		\
-}
-
-#define DUMP_RAW_COMPILED_ENTRY(label)					\
-{									\
-  DUMP_RAW_POINTER							\
-    (Fasdump_Setup_Aligned (FASDUMP_TRANSPORT_RAW_COMPILED (),		\
-			    RAW_COMPILED_BH (false,			\
-					     goto label)));		\
-}
-
-/* Should be big enough for the largest fixed size object (a Quad)
-   and 2 for the Fixup.
- */
-
-#define FASDUMP_FIX_BUFFER 10
-
-long
-DEFUN (DumpLoop, (Scan, mode), fast SCHEME_OBJECT * Scan AND int mode)
+DEFINE_PRIMITIVE ("PRIMITIVE-FASDUMP", Prim_prim_fasdump, 3, 3,
+		  "(OBJECT NAMESTRING FLAG)\n\
+Writes a binary representation of OBJECT to the file NAMESTRING.\n\
+Returns #T if the operation is successful, or #F otherwise.\n\
+\n\
+FLAG specifies how to handle environment objects that OBJECT points\n\
+to: #F means generate an error; #T means write them as ordinary\n\
+objects; any other value is like #F except that environments pointed\n\
+at by compiled code are ignored (and discarded).")
 {
-  fast SCHEME_OBJECT *To, *Old, Temp, New_Address, *Fixes;
-  long result;
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-  SCHEME_OBJECT object_referencing;
-#endif
-
-  To = NewFree;
-  Fixes = Fixup;
-
-  for ( ; Scan != To; Scan++)
-  {
-    Temp = *Scan;
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-    object_referencing = Temp;
-#endif
-
-    Switch_by_GC_Type (Temp)
-    {
-      case TC_PRIMITIVE:
-      case TC_PCOMB0:
-        * Scan = (dump_renumber_primitive (* Scan));
-	break;
-
-      case TC_BROKEN_HEART:
-        if ((OBJECT_DATUM (Temp)) != 0)
-	{
-	  sprintf (gc_death_message_buffer,
-		   "dumploop: broken heart (0x%lx) in scan",
-		   ((long) Temp));
-	  gc_death (TERM_BROKEN_HEART, gc_death_message_buffer, Scan, To);
-	  /*NOTREACHED*/
-	}
-	break;
-
-      case TC_MANIFEST_NM_VECTOR:
-      case TC_MANIFEST_SPECIAL_NM_VECTOR:
-	Scan += (OBJECT_DATUM (Temp));
-	break;
-
-      /* Compiled code relocation. */
-
-      case_compiled_entry_point:
-	compiled_code_present_p = true;
-	Dump_Compiled_Entry (after_entry);
-      after_entry:
-	* Scan = Temp;
-	break;
-
-      case TC_MANIFEST_CLOSURE:
-      {
-	fast long count;
-	fast char * word_ptr;
-	SCHEME_OBJECT * area_end;
-
-	compiled_code_present_p = true;
-	START_CLOSURE_RELOCATION (Scan);
-	Scan += 1;
-	count = (MANIFEST_CLOSURE_COUNT (Scan));
-	word_ptr = (FIRST_MANIFEST_CLOSURE_ENTRY (Scan));
-	area_end = ((MANIFEST_CLOSURE_END (Scan, count)) - 1);
-
-	while ((--count) >= 0)
-	{
-	  Scan = ((SCHEME_OBJECT *) (word_ptr));
-	  word_ptr = (NEXT_MANIFEST_CLOSURE_ENTRY (word_ptr));
-	  EXTRACT_CLOSURE_ENTRY_ADDRESS (Temp, Scan);
-	  DUMP_RAW_COMPILED_ENTRY (after_closure);
-	after_closure:
-	  STORE_CLOSURE_ENTRY_ADDRESS (Temp, Scan);
-	}
-	Scan = area_end;
-	END_CLOSURE_RELOCATION (Scan);
-	break;
-      }
-
-      case TC_LINKAGE_SECTION:
-      {
-	compiled_code_present_p = true;
-	switch (READ_LINKAGE_KIND (Temp))
-	{
-	  case REFERENCE_LINKAGE_KIND:
-	  case ASSIGNMENT_LINKAGE_KIND:
-	  {
-	    /* Assumes that all others are objects of type TC_QUAD without
-	       their type codes.
-	     */
-
-	    fast long count;
-
-	    Scan++;
-	    for (count = (READ_CACHE_LINKAGE_COUNT (Temp));
-		 --count >= 0;
-		 Scan += 1)
-	    {
-	      Temp = (* Scan);
-	      DUMP_RAW_POINTER (Fasdump_Setup_Pointer
-				(TRANSPORT_RAW_TRIPLE (),
-				 RAW_BH (false, continue)));
-	    }
-	    Scan -= 1;
-	    break;
-	  }
-
-	  case OPERATOR_LINKAGE_KIND:
-	  case GLOBAL_OPERATOR_LINKAGE_KIND:
-	  {
-	    fast long count;
-	    fast char * word_ptr;
-	    SCHEME_OBJECT * end_scan;
-
-	    START_OPERATOR_RELOCATION (Scan);
-	    count = (READ_OPERATOR_LINKAGE_COUNT (Temp));
-	    word_ptr = (FIRST_OPERATOR_LINKAGE_ENTRY (Scan));
-	    end_scan = (END_OPERATOR_LINKAGE_AREA (Scan, count));
-
-	    while (--count >= 0)
-	    {
-	      Scan = ((SCHEME_OBJECT *) (word_ptr));
-	      word_ptr = (NEXT_LINKAGE_OPERATOR_ENTRY (word_ptr));
-	      EXTRACT_OPERATOR_LINKAGE_ADDRESS (Temp, Scan);
-	      DUMP_RAW_COMPILED_ENTRY (after_operator);
-	    after_operator:
-	      STORE_OPERATOR_LINKAGE_ADDRESS (Temp, Scan);
-	    }
-	    Scan = end_scan;
-	    END_OPERATOR_RELOCATION (Scan);
-	    break;
-	  }
-
-	  case CLOSURE_PATTERN_LINKAGE_KIND:
-	    Scan += (READ_CACHE_LINKAGE_COUNT (Temp));
-	    break;
-
-	  default:
-	  {
-	    gc_death (TERM_EXIT,
-		      "fasdump: Unknown compiler linkage kind.",
-		      Scan, Free);
-	    /*NOTREACHED*/
-	  }
-	}
-	break;
-      }
-
-      case_Cell:
-	Setup_Pointer_for_Dump (Transport_Cell ());
-	break;
-
-      case TC_REFERENCE_TRAP:
-	if ((OBJECT_DATUM (Temp)) <= TRAP_MAX_IMMEDIATE)
-	{
-	  /* It is a non pointer. */
-	  break;
-	}
-	/* Fall through. */
-
-      case TC_WEAK_CONS:
-      case_Fasdump_Pair:
-	Setup_Pointer_for_Dump (Transport_Pair ());
-	break;
-
-      case TC_INTERNED_SYMBOL:
-	Setup_Pointer_for_Dump (Fasdump_Symbol (BROKEN_HEART_ZERO));
-	break;
-
-      case TC_UNINTERNED_SYMBOL:
-	Setup_Pointer_for_Dump (Fasdump_Symbol (UNBOUND_OBJECT));
-	break;
-
-      case_Triple:
-	Setup_Pointer_for_Dump (Transport_Triple ());
-	break;
-
-      case TC_VARIABLE:
-	Setup_Pointer_for_Dump (Fasdump_Variable ());
-	break;
-
-      case_Quadruple:
-	Setup_Pointer_for_Dump (Transport_Quadruple ());
-	break;
-
-      case_Aligned_Vector:
-	Dump_Pointer (Fasdump_Setup_Aligned (goto Move_Vector,
-					     Normal_BH (false, continue)));
-	break;
-
-      case_Purify_Vector:
-      process_vector:
-	Setup_Pointer_for_Dump (Transport_Vector ());
-	break;
-
-      case TC_ENVIRONMENT:
-	if (mode == 1)
-	  goto process_vector;
-	/* Make fasdump fail */
-	result = ERR_FASDUMP_ENVIRONMENT;
-	goto exit_dumploop;
-
-      case TC_FUTURE:
-	Setup_Pointer_for_Dump (Transport_Future ());
-	break;
-
-      default:
-	GC_BAD_TYPE ("dumploop", Temp);
-	/* Fall Through */
-
-      case TC_STACK_ENVIRONMENT:
-      case_Fasload_Non_Pointer:
-	break;
-      }
-  }
-  result = PRIM_DONE;
-
-exit_dumploop:
-  NewFree = To;
-  Fixup = Fixes;
-  return (result);
-}
-
-#define DUMPLOOP(obj, mode)						\
-{									\
-  long value;								\
-									\
-  value = (DumpLoop (obj, mode));					\
-  if (value != PRIM_DONE)						\
-  {									\
-    PRIMITIVE_RETURN (Fasdump_Exit (value, false));			\
-  }									\
-}
-
-#define FASDUMP_INTERRUPT()						\
-{									\
-  PRIMITIVE_RETURN (Fasdump_Exit (PRIM_INTERRUPT, false));		\
-}
-
-SCHEME_OBJECT
-DEFUN (Fasdump_Exit, (code, close_p), long code AND Boolean close_p)
-{
-  Boolean result;
-  fast SCHEME_OBJECT *Fixes;
-
-  Fixes = Fixup;
-  if (close_p)
-    OS_channel_close_noerror (dump_channel);
-
-  result = true;
-  while (Fixes != NewMemTop)
-  {
-    fast SCHEME_OBJECT *Fix_Address;
-
-    Fix_Address = (OBJECT_ADDRESS (*Fixes++)); /* Where it goes. */
-    *Fix_Address = *Fixes++;             /* Put it there. */
-  }
-  Fixup = Fixes;
-  if ((close_p) && ((!result) || (code != PRIM_DONE)))
-    OS_file_remove (dump_file_name);
-
-  dump_file_name = ((char *) 0);
-  Fasdump_Exit_Hook ();
-  if (!result)
-  {
-    signal_error_from_primitive (ERR_IO_ERROR);
-    /*NOTREACHED*/
-    return (0);
-  }
-  if (code == PRIM_DONE)
-    return (SHARP_T);
-  else if (code == PRIM_INTERRUPT)
-    return (SHARP_F);
-  else
-  {
-    signal_error_from_primitive (code);
-    /*NOTREACHED*/
-    return (0);
-  }
-}
-
-/* (PRIMITIVE-FASDUMP object-to-dump filename-or-channel flag)
-
-   Dump an object into a file so that it can be loaded using
-   BINARY-FASLOAD.  A spare heap is required for this operation.  The
-   first argument is the object to be dumped.  The second is the
-   filename or channel.  The primitive returns #T or #F indicating
-   whether it successfully dumped the object (it can fail on an object
-   that is too large).  It should signal an error rather than return
-   false, but ... some other time.
-
-   The third argument, FLAG, specifies how to handle the dumping of
-   environment objects:
-   - SHARP_F means that it is an error to dump an object containing
-   environment objects.
-   - SHARP_T means that they should be dumped as if they were ordinary
-   objects.
-   - anything else means that the environment objects pointed at by
-   compiled code blocks should be eliminated on the dumped copy,
-   but other environments are not allowed.
-*/
-
-DEFINE_PRIMITIVE ("PRIMITIVE-FASDUMP", Prim_prim_fasdump, 3, 3, 0)
-{
-  Tchannel channel = NO_CHANNEL;
-  Boolean arg_string_p;
-  SCHEME_OBJECT Object, *New_Object, arg2, flag;
-  SCHEME_OBJECT * prim_table_start, * prim_table_end;
-  long Length, prim_table_length;
-  Boolean result;
+  const char * filename;
+  Tchannel channel;
+  fasl_header_t h;
+  bool cc_seen_p;
+  SCHEME_OBJECT * to;
+  SCHEME_OBJECT * fix;
+  prim_renumber_t * pr;
+  long code;
+  SCHEME_OBJECT * prim_table_start;
   PRIMITIVE_HEADER (3);
 
-  Object = (ARG_REF (1));
-  arg2 = (ARG_REF (2));
-  arg_string_p = (STRING_P (arg2));
-  if (!arg_string_p)
-    channel = (arg_channel (2));
-  flag = (ARG_REF (3));
+  filename = (STRING_ARG (2));
+  channel = (OS_open_dump_file (filename));
+  if (channel == NO_CHANNEL)
+    error_bad_range_arg (2);
 
-  compiled_code_present_p = false;
+  initialize_object_fasl_header (&h);
 
-  prim_table_end = &Free[(Space_Before_GC ())];
-  prim_table_start = (initialize_primitive_table (Free, prim_table_end));
-  if (prim_table_start >= prim_table_end)
-    Primitive_GC (prim_table_start - Free);
+  cc_seen_p = false;
+  to = inactive_heap_start;
+  fix = inactive_heap_end;
 
-  Fasdump_Free_Calc (NewFree, NewMemTop);
-  Fixup = NewMemTop;
-  ALIGN_FLOAT (NewFree);
-  New_Object = NewFree;
-  *NewFree++ = Object;
+  (FASLHDR_HEAP_START (&h)) = to;
+  (FASLHDR_ROOT_POINTER (&h)) = to;
+  (*to++) = (ARG_REF (1));
 
-  if (arg_string_p)
-  {
-    /* This needs to be done before Fasdump_Exit is called.
-       DUMPLOOP may do that.
-       It should not be done if the primitive will not call
-       Fasdump_Exit on its way out (ie. Primitive_GC above).
-     */
-    dump_file_name = ((CONST char *) (STRING_LOC (arg2, 0)));
-  }
+  transaction_begin ();
+  pr = (make_prim_renumber ());
 
-  DUMPLOOP (New_Object,
-	    ((flag == SHARP_F) ? 0 : ((flag == SHARP_T) ? 1 : 2)));
-  Length = (NewFree - New_Object);
-  prim_table_start = NewFree;
-  prim_table_end = (cons_primitive_table (NewFree, Fixup, &prim_table_length));
-  if (prim_table_end >= Fixup)
-    FASDUMP_INTERRUPT ();
+  code = (fasdump_loop ((((ARG_REF (3)) == SHARP_F)
+			 ? FE_ERROR
+			 : ((ARG_REF (3)) == SHARP_T)
+			 ? FE_DUMP
+			 : FE_DROP_CC),
+			pr,
+			(&cc_seen_p),
+			(&to),
+			(&fix),
+			(FASLHDR_ROOT_POINTER (&h))));
+  if (code != PRIM_DONE)
+    {
+      transaction_abort ();
+      goto done;
+    }
+  (FASLHDR_HEAP_END (&h)) = to;
+  save_fasl_header_cc_info ((&h), cc_seen_p);
 
-#ifdef NATIVE_CODE_IS_C
+  prim_table_start = to;
+  (FASLHDR_N_PRIMITIVES (&h)) = (pr->next_code);
+  (FASLHDR_PRIMITIVE_TABLE_SIZE (&h))
+    = (renumbered_primitives_export_length (pr));
+  to += (FASLHDR_PRIMITIVE_TABLE_SIZE (&h));
+  if (to > (fix - 2))		/* 2 accounts for fixup to be pushed */
+    {
+      transaction_abort ();
+      code = PRIM_INTERRUPT;
+      goto done;
+    }
+  export_renumbered_primitives (prim_table_start, pr);
+  transaction_commit ();
 
-  /* Cannot dump C compiled code. */
+  code
+    = ((write_fasl_file (channel, prim_table_start, (&h)))
+       ? PRIM_DONE
+       : PRIM_INTERRUPT);
 
-  if (compiled_code_present_p)
-    PRIMITIVE_RETURN (Fasdump_Exit (ERR_COMPILED_CODE_ERROR, false));
+ done:
 
-#endif /* NATIVE_CODE_IS_C */
+  while (fix < inactive_heap_end)
+    {
+      SCHEME_OBJECT * address = (OBJECT_ADDRESS (*fix++));
+      (*address) = (*fix++);
+    }
 
-  if (arg_string_p)
-  {
-    channel = (OS_open_dump_file (dump_file_name));
-    if (channel == NO_CHANNEL)
-      PRIMITIVE_RETURN (Fasdump_Exit (ERR_ARG_2_BAD_RANGE, false));
-  }
+  OS_channel_close_noerror (channel);
+  if (code != PRIM_DONE)
+    OS_file_remove (filename);
 
-  dump_channel = channel;
-  result = (Write_File (New_Object,
-			Length, New_Object,
-			0, Constant_Space,
-			prim_table_start, prim_table_length,
-			((long) (prim_table_end - prim_table_start)),
-			prim_table_end, 0, 0,
-			compiled_code_present_p, false));
-
-  PRIMITIVE_RETURN (Fasdump_Exit ((result ? PRIM_DONE : PRIM_INTERRUPT),
-				  arg_string_p));
+  if (code == PRIM_DONE)
+    PRIMITIVE_RETURN (SHARP_T);
+  else if (code == PRIM_INTERRUPT)
+    PRIMITIVE_RETURN (SHARP_F);
+  else
+    {
+      signal_error_from_primitive (code);
+      /*NOTREACHED*/
+      PRIMITIVE_RETURN (0);
+    }
 }
 
-/* (DUMP-BAND PROCEDURE FILE-NAME)
-   Saves all of the heap and pure space on FILE-NAME.  When the
-   file is loaded back using BAND_LOAD, PROCEDURE is called with an
-   argument of #F.
-*/
+/* Copy of gc_loop, except (a) copies out of constant space into the
+   object to be dumped; (b) changes symbols and variables as
+   described; (c) keeps track of broken hearts and their original
+   contents.  */
 
-DEFINE_PRIMITIVE ("DUMP-BAND", Prim_band_dump, 2, 2, 0)
+static long
+fasdump_loop (env_mode_t mode, prim_renumber_t * pr, bool * cc_seen_p,
+	      SCHEME_OBJECT ** pto, SCHEME_OBJECT ** pfix,
+	      SCHEME_OBJECT * scan)
 {
-  SCHEME_OBJECT
-    Combination, * saved_free,
-    * prim_table_start, * prim_table_end,
-    * c_table_start, * c_table_end;
-  long
-    prim_table_length,
-    c_table_length;
-  Boolean result = false;
+  static bool initialized_p = false;
+  fd_ctx_t ctx0;
+  gc_ctx_t * ctx = ((gc_ctx_t *) (&ctx0));
+
+  if (!initialized_p)
+    {
+      initialize_gc_table ((&fasdump_table),
+			   fasdump_tuple,
+			   fasdump_vector,
+			   fasdump_cc_entry,
+			   fasdump_weak_pair);
+      (GCT_ENTRY ((&fasdump_table), TC_PRIMITIVE)) = handle_primitive;
+      (GCT_ENTRY ((&fasdump_table), TC_PCOMB0)) = handle_primitive;
+      (GCT_ENTRY ((&fasdump_table), TC_MANIFEST_CLOSURE))
+	= handle_manifest_closure;
+      (GCT_ENTRY ((&fasdump_table), TC_LINKAGE_SECTION))
+	= handle_linkage_section;
+      (GCT_ENTRY ((&fasdump_table), TC_INTERNED_SYMBOL)) = handle_symbol;
+      (GCT_ENTRY ((&fasdump_table), TC_UNINTERNED_SYMBOL)) = handle_symbol;
+      (GCT_ENTRY ((&fasdump_table), TC_VARIABLE)) = handle_variable;
+      (GCT_ENTRY ((&fasdump_table), TC_ENVIRONMENT)) = handle_environment;
+      initialized_p = true;
+    }
+
+  (GCTX_TABLE (ctx)) = (&fasdump_table);
+  (GCTX_PTO (ctx)) = pto;
+  (CTX_PFIX (ctx)) = pfix;
+  (CTX_MODE (ctx)) = mode;
+  (CTX_PR (ctx)) = pr;
+  (CTX_CC_SEEN_P (ctx)) = false;
+
+  if (setjmp (fasdump_loop_env))
+    return (fasdump_loop_result);
+
+  run_gc_loop (scan, pto, ctx);
+
+  return (PRIM_DONE);
+}
+
+static
+DEFINE_GC_HANDLER (handle_primitive)
+{
+  (*scan) = (renumber_primitive (object, (CTX_PR (ctx))));
+  return (scan + 1);
+}
+
+static
+DEFINE_GC_HANDLER (handle_manifest_closure)
+{
+  (CTX_CC_SEEN_P (ctx)) = true;
+  return (gc_handle_manifest_closure (scan, object, ctx));
+}
+
+static
+DEFINE_GC_HANDLER (handle_linkage_section)
+{
+  (CTX_CC_SEEN_P (ctx)) = true;
+  return (gc_handle_linkage_section (scan, object, ctx));
+}
+
+static
+DEFINE_GC_HANDLER (handle_symbol)
+{
+  SCHEME_OBJECT * from = (OBJECT_ADDRESS (object));
+  SCHEME_OBJECT * new_address;
+
+  if (BROKEN_HEART_P (*from))
+    new_address = (OBJECT_ADDRESS (*from));
+  else
+    {
+      new_address = (fasdump_transport_words (from, 2, 0, ctx));
+      (new_address[SYMBOL_GLOBAL_VALUE])
+	= (((OBJECT_TYPE (object)) == TC_INTERNED_SYMBOL)
+	   ? BROKEN_HEART_ZERO
+	   : UNBOUND_OBJECT);
+    }
+  (*scan) = (OBJECT_NEW_ADDRESS (object, new_address));
+  return (scan + 1);
+}
+
+static
+DEFINE_GC_HANDLER (handle_variable)
+{
+  SCHEME_OBJECT * from = (OBJECT_ADDRESS (object));
+  SCHEME_OBJECT * new_address;
+
+  if (BROKEN_HEART_P (*from))
+    new_address = (OBJECT_ADDRESS (*from));
+  else
+    {
+      new_address = (fasdump_transport_words (from, 3, 0, ctx));
+      (new_address[1]) = UNCOMPILED_VARIABLE;
+      (new_address[2]) = SHARP_F;
+    }
+  (*scan) = (OBJECT_NEW_ADDRESS (object, new_address));
+  return (scan + 1);
+}
+
+static
+DEFINE_GC_HANDLER (handle_environment)
+{
+  if ((CTX_MODE (ctx)) == FE_DUMP)
+    {
+      (*scan) = (fasdump_vector (object, false, ctx));
+      return (scan + 1);
+    }
+  else
+    {
+      fasdump_loop_result = ERR_FASDUMP_ENVIRONMENT;
+      longjmp (fasdump_loop_env, 1);
+    }
+}
+
+static
+DEFINE_GC_TUPLE_HANDLER (fasdump_tuple)
+{
+  SCHEME_OBJECT * from = (OBJECT_ADDRESS (tuple));
+  return
+    (OBJECT_NEW_ADDRESS
+     (tuple,
+      ((BROKEN_HEART_P (*from))
+       ? (OBJECT_ADDRESS (*from))
+       : (fasdump_transport_words (from, n_words, 0, ctx)))));
+}
+
+static
+DEFINE_GC_VECTOR_HANDLER (fasdump_vector)
+{
+  SCHEME_OBJECT * from = (OBJECT_ADDRESS (vector));
+  return
+    (OBJECT_NEW_ADDRESS
+     (vector,
+      ((BROKEN_HEART_P (*from))
+       ? (OBJECT_ADDRESS (*from))
+       : (fasdump_transport_words (from,
+				   (1 + (OBJECT_DATUM (*from))),
+				   align_p,
+				   ctx)))));
+}
+
+static
+DEFINE_GC_OBJECT_HANDLER (fasdump_cc_entry)
+{
+  SCHEME_OBJECT * old_block = (cc_entry_to_block_address (object));
+  SCHEME_OBJECT * new_block;
+
+  (CTX_CC_SEEN_P (ctx)) = true;
+  if (old_block == (OBJECT_ADDRESS (compiler_utilities)))
+    return (object);
+  if (BROKEN_HEART_P (*old_block))
+    new_block = (OBJECT_ADDRESS (*old_block));
+  else
+    {
+      unsigned long length = (OBJECT_DATUM (*old_block));
+      new_block = (fasdump_transport_words (old_block, (1 + length), 1, ctx));
+      if (((CTX_MODE (ctx)) == FE_DROP_CC)
+	  && ((OBJECT_TYPE (new_block[length])) == TC_ENVIRONMENT))
+	(new_block[length]) = SHARP_F;
+    }
+  return (CC_ENTRY_NEW_BLOCK (object, new_block, old_block));
+}
+
+static
+DEFINE_GC_OBJECT_HANDLER (fasdump_weak_pair)
+{
+  return (fasdump_tuple (object, 2, ctx));
+}
+
+static SCHEME_OBJECT *
+fasdump_transport_words (SCHEME_OBJECT * from,
+			 unsigned long n_words,
+			 bool align_p,
+			 gc_ctx_t * ctx)
+{
+  if (((* (GCTX_PTO (ctx))) + n_words) > ((* (CTX_PFIX (ctx))) - 2))
+    {
+      /* Insufficient space to do the transport.  */
+      fasdump_loop_result = PRIM_INTERRUPT;
+      longjmp (fasdump_loop_env, 1);
+    }
+  {
+    SCHEME_OBJECT old_contents = (*from);
+    SCHEME_OBJECT * new_address
+      = (gc_transport_words (from, n_words, align_p, ctx));
+    (* (-- (* (CTX_PFIX (ctx))))) = old_contents;
+    (* (-- (* (CTX_PFIX (ctx))))) = (ADDRESS_TO_DATUM (from));
+    return (new_address);
+  }
+}
+
+DEFINE_PRIMITIVE ("DUMP-BAND", Prim_band_dump, 2, 2,
+		  "(PROCEDURE NAMESTRING)\n\
+Saves an image of the current world to the file NAMESTRING.\n\
+When the file is reloaded, PROCEDURE is called with an argument of #F.")
+{
+  SCHEME_OBJECT * to = Free;
+  fasl_header_t h;
+  SCHEME_OBJECT * prim_table_start;
+  bool result;
   PRIMITIVE_HEADER (2);
 
-  Band_Dump_Permitted ();
   CHECK_ARG (1, INTERPRETER_APPLICABLE_P);
   CHECK_ARG (2, STRING_P);
-  if (Unused_Heap_Bottom < Heap_Bottom)
-    /* Cause the image to be in the low heap, to increase
-       the probability that no relocation is needed on reload. */
+
+  /* Cause the image to be in the low heap, to increase
+     the probability that no relocation is needed on reload. */
+  if (inactive_heap_start < active_heap_start)
     Primitive_GC (0);
+
   Primitive_GC_If_Needed (5);
-  saved_free = Free;
-  Combination = (MAKE_POINTER_OBJECT (TC_COMBINATION_1, Free));
-  Free[COMB_1_FN] = (ARG_REF (1));
-  Free[COMB_1_ARG_1] = SHARP_F;
-  Free += 2;
-  (* Free++) = Combination;
-  (* Free++) = compiler_utilities;
-  (* Free) = (MAKE_POINTER_OBJECT (TC_LIST, (Free - 2)));
-  Free ++;  /* Some compilers are TOO clever about this and increment Free
-	      before calculating Free-2! */
-  prim_table_start = Free;
-  prim_table_end = (cons_whole_primitive_table (prim_table_start,
-						Heap_Top,
-						&prim_table_length));
-  if (prim_table_end >= Heap_Top)
-    goto done;
-
-  c_table_start = prim_table_end;
-  c_table_end = (cons_c_code_table (c_table_start, Heap_Top, &c_table_length));
-  if (c_table_end >= Heap_Top)
-    goto done;
-
+  initialize_band_fasl_header (&h);
   {
-    SCHEME_OBJECT * faligned_heap, * faligned_constant;
-    CONST char * filename = ((CONST char *) (STRING_LOC ((ARG_REF (2)), 0)));
+    SCHEME_OBJECT comb;
+    SCHEME_OBJECT root;
 
-    OS_file_remove_link (filename);
-    dump_channel = (OS_open_dump_file (filename));
-    if (dump_channel == NO_CHANNEL)
-      error_bad_range_arg (2);
+    comb = (MAKE_POINTER_OBJECT (TC_COMBINATION_1, to));
+    (to[COMB_1_FN]) = (ARG_REF (1));
+    (to[COMB_1_ARG_1]) = SHARP_F;
+    to += 2;
 
-    for (faligned_heap = Heap_Bottom;
-	 (! (FLOATING_ALIGNED_P (faligned_heap)));
-	 faligned_heap += 1)
-      ;
-    
-    for (faligned_constant = Constant_Space;
-	 (! (FLOATING_ALIGNED_P (faligned_constant)));
-	 faligned_constant += 1)
-      ;
+    root = (MAKE_POINTER_OBJECT (TC_LIST, to));
+    (*to++) = comb;
+    (*to++) = compiler_utilities;
 
-    result = (Write_File ((Free - 1),
-			  ((long) (Free - faligned_heap)),
-			  faligned_heap,
-			  ((long) (Free_Constant - faligned_constant)),
-			  faligned_constant,
-			  prim_table_start, prim_table_length,
-			  ((long) (prim_table_end - prim_table_start)),
-			  c_table_start, c_table_length,
-			  ((long) (c_table_end - c_table_start)),
-			  (compiler_utilities != SHARP_F), true));
-    OS_channel_close_noerror (dump_channel);
-    if (! result)
-      OS_file_remove (filename);
+    (FASLHDR_ROOT_POINTER (&h)) = to;
+    (*to++) = root;
   }
 
-done:
-  Band_Dump_Exit_Hook ();
-  Free = saved_free;
+  prim_table_start = to;
+  (FASLHDR_N_PRIMITIVES (&h)) = MAX_PRIMITIVE;
+  (FASLHDR_PRIMITIVE_TABLE_SIZE (&h)) = (primitive_table_export_length ());
+  to += (FASLHDR_PRIMITIVE_TABLE_SIZE (&h));
+  if (to > active_heap_end)
+    result = false;
+  else
+    {
+      const char * filename = (STRING_POINTER (ARG_REF (2)));
+      SCHEME_OBJECT * faligned_heap = active_heap_start;
+      SCHEME_OBJECT * faligned_constant = constant_start;
+      Tchannel channel;
+
+      export_primitive_table (prim_table_start);
+
+      while (!FLOATING_ALIGNED_P (faligned_heap))
+	faligned_heap += 1;
+
+      while (!FLOATING_ALIGNED_P (faligned_constant))
+	faligned_constant += 1;
+
+      (FASLHDR_HEAP_START (&h)) = faligned_heap;
+      (FASLHDR_HEAP_END (&h)) = to;
+      (FASLHDR_CONSTANT_START (&h)) = faligned_constant;
+      (FASLHDR_CONSTANT_END (&h)) = constant_alloc_next;
+
+      OS_file_remove_link (filename);
+      channel = (OS_open_dump_file (filename));
+      if (channel == NO_CHANNEL)
+	error_bad_range_arg (2);
+
+      result = (write_fasl_file (channel, prim_table_start, (&h)));
+
+      OS_channel_close_noerror (channel);
+      if (!result)
+	OS_file_remove (filename);
+    }
   PRIMITIVE_RETURN (BOOLEAN_TO_OBJECT (result));
+}
+
+static void
+initialize_object_fasl_header (fasl_header_t * h)
+{
+  initialize_fasl_header_1 (h);
+  (FASLHDR_BAND_P (h)) = false;
+  (FASLHDR_CONSTANT_START (h)) = constant_start;
+  (FASLHDR_CONSTANT_END (h)) = constant_start;
+}
+
+static void
+initialize_band_fasl_header (fasl_header_t * h)
+{
+  initialize_fasl_header_1 (h);
+  (FASLHDR_BAND_P (h)) = true;
+  save_fasl_header_cc_info (h, true);
+}
+
+static void
+initialize_fasl_header_1 (fasl_header_t * h)
+{
+  (FASLHDR_VERSION (h)) = CURRENT_FASL_VERSION;
+  (FASLHDR_ARCH (h)) = CURRENT_FASL_ARCH;
+
+#ifdef HEAP_IN_LOW_MEMORY
+  (FASLHDR_MEMORY_BASE (h)) = 0;
+#else
+  (FASLHDR_MEMORY_BASE (h)) = memory_block_start;
+#endif
+  (FASLHDR_HEAP_RESERVED (h)) = active_heap_reserved;
+
+  (FASLHDR_STACK_START (h)) = stack_start;
+  (FASLHDR_STACK_END (h)) = stack_end;
+}
+
+static void
+save_fasl_header_cc_info (fasl_header_t * h, bool save_p)
+{
+  if (save_p)
+    {
+      (FASLHDR_CC_VERSION (h)) = compiler_interface_version;
+      (FASLHDR_CC_ARCH (h)) = compiler_processor_type;
+      (FASLHDR_UTILITIES_VECTOR (h)) = compiler_utilities;
+    }
+  else
+    {
+      (FASLHDR_CC_VERSION (h)) = 0;
+      (FASLHDR_CC_ARCH (h)) = COMPILER_NONE_TYPE;
+      (FASLHDR_UTILITIES_VECTOR (h)) = SHARP_F;
+    }
+}
+
+static bool
+write_fasl_file (Tchannel channel,
+		 SCHEME_OBJECT * prim_table_start,
+		 fasl_header_t * h)
+{
+  SCHEME_OBJECT raw [FASL_HEADER_LENGTH];
+
+  encode_fasl_header (raw, h);
+  return
+    ((write_file_section (channel, raw, FASL_HEADER_LENGTH))
+     && (write_file_section (channel,
+			     (FASLHDR_HEAP_START (h)),
+			     (FASLHDR_HEAP_SIZE (h))))
+     && (write_file_section (channel,
+			     (FASLHDR_CONSTANT_START (h)),
+			     (FASLHDR_CONSTANT_SIZE (h))))
+     && (write_file_section (channel,
+			     prim_table_start,
+			     (FASLHDR_PRIMITIVE_TABLE_SIZE (h)))));
+}
+
+static void
+encode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
+{
+  {
+    SCHEME_OBJECT * p = raw;
+    SCHEME_OBJECT * e = (raw + FASL_HEADER_LENGTH);
+    while (p < e)
+      (*p++) = SHARP_F;
+  }
+#ifdef DEBUG
+#ifdef HEAP_IN_LOW_MEMORY
+  fprintf (stderr, "\nmemory_base = %#lx\n",
+	   ((unsigned long) (FASLHDR_MEMORY_BASE (h))));
+#endif
+  fprintf (stderr, "\nheap start %#lx\n",
+	   ((unsigned long) (FASLHDR_HEAP_START (h))));
+  fprintf (stderr, "\nroot object %#lx\n",
+	   ((unsigned long) (FASLHDR_ROOT_POINTER (h))));
+#endif
+
+  (raw[FASL_OFFSET_MARKER]) = FASL_FILE_MARKER;
+
+  (raw[FASL_OFFSET_VERSION])
+    = (MAKE_FASL_VERSION ((FASLHDR_VERSION (h)), (FASLHDR_ARCH (h))));
+  (raw[FASL_OFFSET_CI_VERSION])
+    = (MAKE_CI_VERSION ((FASLHDR_BAND_P (h)),
+			(FASLHDR_CC_VERSION (h)),
+			(FASLHDR_CC_ARCH (h))));
+
+  (raw[FASL_OFFSET_MEM_BASE])
+    = ((SCHEME_OBJECT) (FASLHDR_MEMORY_BASE (h)));
+
+  (raw[FASL_OFFSET_DUMPED_OBJ])
+    = (MAKE_BROKEN_HEART (FASLHDR_ROOT_POINTER (h)));
+
+  (raw[FASL_OFFSET_HEAP_BASE])
+    = (MAKE_BROKEN_HEART (FASLHDR_HEAP_START (h)));
+  (raw[FASL_OFFSET_HEAP_SIZE])
+    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_HEAP_SIZE (h))));
+  (raw[FASL_OFFSET_HEAP_RSVD])
+    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_HEAP_RESERVED (h))));
+
+  (raw[FASL_OFFSET_CONST_BASE])
+    = (MAKE_BROKEN_HEART (FASLHDR_CONSTANT_START (h)));
+  (raw[FASL_OFFSET_CONST_SIZE])
+    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_CONSTANT_SIZE (h))));
+
+  (raw[FASL_OFFSET_STACK_START])
+    = (MAKE_BROKEN_HEART (FASLHDR_STACK_START (h)));
+  (raw[FASL_OFFSET_STACK_SIZE])
+    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_STACK_SIZE (h))));
+
+  (raw[FASL_OFFSET_PRIM_LENGTH])
+    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_N_PRIMITIVES (h))));
+  (raw[FASL_OFFSET_PRIM_SIZE])
+    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_PRIMITIVE_TABLE_SIZE (h))));
+
+  (raw[FASL_OFFSET_UT_BASE]) = (FASLHDR_UTILITIES_VECTOR (h));
+}
+
+static bool
+write_file_section (Tchannel channel, void * start, size_t n_words)
+{
+  size_t n_bytes = (n_words * (sizeof (SCHEME_OBJECT)));
+  return
+    ((n_bytes > 0)
+     ? ((OS_channel_write_dump_file (channel, start, n_bytes)) == n_bytes)
+     : true);
 }

@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: lookprm.c,v 1.21 2003/02/14 18:28:20 cph Exp $
+$Id: lookprm.c,v 1.21.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1988-2001 Massachusetts Institute of Technology
+Copyright 1988,1989,1992,1993,1997,2000 Massachusetts Institute of Technology
+Copyright 2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,7 +29,6 @@ USA.
 
 #include "scheme.h"
 #include "prims.h"
-#include "locks.h"
 #include "trap.h"
 #include "lookup.h"
 

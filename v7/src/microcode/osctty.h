@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: osctty.h,v 1.6 2003/02/14 18:28:22 cph Exp $
+$Id: osctty.h,v 1.6.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright 1990,1992,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -30,16 +30,16 @@ USA.
 
 /* If this procedure returns 0, the interrupt control procedures will
    not work correctly. */
-extern int EXFUN (OS_ctty_interrupt_control, (void));
+extern int OS_ctty_interrupt_control (void);
 
 typedef unsigned int Tinterrupt_enables;
-extern void EXFUN (OS_ctty_get_interrupt_enables, (Tinterrupt_enables * mask));
-extern void EXFUN (OS_ctty_set_interrupt_enables, (Tinterrupt_enables * mask));
+extern void OS_ctty_get_interrupt_enables (Tinterrupt_enables * mask);
+extern void OS_ctty_set_interrupt_enables (Tinterrupt_enables * mask);
 
-extern unsigned int EXFUN (OS_ctty_num_int_chars, (void));
-extern cc_t * EXFUN (OS_ctty_get_int_chars, (void));
-extern cc_t * EXFUN (OS_ctty_get_int_char_handlers, (void));
-extern void EXFUN (OS_ctty_set_int_chars, (cc_t *));
-extern void EXFUN (OS_ctty_set_int_char_handlers, (cc_t *));
+extern unsigned int OS_ctty_num_int_chars (void);
+extern cc_t * OS_ctty_get_int_chars (void);
+extern cc_t * OS_ctty_get_int_char_handlers (void);
+extern void OS_ctty_set_int_chars (cc_t *);
+extern void OS_ctty_set_int_char_handlers (cc_t *);
 
 #endif /* SCM_OSCTTY_H */

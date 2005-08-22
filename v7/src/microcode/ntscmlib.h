@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ntscmlib.h,v 1.12 2003/02/14 18:48:12 cph Exp $
+$Id: ntscmlib.h,v 1.12.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright 1993-1999 Massachusetts Institute of Technology
+Copyright 1993,1995,1996,1997,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -86,7 +86,7 @@ typedef struct {
 				       unsigned short *,	/* cs */
 				       unsigned short *,	/* ds */
 				       unsigned short *);	/* ss */
-  
+
   void
     (__cdecl *release_scheme_selectors) (unsigned short,	/* cs */
 					 unsigned short,	/* ds */

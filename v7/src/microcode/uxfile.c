@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: uxfile.c,v 1.13 2004/12/20 04:37:17 cph Exp $
+$Id: uxfile.c,v 1.13.2.1 2005/08/22 18:06:01 cph Exp $
 
 Copyright 1990,1991,1993,1997,2000,2004 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -23,14 +24,16 @@ USA.
 
 */
 
+#include "scheme.h"
+#include "prims.h"
 #include "ux.h"
 #include "osfile.h"
 #include "uxio.h"
 
-extern void EXFUN (terminal_open, (Tchannel channel));
+extern void terminal_open (Tchannel channel);
 
 static enum channel_type
-DEFUN (fd_channel_type, (fd), int fd)
+fd_channel_type (int fd)
 {
   struct stat stat_buf;
   if ((UX_fstat (fd, (&stat_buf))) < 0)
@@ -55,7 +58,7 @@ DEFUN (fd_channel_type, (fd), int fd)
 }
 
 Tchannel
-DEFUN (OS_open_fd, (fd), int fd)
+OS_open_fd (int fd)
 {
   enum channel_type type = (fd_channel_type (fd));
   Tchannel channel;
@@ -66,7 +69,7 @@ DEFUN (OS_open_fd, (fd), int fd)
 }
 
 static Tchannel
-DEFUN (open_file, (filename, oflag), CONST char * filename AND int oflag)
+open_file (const char * filename, int oflag)
 {
   int fd;
   STD_UINT_SYSTEM_CALL
@@ -84,7 +87,7 @@ DEFUN (open_file, (filename, oflag), CONST char * filename AND int oflag)
 
 #define DEFUN_OPEN_FILE(name, oflag)					\
 Tchannel								\
-DEFUN (name, (filename), CONST char * filename)				\
+name (const char * filename)						\
 {									\
   return (open_file (filename, oflag));					\
 }
@@ -100,7 +103,7 @@ DEFUN_OPEN_FILE (OS_open_append_file, (O_WRONLY | O_CREAT | O_APPEND))
 #else
 
 Tchannel
-DEFUN (OS_open_append_file, (filename), CONST char * filename)
+OS_open_append_file (const char * filename)
 {
   error_unimplemented_primitive ();
   return (0);
@@ -109,7 +112,7 @@ DEFUN (OS_open_append_file, (filename), CONST char * filename)
 #endif
 
 static Tchannel
-DEFUN (make_load_channel, (fd), int fd)
+make_load_channel (int fd)
 {
   enum channel_type type = (fd_channel_type (fd));
   if ((type == channel_type_terminal)
@@ -120,7 +123,7 @@ DEFUN (make_load_channel, (fd), int fd)
 }
 
 Tchannel
-DEFUN (OS_open_load_file, (filename), CONST char * filename)
+OS_open_load_file (const char * filename)
 {
   while (1)
     {
@@ -133,7 +136,7 @@ DEFUN (OS_open_load_file, (filename), CONST char * filename)
 }
 
 Tchannel
-DEFUN (OS_open_dump_file, (filename), CONST char * filename)
+OS_open_dump_file (const char * filename)
 {
   while (1)
     {
@@ -146,7 +149,7 @@ DEFUN (OS_open_dump_file, (filename), CONST char * filename)
 }
 
 off_t
-DEFUN (OS_file_length, (channel), Tchannel channel)
+OS_file_length (Tchannel channel)
 {
   struct stat stat_buf;
   STD_VOID_SYSTEM_CALL
@@ -155,7 +158,7 @@ DEFUN (OS_file_length, (channel), Tchannel channel)
 }
 
 off_t
-DEFUN (OS_file_position, (channel), Tchannel channel)
+OS_file_position (Tchannel channel)
 {
   off_t result;
   STD_UINT_SYSTEM_CALL
@@ -166,9 +169,7 @@ DEFUN (OS_file_position, (channel), Tchannel channel)
 }
 
 void
-DEFUN (OS_file_set_position, (channel, position),
-       Tchannel channel AND
-       off_t position)
+OS_file_set_position (Tchannel channel, off_t position)
 {
   off_t result;
   STD_UINT_SYSTEM_CALL
@@ -180,9 +181,7 @@ DEFUN (OS_file_set_position, (channel, position),
 }
 
 void
-DEFUN (OS_file_truncate, (channel, length),
-       Tchannel channel AND
-       off_t length)
+OS_file_truncate (Tchannel channel, off_t length)
 {
   STD_VOID_SYSTEM_CALL
     (syscall_ftruncate,

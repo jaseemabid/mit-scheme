@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: dfloat.c,v 1.8 2003/02/14 18:28:18 cph Exp $
+$Id: dfloat.c,v 1.8.2.1 2005/08/22 18:05:58 cph Exp $
 
-Copyright (c) 1991-1999 Massachusetts Institute of Technology
+Copyright 1991,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -38,7 +38,7 @@ DEFINE_PRIMITIVE ("FLOATING-VECTOR-CONS", Prim_floating_vector_cons, 1, 1, 0)
     long length = (arg_nonnegative_integer (1));
     long length_in_words = (length * FLONUM_SIZE);
     SCHEME_OBJECT result;
-    fast double *vect;
+    double *vect;
 
     ALIGN_FLOAT (Free);
     Primitive_GC_If_Needed (length_in_words + 1);
@@ -64,7 +64,7 @@ DEFINE_PRIMITIVE ("FLOATING-VECTOR-REF", Prim_floating_vector_ref, 2, 2, 0)
   }
 }
 
-extern double EXFUN (arg_flonum, (int));
+extern double arg_flonum (int);
 
 DEFINE_PRIMITIVE ("FLOATING-VECTOR-SET!", Prim_floating_vector_set, 3, 3, 0)
 {

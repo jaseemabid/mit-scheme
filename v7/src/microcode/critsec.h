@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: critsec.h,v 1.6 2003/02/14 18:28:18 cph Exp $
+$Id: critsec.h,v 1.6.2.1 2005/08/22 18:05:58 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -27,40 +27,45 @@ USA.
    There should be a stack of critical sections, each with a
    queue of hooks. */
 
-extern char * critical_section_name;
-extern int critical_section_hook_p;
-extern void EXFUN ((*critical_section_hook), (char *));
+#ifndef SCM_CRITSEC_H
+#define SCM_CRITSEC_H 1
+
+extern const char * critical_section_name;
+extern bool critical_section_hook_p;
+extern void (*critical_section_hook) (const char *);
 
 #define DECLARE_CRITICAL_SECTION()					\
-  char * critical_section_name = 0;					\
-  int critical_section_hook_p;						\
-  void (*critical_section_hook) ()
+  const char * critical_section_name = 0;				\
+  bool critical_section_hook_p;						\
+  void (*critical_section_hook) (const char *)
 
 #define ENTER_CRITICAL_SECTION(name) critical_section_name = (name)
 #define RENAME_CRITICAL_SECTION(name) critical_section_name = (name)
 
-#define EXIT_CRITICAL_SECTION(code_if_hook)				\
+#define EXIT_CRITICAL_SECTION(code_if_hook) do				\
 {									\
   if (critical_section_hook_p)						\
     {									\
       code_if_hook;							\
       {									\
-	char * name = critical_section_name;				\
-	critical_section_hook_p = 0;					\
+	const char * name = critical_section_name;			\
+	critical_section_hook_p = false;				\
 	critical_section_name = 0;					\
 	(*critical_section_hook) (name);				\
       }									\
     }									\
   else									\
     critical_section_name = 0;						\
-}
+} while (0);
 
-#define SET_CRITICAL_SECTION_HOOK(hook)					\
+#define SET_CRITICAL_SECTION_HOOK(hook) do				\
 {									\
   critical_section_hook = (hook);					\
-  critical_section_hook_p = 1;						\
-}
+  critical_section_hook_p = true;					\
+} while (0)
 
-#define CLEAR_CRITICAL_SECTION_HOOK() critical_section_hook_p = 0
+#define CLEAR_CRITICAL_SECTION_HOOK() critical_section_hook_p = false
 #define WITHIN_CRITICAL_SECTION_P() (critical_section_name != 0)
 #define CRITICAL_SECTION_NAME() (critical_section_name)
+
+#endif /* not SCM_CRITSEC_H */

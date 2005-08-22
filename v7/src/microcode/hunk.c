@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: hunk.c,v 9.31 2003/02/14 18:28:19 cph Exp $
+$Id: hunk.c,v 9.31.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1992,1993 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -29,11 +30,9 @@ USA.
 #include "prims.h"
 
 SCHEME_OBJECT
-DEFUN (hunk3_cons,
-       (cxr0, cxr1, cxr2),
-       SCHEME_OBJECT cxr0
-       AND SCHEME_OBJECT cxr1
-       AND SCHEME_OBJECT cxr2)
+hunk3_cons (SCHEME_OBJECT cxr0,
+       SCHEME_OBJECT cxr1,
+       SCHEME_OBJECT cxr2)
 {
   Primitive_GC_If_Needed (3);
   (*Free++) = cxr0;
@@ -60,9 +59,9 @@ DEFINE_PRIMITIVE ("HUNK3-SET-CXR!", Prim_hunk3_set_cxr, 3, 3, 0)
   PRIMITIVE_HEADER (3);
   CHECK_ARG (1, HUNK3_P);
   {
-    fast SCHEME_OBJECT hunk3 = (ARG_REF (1));
-    fast long index = (arg_index_integer (2, 3));
-    fast SCHEME_OBJECT object = (ARG_REF (3));
+    SCHEME_OBJECT hunk3 = (ARG_REF (1));
+    long index = (arg_index_integer (2, 3));
+    SCHEME_OBJECT object = (ARG_REF (3));
     SIDE_EFFECT_IMPURIFY (hunk3, object);
     MEMORY_SET (hunk3, index, object);
   }
@@ -70,7 +69,7 @@ DEFINE_PRIMITIVE ("HUNK3-SET-CXR!", Prim_hunk3_set_cxr, 3, 3, 0)
 }
 
 #define ARG_GC_TRIPLE(arg_number)					\
-  (((GC_Type (ARG_REF (arg_number))) == GC_Triple)			\
+  ((GC_TYPE_TRIPLE (ARG_REF (arg_number)))				\
    ? (ARG_REF (arg_number))						\
    : ((error_wrong_type_arg (arg_number)), ((SCHEME_OBJECT) 0)))
 

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: pruxdld.c,v 1.19 2003/06/06 16:37:47 cph Exp $
+$Id: pruxdld.c,v 1.19.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright 1993,1997,2000,2001,2003 Massachusetts Institute of Technology
+Copyright 1993,1997,2000,2001,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -36,7 +36,7 @@ USA.
 #include <dlfcn.h>
 
 static unsigned long
-DEFUN (dld_load, (path), CONST char * path)
+dld_load (const char * path)
 {
   void * handle = (dlopen (path, (RTLD_LAZY | RTLD_GLOBAL)));
   if (handle == 0)
@@ -51,11 +51,11 @@ DEFUN (dld_load, (path), CONST char * path)
 }
 
 static unsigned long
-DEFUN (dld_lookup, (handle, symbol), unsigned long handle AND char * symbol)
+dld_lookup (unsigned long handle, char * symbol)
 {
-  CONST char * old_error = (dlerror ());
+  const char * old_error = (dlerror ());
   void * address = (dlsym (((void *) handle), symbol));
-  CONST char * new_error = (dlerror ());
+  const char * new_error = (dlerror ());
   if ((address == 0) && (new_error != old_error))
     {
       SCHEME_OBJECT v = (allocate_marked_vector (TC_VECTOR, 3, 1));
@@ -100,7 +100,7 @@ long.  Invoke it, and return the corresponding Scheme integer.")
   PRIMITIVE_HEADER (1);
   PRIMITIVE_RETURN
     (ulong_to_integer
-     ((* ((unsigned long EXFUN ((*), (void))) (arg_ulong_integer (1))))
+     ((* ((unsigned long (*) (void)) (arg_ulong_integer (1))))
       ()));
 }
 
@@ -111,6 +111,5 @@ a C char * pointer.  Allocate and return a Scheme string with the same\n\
 contents.")
 {
   PRIMITIVE_HEADER (1);
-  PRIMITIVE_RETURN
-    (char_pointer_to_string ((unsigned char *) (arg_ulong_integer (1))));
+  PRIMITIVE_RETURN (char_pointer_to_string ((char *) (arg_ulong_integer (1))));
 }

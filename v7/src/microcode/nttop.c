@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: nttop.c,v 1.35 2004/03/09 06:26:50 cph Exp $
+$Id: nttop.c,v 1.35.2.1 2005/08/22 18:05:59 cph Exp $
 
 Copyright 1993,1997,1998,2000,2003,2004 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -52,8 +53,8 @@ extern void NT_restore_traps (void);
 
 /* reset_interruptable_extent */
 
-extern CONST char * OS_Name;
-extern CONST char * OS_Variant;
+extern const char * OS_Name;
+extern const char * OS_Variant;
 
 static const char * w32_error_message (DWORD);
 static int syserr_to_unix_error_code (enum syserr_names);
@@ -412,7 +413,7 @@ w32_error_message (DWORD rc)
 		      ((LPTSTR) (&buffer)),
 		      0,
 		      0));
-  
+
   if (length == 0)
     return (0);
   /* Assumes that we're using ANSI rather than Unicode characters.  */
@@ -478,7 +479,7 @@ OS_restore_external_state (void)
   return;
 }
 
-void 
+void
 bcopy (const char * s1, char * s2, int n)
 {
   while (n-- > 0)
@@ -511,17 +512,17 @@ OS_free (void * ptr)
 }
 
 void
-OS_syscall_names (unsigned int * length, unsigned char *** names)
+OS_syscall_names (unsigned long * length, const char *** names)
 {
   (*length) = ((sizeof (syscall_names_table)) / (sizeof (char *)));
-  (*names) = ((unsigned char **) syscall_names_table);
+  (*names) = syscall_names_table;
 }
 
 void
-OS_syserr_names (unsigned int * length, unsigned char *** names)
+OS_syserr_names (unsigned long * length, const char *** names)
 {
   (*length) = ((sizeof (syserr_names_table)) / (sizeof (char *)));
-  (*names) = ((unsigned char **) syserr_names_table);
+  (*names) = syserr_names_table;
 }
 
 static CRITICAL_SECTION interrupt_registers_lock;

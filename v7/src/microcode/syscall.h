@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: syscall.h,v 1.17 2003/07/09 22:53:51 cph Exp $
+$Id: syscall.h,v 1.17.2.1 2005/08/22 18:06:00 cph Exp $
 
 Copyright 1993,1994,1995,1996,1997,1999 Massachusetts Institute of Technology
-Copyright 2000,2003 Massachusetts Institute of Technology
+Copyright 2000,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -29,24 +29,20 @@ USA.
  */
 
 #ifndef SCM_SYSCALL_H
-#define  SCM_SYSCALL_H
+#define SCM_SYSCALL_H 1
 
 #include "config.h"
 
 #ifdef __OS2__
-
-#define DEFINE_OS2_SYSCALLS
-#include "os2api.h"
-#undef DEFINE_OS2_SYSCALLS
-
-#else /* not __OS2__ */
-#ifdef __WIN32__
-
-#define DEFINE_WIN32_SYSCALLS
-#include "ntapi.h"
-#undef DEFINE_WIN32_SYSCALLS
-
-#else /* not __WIN32__ */
+#  define DEFINE_OS2_SYSCALLS
+#  include "os2api.h"
+#  undef DEFINE_OS2_SYSCALLS
+#else
+#  ifdef __WIN32__
+#    define DEFINE_WIN32_SYSCALLS
+#    include "ntapi.h"
+#    undef DEFINE_WIN32_SYSCALLS
+#  else
 
 enum syscall_names
 {
@@ -156,12 +152,12 @@ enum syserr_names
   syserr_too_many_open_files_in_system
 };
 
-#endif /* not __WIN32__ */
+#  endif /* not __WIN32__ */
 #endif /* not __OS2__ */
 
-extern void EXFUN (error_in_system_call,
-		   (enum syserr_names, enum syscall_names));
-extern void EXFUN (error_system_call, (int, enum syscall_names name));
-extern enum syserr_names EXFUN (OS_error_code_to_syserr, (int));
+extern void error_in_system_call (enum syserr_names, enum syscall_names)
+     NORETURN;
+extern void error_system_call (int, enum syscall_names) NORETURN;
+extern enum syserr_names OS_error_code_to_syserr (int);
 
 #endif /* SCM_SYSCALL_H */

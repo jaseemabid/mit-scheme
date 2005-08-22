@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: os2fs.c,v 1.16 2003/02/14 18:28:22 cph Exp $
+$Id: os2fs.c,v 1.16.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1994-2001 Massachusetts Institute of Technology
+Copyright 1994,1995,1996,1998,1999,2000 Massachusetts Institute of Technology
+Copyright 2001,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -420,11 +421,10 @@ allocate_dir_search_state (void)
 #define DEALLOCATE_DIR_SEARCH_STATE(state) ((state) -> allocatedp) = 0
 
 int
-OS_directory_valid_p (long index)
+OS_directory_valid_p (unsigned int index)
 {
   return
-    ((0 <= index)
-     && (index < n_dir_search_states)
+    ((index < n_dir_search_states)
      && ((REFERENCE_DIR_SEARCH_STATE (index)) -> allocatedp));
 }
 

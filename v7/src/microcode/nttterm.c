@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: nttterm.c,v 1.6 2003/02/14 18:28:21 cph Exp $
+$Id: nttterm.c,v 1.6.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1992-2000 Massachusetts Institute of Technology
+Copyright 1993,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -29,9 +29,9 @@ USA.
 #include "prims.h"
 #include "osterm.h"
 
-extern char * EXFUN (tparam, (char *, char*, int, int, ...));
-extern char * EXFUN (tgoto, (char *, int, int));
-extern int EXFUN (tputs, (char *, int, void (*) (int)));
+extern char * tparam (char *, char*, int, int, ...);
+extern char * tgoto (char *, int, int);
+extern int tputs (char *, int, void (*) (int));
 extern char * BC;
 extern char * UP;
 extern char PC;
@@ -45,7 +45,7 @@ static char tputs_output [TERMCAP_BUFFER_SIZE];
 static char * tputs_output_scan;
 
 static void
-DEFUN (tputs_write_char, (c), int c)
+tputs_write_char (int c)
 {
   (*tputs_output_scan++) = c;
   return;
@@ -61,7 +61,7 @@ DEFINE_PRIMITIVE ("TERMCAP-PARAM-STRING", Prim_termcap_param_string, 5, 5, 0)
 	       (arg_nonnegative_integer (3)),
 	       (arg_nonnegative_integer (4)),
 	       (arg_nonnegative_integer (5))));
-    SCHEME_OBJECT result = (char_pointer_to_string ((unsigned char *) s));
+    SCHEME_OBJECT result = (char_pointer_to_string (s));
     free (s);
     PRIMITIVE_RETURN (result);
   }
@@ -74,11 +74,9 @@ DEFINE_PRIMITIVE ("TERMCAP-GOTO-STRING", Prim_termcap_goto_string, 5, 5, 0)
     BC = (((ARG_REF (4)) == SHARP_F) ? 0 : (STRING_ARG (4)));
     UP = (((ARG_REF (5)) == SHARP_F) ? 0 : (STRING_ARG (5)));
     PRIMITIVE_RETURN
-      (char_pointer_to_string
-       ((unsigned char *)
-	(tgoto ((STRING_ARG (1)),
-		(arg_nonnegative_integer (2)),
-		(arg_nonnegative_integer (3))))));
+      (char_pointer_to_string (tgoto ((STRING_ARG (1)),
+				      (arg_nonnegative_integer (2)),
+				      (arg_nonnegative_integer (3)))));
   }
 }
 

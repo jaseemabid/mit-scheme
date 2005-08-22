@@ -1,9 +1,9 @@
 /* -*- C -*-
 
-$Id: alpha.h,v 1.7 2002/07/02 18:14:15 cph Exp $
+$Id: alpha.h,v 1.7.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1992-1993 Digital Equipment Corporation (D.E.C.)
-Copyright (c) 2001, 2002 Massachusetts Institute of Technology
+Copyright 1992,1993 Digital Equipment Corporation (D.E.C.)
+Copyright 2001,2002,2005 Massachusetts Institute of Technology
 
 This software was developed at the Digital Equipment Corporation
 Cambridge Research Laboratory.  Permission to copy this software, to
@@ -108,7 +108,7 @@ typedef unsigned short format_word; /* 16 bits */
 #define STORE_ABSOLUTE_ADDRESS(entry_point, address)	\
   alpha_store_absolute_address (((void *) entry_point), ((void *) address))
 
-extern void EXFUN(alpha_store_absolute_address, (void *, void *));
+extern void alpha_store_absolute_address(void *, void *);
 
 #define opJMP			0x1A
 #define fnJMP			0x00
@@ -141,8 +141,7 @@ extern void EXFUN(alpha_store_absolute_address, (void *, void *));
 #define opBR			0x30
 
 void
-DEFUN (alpha_store_absolute_address, (entry_point, address),
-       void *entry_point AND void *address)
+alpha_store_absolute_address (void *entry_point, void *address)
 {
   extern void scheme_closure_hook (void);
   int *Instruction_Address = (int *) address;
@@ -207,7 +206,7 @@ Code sequence 3 (test for interrupts):
    LDQ   MEMTOP,0(BLOCK)         -- Fill MemTop register
    BIS   CC_ENTRY_TYPE,temp,temp -- put tag on closure object
    STQ   temp,0(SP)              -- save closure on top of stack
-   BEQ   temp2,Interrupt         -- possible interrupt ...  
+   BEQ   temp2,Interrupt         -- possible interrupt ...
 
 Code sequence 4 (test for interrupts):
   *Note*: In most machines code sequence 3 and 4 are the same and are
@@ -438,8 +437,8 @@ do {									\
    processor might have old copies of.
  */
 
-extern long EXFUN(Synchronize_Caches, (void));
-extern void EXFUN(Flush_I_Cache, (void));
+extern long Synchronize_Caches(void);
+extern void Flush_I_Cache(void);
 
 #if 1
 #define FLUSH_I_CACHE() 		((void) Synchronize_Caches())
@@ -450,7 +449,7 @@ extern void EXFUN(Flush_I_Cache, (void));
 /* This flushes a region of the I-cache.
    It is used after updating an execute cache while running.
    Not needed during GC because FLUSH_I_CACHE will be used.
- */   
+ */
 
 #define FLUSH_I_CACHE_REGION(address, nwords) FLUSH_I_CACHE()
 #define PUSH_D_CACHE_REGION(address, nwords) FLUSH_I_CACHE()
@@ -462,7 +461,7 @@ extern void EXFUN(Flush_I_Cache, (void));
 
 #define VM_PROT_SCHEME (PROT_READ | PROT_WRITE | PROT_EXEC)
 
-#define ASM_RESET_HOOK() interface_initialize((PTR) &utility_table[0])
+#define ASM_RESET_HOOK() interface_initialize((void *) &utility_table[0])
 
 #define REGBLOCK_EXTRA_SIZE		8 /* See lapgen.scm */
 #define COMPILER_REGBLOCK_N_FIXED	16
@@ -475,7 +474,7 @@ extern void EXFUN(Flush_I_Cache, (void));
 #define REGBLOCK_REMQ				REGBLOCK_FIRST_EXTRA+5
 
 void *
-DEFUN (alpha_heap_malloc, (Size), long Size)
+alpha_heap_malloc (long Size)
 { int pagesize;
   caddr_t Heap_Start_Page;
   void *Area;
@@ -497,7 +496,7 @@ DEFUN (alpha_heap_malloc, (Size), long Size)
   return (void *) Heap_Start_Page;
 }
 
-/* ASSUMPTION: Direct mapped first level cache, with 
+/* ASSUMPTION: Direct mapped first level cache, with
    shared secondary caches.  Sizes in bytes.
 */
 #define DCACHE_SIZE		(8*1024)
@@ -505,13 +504,13 @@ DEFUN (alpha_heap_malloc, (Size), long Size)
 #define WRITE_BUFFER_SIZE	(4*DCACHE_LINE_SIZE)
 
 long
-DEFUN_VOID (Synchronize_Caches)
+Synchronize_Caches (void)
 { long Foo=0;
 
   Flush_I_Cache();
   { static volatile long Fake_Out[WRITE_BUFFER_SIZE/(sizeof (long))];
     volatile long *Ptr, *End, i=0;
-    
+
     for (End = &(Fake_Out[WRITE_BUFFER_SIZE/(sizeof (long))]),
 	   Ptr = &(Fake_Out[0]);
 	 Ptr < End;
@@ -524,7 +523,7 @@ DEFUN_VOID (Synchronize_Caches)
 #if 0
   { static volatile long Fake_Out[DCACHE_SIZE/(sizeof (long))];
     volatile long *Ptr, *End;
-    
+
     for (End = &(Fake_Out[DCACHE_SIZE/(sizeof (long))]),
 	   Ptr = &(Fake_Out[0]);
 	 Ptr < End;
@@ -535,16 +534,15 @@ DEFUN_VOID (Synchronize_Caches)
     return Foo;
 }
 
-extern char *EXFUN(allocate_closure, (long, char *));
+extern char *allocate_closure(long, char *);
 
 static void
-DEFUN (interface_initialize, (table),
-       PTR table)
+interface_initialize (void * table)
 { extern void __divq();
   extern void __remq();
 
   Registers[REGBLOCK_ADDRESS_OF_STACK_POINTER] =
-    ((SCHEME_OBJECT) &sp_register);
+    ((SCHEME_OBJECT) &stack_pointer);
   Registers[REGBLOCK_ADDRESS_OF_FREE] =
     ((SCHEME_OBJECT) &Free);
   Registers[REGBLOCK_ADDRESS_OF_UTILITY_TABLE] =
@@ -562,11 +560,8 @@ DEFUN (interface_initialize, (table),
 static long closure_chunk = (1024 * CLOSURE_ENTRY_WORDS);
 static long last_chunk_size;
 
-#define REGBLOCK_CLOSURE_LIMIT	REGBLOCK_CLOSURE_SPACE
-
 char *
-DEFUN (allocate_closure, (size, this_block),
-       long size AND char *this_block)
+allocate_closure (long size, char *this_block)
 /* size in Scheme objects of the block we need to allocate.
    this_block is a pointer to the first entry point in the block we
               didn't manage to allocate.
@@ -576,7 +571,7 @@ DEFUN (allocate_closure, (size, this_block),
 
   free_closure = (SCHEME_OBJECT *)
     (this_block-CLOSURE_OFFSET_OF_FIRST_ENTRY_POINT);
-  limit = ((SCHEME_OBJECT *) Registers[REGBLOCK_CLOSURE_LIMIT]);
+  limit = GET_CLOSURE_SPACE;
   space =  limit - free_closure;
   if (size > space)
   { SCHEME_OBJECT *ptr;
@@ -593,21 +588,21 @@ DEFUN (allocate_closure, (size, this_block),
       */
     }
     free_closure = Free;
-    if ((size <= closure_chunk) && (!(GC_Check (closure_chunk))))
+    if ((size <= closure_chunk) && (!GC_NEEDED_P (closure_chunk)))
     { limit = (free_closure + closure_chunk);
     }
     else
-    { if (GC_Check (size))
-      { if ((Heap_Top - Free) < size)
+    { if (GC_NEEDED_P (size))
+      { if ((active_heap_end - Free) < size)
 	{ /* No way to back out -- die. */
 	  fprintf (stderr, "\nC_allocate_closure (%d): No space.\n", size);
 	  Microcode_Termination (TERM_NO_SPACE);
 	  /* NOTREACHED */
 	}
-	Request_GC (0);
+	REQUEST_GC (0);
       }
       else if (size <= closure_chunk)
-      { Request_GC (0);
+      { REQUEST_GC (0);
       }
       limit = (free_closure + size);
     }
@@ -625,9 +620,9 @@ DEFUN (allocate_closure, (size, this_block),
       wptr += 1;
     }
     PUSH_D_CACHE_REGION (free_closure, last_chunk_size);
-    Registers[REGBLOCK_CLOSURE_LIMIT] = (SCHEME_OBJECT) limit;
+    SET_CLOSURE_SPACE (limit);
   }
-  Registers[REGBLOCK_CLOSURE_FREE] = (SCHEME_OBJECT) (free_closure+size);
+  SET_CLOSURE_FREE (free_closure + size);
   return (((char *) free_closure)+CLOSURE_OFFSET_OF_FIRST_ENTRY_POINT);
 }
 #endif /* IN_CMPINT_C */

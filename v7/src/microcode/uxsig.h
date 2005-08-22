@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxsig.h,v 1.10 2005/06/27 06:03:29 cph Exp $
+$Id: uxsig.h,v 1.10.2.1 2005/08/22 18:06:01 cph Exp $
 
 Copyright 1993,1994,2000,2005 Massachusetts Institute of Technology
 
@@ -48,10 +48,9 @@ USA.
 
 #define DEFUN_STD_HANDLER(name, statement)				\
 Tsignal_handler_result							\
-DEFUN (name, (signo, info, pscp),					\
-       int signo AND							\
-       SIGINFO_T info AND						\
-       SIGCONTEXT_ARG_T * pscp)						\
+name (int signo,							\
+      SIGINFO_T info,							\
+      SIGCONTEXT_ARG_T * pscp)						\
 {									\
   int STD_HANDLER_abortp;						\
   DECLARE_SIGCONTEXT (scp, pscp);					\
@@ -73,10 +72,9 @@ struct handler_record
 
 #define DEFUN_STD_HANDLER(name, statement)				\
 Tsignal_handler_result							\
-DEFUN (name, (signo, info, pscp),					\
-       int signo AND							\
-       SIGINFO_T info AND						\
-       SIGCONTEXT_ARG_T * pscp)						\
+name (int signo,							\
+      SIGINFO_T info,							\
+      SIGCONTEXT_ARG_T * pscp)						\
 {									\
   int STD_HANDLER_abortp;						\
   DECLARE_SIGCONTEXT (scp, pscp);					\
@@ -102,7 +100,7 @@ DEFUN (name, (signo, info, pscp),					\
   SIGNAL_HANDLER_RETURN ();						\
 }
 
-extern void EXFUN (ta_abort_handler, (PTR));
+extern void ta_abort_handler (void *);
 
 #endif /* NEED_HANDLER_TRANSACTION */
 

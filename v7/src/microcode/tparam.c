@@ -1,6 +1,7 @@
 /* Merge parameters into a termcap entry string.
-   Copyright (C) 1985-1992 Free Software Foundation, Inc.
+   Copyright (C) 1985, 1987 Free Software Foundation, Inc.
 
+Copyright 1990,1992,1993,2002,2005 Massachusetts Institute of Technology
 
 		       NO WARRANTY
 
@@ -112,10 +113,8 @@ what you give them.   Help stamp out software-hoarding!  */
 #define NO_ARG_ARRAY
 #endif
 
-#include "ansidecl.h"
-
-extern char * EXFUN (tparam, (char *, char *, int, int, int, int, int));
-extern char * EXFUN (tgoto, (char *, int, int));
+extern char * tparam (char *, char *, int, int, int, int, int);
+extern char * tgoto (char *, int, int);
 
 /* Assuming STRING is the value of a termcap string entry
    containing `%' constructs to expand parameters,
@@ -129,7 +128,7 @@ extern char * EXFUN (tgoto, (char *, int, int));
 
    The fourth and following args to tparam serve as the parameter values.  */
 
-char * EXFUN (tparam1, (char *, char *, int, char *, char *, int *));
+char * tparam1 (char *, char *, int, char *, char *, int *);
 
 /* VARARGS 2 */
 char *
@@ -175,15 +174,15 @@ tparam1 (string, outstring, len, up, left, argp)
      char *outstring;
      int len;
      char *up, *left;
-     register int *argp;
+     int *argp;
 {
-  register int c;
-  register char *p = string;
-  register char *op = outstring;
+  int c;
+  char *p = string;
+  char *op = outstring;
   char *outend;
   int outlen = 0;
 
-  register int tem;
+  int tem;
   int *oargp = argp;
   int doleft = 0;
   int doup = 0;
@@ -195,7 +194,7 @@ tparam1 (string, outstring, len, up, left, argp)
       /* If the buffer might be too short, make it bigger.  */
       if (op + 5 >= outend)
 	{
-	  register char *new;
+	  char *new;
 	  if (outlen == 0)
 	    {
 	      new = (char *) malloc (outlen = 40 + len);

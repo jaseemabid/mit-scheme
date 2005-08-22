@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: ntscreen.h,v 1.22 2003/02/14 18:28:21 cph Exp $
+$Id: ntscreen.h,v 1.22.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1993-2000 Massachusetts Institute of Technology
+Copyright 1993,1994,1995,1996,1997,1998 Massachusetts Institute of Technology
+Copyright 1999,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -153,10 +154,10 @@ typedef struct
 
 #define SCREEN_SETATTRIBUTE	(SCREEN_COMMAND_FIRST+3)
   /* attribute = wParam */
-    
+
 #define SCREEN_GETATTRIBUTE	(SCREEN_COMMAND_FIRST+4)
   /* return  attribute = retval */
-    
+
 #define SCREEN_PEEKEVENT	(SCREEN_COMMAND_FIRST+5)
   /* count  = wParam */
   /* buffer = (SCREEN_EVENT*) lParam */
@@ -211,7 +212,7 @@ typedef LRESULT (* COMMAND_HANDLER) (HWND, WORD);
   /* kind = wParam */
   /* kind=0  : whole screen */
   /* kind=1  : to eol */
-    
+
 /* Predefined commands for SCREEN_SETBINDING etc */
 
 #define SCREEN_COMMAND_CHOOSEFONT	0x400

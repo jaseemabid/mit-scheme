@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: uxutil.c,v 1.9 2003/02/14 18:28:24 cph Exp $
+$Id: uxutil.c,v 1.9.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1990, 1991, 1999, 2000 Massachusetts Institute of Technology
+Copyright 1990,1991,1993,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -23,14 +23,15 @@ USA.
 
 */
 
+#include "scheme.h"
 #include "ux.h"
 #include "uxutil.h"
 #include <ctype.h>
 
-extern void EXFUN (terminal_state_raw, (Ttty_state *, int));
+extern void terminal_state_raw (Ttty_state *, int);
 
-static CONST char *
-DEFUN (char_description_brief, (c), unsigned char c)
+static const char *
+char_description_brief (unsigned char c)
 {
   static char buffer [5];
   switch (c)
@@ -65,11 +66,11 @@ DEFUN (char_description_brief, (c), unsigned char c)
     }
 }
 
-CONST char *
-DEFUN (char_description, (c, long_p), unsigned char c AND int long_p)
+const char *
+char_description (unsigned char c, int long_p)
 {
   static char buffer [64];
-  CONST char * description = (char_description_brief (c));
+  const char * description = (char_description_brief (c));
   if (long_p)
     {
       int meta = (c >= 0200);
@@ -92,19 +93,19 @@ DEFUN (char_description, (c, long_p), unsigned char c AND int long_p)
 static Ttty_state original_tty_state;
 
 void
-DEFUN_VOID (UX_initialize_userio)
+UX_initialize_userio (void)
 {
   UX_terminal_get_state (STDIN_FILENO, (&original_tty_state));
 }
 
 static void
-DEFUN (restore_input_state, (ap), PTR ap)
+restore_input_state (void * ap)
 {
   UX_terminal_set_state (STDIN_FILENO, ap);
 }
 
 static Ttty_state *
-DEFUN_VOID (save_input_state)
+save_input_state (void)
 {
   Ttty_state * s = (dstack_alloc (sizeof (Ttty_state)));
   UX_terminal_get_state (STDIN_FILENO, s);
@@ -113,14 +114,14 @@ DEFUN_VOID (save_input_state)
 }
 
 void
-DEFUN_VOID (userio_buffered_input)
+userio_buffered_input (void)
 {
   save_input_state ();
   UX_terminal_set_state (STDIN_FILENO, (&original_tty_state));
 }
 
 char
-DEFUN_VOID (userio_read_char)
+userio_read_char (void)
 {
   char c;
   while (1)
@@ -141,7 +142,7 @@ DEFUN_VOID (userio_read_char)
 }
 
 char
-DEFUN_VOID (userio_read_char_raw)
+userio_read_char_raw (void)
 {
   transaction_begin ();
   {
@@ -160,20 +161,19 @@ DEFUN_VOID (userio_read_char_raw)
 }
 
 char
-DEFUN (userio_choose_option, (herald, prompt, choices),
-       CONST char * herald AND
-       CONST char * prompt AND
-       CONST char ** choices)
+userio_choose_option (const char * herald,
+		      const char * prompt,
+		      const char ** choices)
 {
   while (1)
     {
       fputs (herald, stdout);
       putc ('\n', stdout);
       {
-	CONST char ** scan = choices;
+	const char ** scan = choices;
 	while (1)
 	  {
-	    CONST char * choice = (*scan++);
+	    const char * choice = (*scan++);
 	    if (choice == 0)
 	      break;
 	    fprintf (stdout, "  %s\n", choice);
@@ -190,10 +190,10 @@ DEFUN (userio_choose_option, (herald, prompt, choices),
 	if (islower (command))
 	  command = (toupper (command));
 	{
-	  CONST char ** scan = choices;
+	  const char ** scan = choices;
 	  while (1)
 	    {
-	      CONST char * choice = (*scan++);
+	      const char * choice = (*scan++);
 	      if (choice == 0)
 		break;
 	      {
@@ -210,7 +210,7 @@ DEFUN (userio_choose_option, (herald, prompt, choices),
 }
 
 int
-DEFUN (userio_confirm, (prompt), CONST char * prompt)
+userio_confirm (const char * prompt)
 {
   while (1)
     {

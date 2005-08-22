@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2term.c,v 1.6 2003/02/14 18:28:22 cph Exp $
+$Id: os2term.c,v 1.6.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1994, 1999, 2000 Massachusetts Institute of Technology
+Copyright 1994,1999,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -73,12 +73,12 @@ OS_terminal_state_size (void)
 }
 
 void
-OS_terminal_get_state (Tchannel channel, PTR statep)
+OS_terminal_get_state (Tchannel channel, void * statep)
 {
 }
 
 void
-OS_terminal_set_state (Tchannel channel, PTR statep)
+OS_terminal_set_state (Tchannel channel, void * statep)
 {
 }
 

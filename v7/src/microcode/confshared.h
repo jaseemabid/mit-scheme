@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: confshared.h,v 11.8 2005/07/24 05:21:11 cph Exp $
+$Id: confshared.h,v 11.8.2.1 2005/08/22 18:05:58 cph Exp $
 
-Copyright 2000,2002,2003 Massachusetts Institute of Technology
+Copyright 2000,2002,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -27,41 +27,119 @@ USA.
 
 #ifndef SCM_CONFSHARED_H
 #define SCM_CONFSHARED_H
+
+#ifndef __STDC__
+#  include "error: compiler must support ANSI C"
+#endif
 
-#include "ansidecl.h"
+/* Enable the stepper.  */
+#define COMPILE_STEPPER 1
 
-/* To enable the STEPPER.  Incompatible with futures. */
-#define COMPILE_STEPPER 
+#ifdef ENABLE_DEBUGGING_TOOLS
+#  undef NDEBUG			/* for assert() */
+#  define WHEN_DEBUGGING(code) do { code } while (0)
+#  define ENABLE_PRIMITIVE_PROFILING
+#else
+#  define NDEBUG 1		/* for assert() */
+#  define WHEN_DEBUGGING(code) do {} while (0)
+#  undef ENABLE_PRIMITIVE_PROFILING
+#endif
 
-/* Some configuration consistency testing */
+/* For use in the C pre-processor, not in code!  */
+#define FALSE 0
+#define TRUE 1
 
-#ifdef COMPILE_STEPPER
-#  ifdef COMPILE_FUTURES
-#    include "Error: The stepper doesn't work with futures."
+#include <stdio.h>
+#include <math.h>
+
+#if STDC_HEADERS
+#  include <stdlib.h>
+#  include <stdarg.h>
+#  include <stddef.h>
+#  include <string.h>
+#  include <ctype.h>
+#  include <limits.h>
+#  include <float.h>
+#  include <assert.h>
+#else
+#  ifdef HAVE_LIMITS_H
+#    include <limits.h>
 #  endif
-#  ifdef USE_STACKLETS
-#    include "Error: The stepper doesn't work with stacklets."
+#  ifdef HAVE_FLOAT_H
+#    include <float.h>
+#  else
+#    include "float.h"
+#  endif
+#  ifdef HAVE_ASSERT_H
+#    include <assert.h>
+#  endif
+#  ifdef HAVE_MALLOC_H
+#    include <malloc.h>
+#  endif
+#  if !HAVE_STRCHR
+#    define strchr index
+#    define strrchr rindex
+#  endif
+   extern char * strchr ();
+   extern char * strrchr ();
+#  if !HAVE_MEMCPY
+#    define memcpy(d, s, n) bcopy ((s), (d), (n))
+#    define memmove(d, s, n) bcopy ((s), (d), (n))
 #  endif
 #endif
 
-/* For use in the C pre-processor, not in code! */
-#define FALSE		0
-#define TRUE		1
+#if HAVE_STDBOOL_H
+#  include <stdbool.h>
+#else
+#  if !HAVE__BOOL
+#    ifdef __cplusplus
+       typedef bool _Bool;
+#    else
+       typedef unsigned char _Bool;
+#    endif
+#  endif
+#  define bool _Bool
+#  define false 0
+#  define true 1
+#  define __bool_true_false_are_defined 1
+#endif
 
-/* These C type definitions are needed by everybody.
-   They should not be here, but it is unavoidable. */
-typedef char Boolean;
-#define true		((Boolean) TRUE)
-#define false		((Boolean) FALSE)
+#ifdef HAVE_STDINT_H
+#  include <stdint.h>
+#endif
+
+#if (CHAR_BIT != 8)
+#  include "error: characters must be 8 bits wide"
+#endif
+
+#if (FLT_RADIX != 2)
+#  include "error: floating-point radix must be 2"
+#endif
+
+#if (SIZEOF_UINTPTR_T > SIZEOF_UNSIGNED_LONG)
+#  include "error: pointers must fit in 'unsigned long'"
+#endif
+
+#if ((defined (__GNUC__)) && (__GNUC__ >= 3))
+#  define ATTRIBUTE(x) __attribute__ (x)
+#  define NORETURN __attribute__ ((__noreturn__))
+#else
+#  define ATTRIBUTE(x)
+#  define NORETURN
+#endif
 
 /* This is the Scheme object type.
    The various fields are defined in "object.h". */
 typedef unsigned long SCHEME_OBJECT;
+#define SIZEOF_SCHEME_OBJECT SIZEOF_UNSIGNED_LONG
 #define OBJECT_LENGTH (CHAR_BIT * SIZEOF_UNSIGNED_LONG)
+
+/* A convenience definition since "unsigned char" is so long.  */
+typedef unsigned char byte_t;
 
 /* Operating System / Machine dependencies:
 
-   For each implementation, be sure to specify FASL_INTERNAL_FORMAT.
+   For each implementation, be sure to specify CURRENT_FASL_ARCH.
    Make sure that there is an appropriate FASL_<machine name>.
    If there isn't, add one to the list below.
 
@@ -94,8 +172,8 @@ typedef unsigned long SCHEME_OBJECT;
    available memory and thus all addresses will fit in the datum portion
    of a Scheme object.  The datum portion of a Scheme object is 8 bits
    less than the length of a C long.  */
-
-/* Possible values for FASL_INTERNAL_FORMAT.  For the most part this
+
+/* Possible values for CURRENT_FASL_ARCH.  For the most part this
    means the processor type, so for example there are several aliases
    for 68000 family processors.  This scheme allows sharing of
    compiled code on machines with the same processor type.  Probably
@@ -103,34 +181,36 @@ typedef unsigned long SCHEME_OBJECT;
    files when we introduce new differences, such as whether or not a
    68881 coprocessor is installed. */
 
-#define FASL_UNKNOWN		0
-#define FASL_PDP10		1
-#define FASL_VAX		2
-#define FASL_68020		3
-#define FASL_68000  		4
-#define FASL_HP_9000_500	5
-#define FASL_IA32		6
-#define FASL_BFLY		7
-#define FASL_CYBER		8
-#define FASL_CELERITY		9
-#define FASL_HP_SPECTRUM	10
-#define FASL_UMAX		11
-#define FASL_PYR		12
-#define FASL_ALLIANT		13
-#define FASL_SPARC		14
-#define FASL_MIPS		15
-#define FASL_APOLLO_68K		16
-#define FASL_APOLLO_PRISM	17
-#define FASL_ALPHA		18
-#define FASL_RS6000		19
+typedef enum
+{
+  FASL_UNKNOWN,
+  FASL_PDP10,
+  FASL_VAX,
+  FASL_68020,
+  FASL_68000,
+  FASL_HP_9000_500,
+  FASL_IA32,
+  FASL_BFLY,
+  FASL_CYBER,
+  FASL_CELERITY,
+  FASL_HP_SPECTRUM,
+  FASL_UMAX,
+  FASL_PYR,
+  FASL_ALLIANT,
+  FASL_SPARC,
+  FASL_MIPS,
+  FASL_APOLLO_68K,
+  FASL_APOLLO_PRISM,
+  FASL_ALPHA,
+  FASL_RS6000
+} fasl_arch_t;
 
 #ifdef vax
 
 /* Amazingly unix and vms agree on all these */
 
 #define MACHINE_TYPE		"vax"
-#define FASL_INTERNAL_FORMAT	FASL_VAX
-#define TYPE_CODE_LENGTH	6
+#define CURRENT_FASL_ARCH	FASL_VAX
 #define HEAP_IN_LOW_MEMORY
 
 /* Not on these, however */
@@ -188,8 +268,7 @@ typedef unsigned long SCHEME_OBJECT;
 #else
 #define MACHINE_TYPE		"hp9000s800"
 #endif
-#define FASL_INTERNAL_FORMAT	FASL_HP_SPECTRUM
-#define TYPE_CODE_LENGTH	6
+#define CURRENT_FASL_ARCH	FASL_HP_SPECTRUM
 #define FLOATING_ALIGNMENT	0x7
 
 /* Heap resides in data space, pointed at by space register 5.
@@ -234,34 +313,27 @@ typedef unsigned long SCHEME_OBJECT;
 #define MACHINE_TYPE		"hp9000s300"
 #endif
 #ifdef MC68010
-#define FASL_INTERNAL_FORMAT	FASL_68000
+#define CURRENT_FASL_ARCH	FASL_68000
 #else
-#define FASL_INTERNAL_FORMAT	FASL_68020
+#define CURRENT_FASL_ARCH	FASL_68020
 #endif
 #define HEAP_IN_LOW_MEMORY
-#define TYPE_CODE_LENGTH	6
 
 #endif /* hp9000s300 */
 
 #ifdef hp9000s500
 #define MACHINE_TYPE		"hp9000s500"
-#define FASL_INTERNAL_FORMAT 	FASL_HP_9000_500
+#define CURRENT_FASL_ARCH 	FASL_HP_9000_500
 
 /* An unfortunate fact of life on this machine:
    the C heap is in high memory thus HEAP_IN_LOW_MEMORY is not
    defined and the whole thing runs slowly.  */
 
-/* C Compiler bug when constant folding and anchor pointing */
-#define And2(x, y)	((x) ? (y) : false)
-#define And3(x, y, z)	((x) ? ((y) ? (z) : false) : false)
-#define Or2(x, y)	((x) ? true : (y))
-#define Or3(x, y, z)	((x) ? true : ((y) ? true : (z)))
-
 #endif /* hp9000s500 */
 
 #ifdef sparc
 #  define MACHINE_TYPE		"sun4"
-#  define FASL_INTERNAL_FORMAT	FASL_SPARC
+#  define CURRENT_FASL_ARCH	FASL_SPARC
 #  define FLOATING_ALIGNMENT	0x7
 #  define HEAP_IN_LOW_MEMORY
 #  define HAVE_DOUBLE_TO_LONG_BUG
@@ -269,23 +341,21 @@ typedef unsigned long SCHEME_OBJECT;
 
 #ifdef sun3
 #  define MACHINE_TYPE		"sun3"
-#  define FASL_INTERNAL_FORMAT	FASL_68020
-#  define TYPE_CODE_LENGTH	6
+#  define CURRENT_FASL_ARCH	FASL_68020
 #  define HEAP_IN_LOW_MEMORY
 #  define HAVE_DOUBLE_TO_LONG_BUG
 #endif
 
 #ifdef sun2
 #  define MACHINE_TYPE		"sun2"
-#  define FASL_INTERNAL_FORMAT	FASL_68000
+#  define CURRENT_FASL_ARCH	FASL_68000
 #  define HEAP_IN_LOW_MEMORY
 #  define HAVE_DOUBLE_TO_LONG_BUG
 #endif
 
 #ifdef NeXT
 #  define MACHINE_TYPE		"next"
-#  define FASL_INTERNAL_FORMAT	FASL_68020
-#  define TYPE_CODE_LENGTH	6
+#  define CURRENT_FASL_ARCH	FASL_68020
 #  define HEAP_IN_LOW_MEMORY
 #endif
 
@@ -295,9 +365,8 @@ typedef unsigned long SCHEME_OBJECT;
 
 #ifdef __IA32__
 
-#define FASL_INTERNAL_FORMAT	FASL_IA32
+#define CURRENT_FASL_ARCH	FASL_IA32
 #define HEAP_IN_LOW_MEMORY
-#define TYPE_CODE_LENGTH	6
 
 #ifdef sequent
 #  define MACHINE_TYPE		"sequent386"
@@ -316,12 +385,11 @@ typedef unsigned long SCHEME_OBJECT;
 #ifdef mips
 
 #define MACHINE_TYPE		"mips"
-#define FASL_INTERNAL_FORMAT	FASL_MIPS
-#define TYPE_CODE_LENGTH	6
+#define CURRENT_FASL_ARCH	FASL_MIPS
 #define FLOATING_ALIGNMENT   	0x7
 
-#if defined(_IRIX6) && defined(HAS_COMPILER_SUPPORT) && !defined(NATIVE_CODE_IS_C)
-   extern void * irix_heap_malloc (long);
+#ifdef _IRIX6
+   extern void * irix_heap_malloc (unsigned long);
 #  define HEAP_MALLOC irix_heap_malloc
 #endif
 
@@ -339,24 +407,20 @@ typedef unsigned long SCHEME_OBJECT;
   ((SCHEME_OBJECT) (((unsigned long) (address)) & (~(MIPS_DATA_BIT))))
 
 /* MIPS compiled binaries are large! */
-#ifdef HAS_COMPILER_SUPPORT
-
 #ifndef DEFAULT_SMALL_CONSTANT
-#define DEFAULT_SMALL_CONSTANT 700
+#  define DEFAULT_SMALL_CONSTANT 700
 #endif
 
 #ifndef DEFAULT_LARGE_CONSTANT
-#define DEFAULT_LARGE_CONSTANT 1500
+#  define DEFAULT_LARGE_CONSTANT 1500
 #endif
-
-#endif /* HAS_COMPILER_SUPPORT */
 
 #endif /* mips */
 
 #ifdef __alpha
 #define MACHINE_TYPE           "Alpha"
-#define FASL_INTERNAL_FORMAT   FASL_ALPHA
-#define TYPE_CODE_LENGTH       8
+#define CURRENT_FASL_ARCH      FASL_ALPHA
+/* #define TYPE_CODE_LENGTH 8 */
 
 /* The ASCII character set is used. */
 #define HEAP_IN_LOW_MEMORY     1
@@ -367,10 +431,8 @@ typedef unsigned long SCHEME_OBJECT;
 #define MAX_FLONUM_EXPONENT    1023
 /* Floating point representation uses hidden bit. */
 
-#if defined(HAS_COMPILER_SUPPORT) && !defined(NATIVE_CODE_IS_C)
-   extern void * alpha_heap_malloc (long);
-#  define HEAP_MALLOC		alpha_heap_malloc
-#endif
+extern void * alpha_heap_malloc (unsigned long);
+#define HEAP_MALLOC alpha_heap_malloc
 
 #endif /* __alpha */
 
@@ -401,11 +463,13 @@ extern void OS2_stack_reset (void);
 extern int OS2_stack_overflowed_p (void);
 #define STACK_OVERFLOWED_P OS2_stack_overflowed_p
 
+#define CC_ARCH_INITIALIZE i386_interface_initialize
+
 #endif /* __OS2__ */
 
 #ifdef __WIN32__
 
-extern void EXFUN (win32_stack_reset, (void));
+extern void win32_stack_reset (void);
 #define STACK_RESET win32_stack_reset
 
 #define HEAP_MALLOC(size) (WIN32_ALLOCATE_HEAP ((size), (&scheme_heap_handle)))
@@ -423,7 +487,7 @@ extern void EXFUN (win32_stack_reset, (void));
 
 #ifdef pdp10
 #define MACHINE_TYPE		"pdp10"
-#define FASL_INTERNAL_FORMAT    FASL_PDP10
+#define CURRENT_FASL_ARCH       FASL_PDP10
 #define HEAP_IN_LOW_MEMORY
 #define CHAR_BIT 36		/ * Ugh! Supposedly fixed in newer Cs * /
 #define UNSIGNED_SHIFT_BUG
@@ -431,7 +495,7 @@ extern void EXFUN (win32_stack_reset, (void));
 
 #ifdef nu
 #define MACHINE_TYPE		"nu"
-#define FASL_INTERNAL_FORMAT	FASL_68000
+#define CURRENT_FASL_ARCH	FASL_68000
 #define HEAP_IN_LOW_MEMORY
 #define UNSIGNED_SHIFT_BUG
 #endif
@@ -440,14 +504,14 @@ extern void EXFUN (win32_stack_reset, (void));
 
 #ifdef butterfly
 #define MACHINE_TYPE		"butterfly"
-#define FASL_INTERNAL_FORMAT	FASL_BFLY
+#define CURRENT_FASL_ARCH	FASL_BFLY
 #define HEAP_IN_LOW_MEMORY
 #include <public.h>
 #endif
 
 #ifdef cyber180
 #define MACHINE_TYPE		"cyber180"
-#define FASL_INTERNAL_FORMAT	FASL_CYBER
+#define CURRENT_FASL_ARCH	FASL_CYBER
 #define HEAP_IN_LOW_MEMORY
 #define UNSIGNED_SHIFT_BUG
 /* The Cyber180 C compiler manifests a bug in hairy conditional expressions */
@@ -456,56 +520,56 @@ extern void EXFUN (win32_stack_reset, (void));
 
 #ifdef celerity
 #define MACHINE_TYPE		"celerity"
-#define FASL_INTERNAL_FORMAT	FASL_CELERITY
+#define CURRENT_FASL_ARCH	FASL_CELERITY
 #define HEAP_IN_LOW_MEMORY
 #endif
 
 #ifdef umax
 #define MACHINE_TYPE		"umax"
-#define FASL_INTERNAL_FORMAT	FASL_UMAX
+#define CURRENT_FASL_ARCH	FASL_UMAX
 #define HEAP_IN_LOW_MEMORY
 #endif
 
 #ifdef pyr
 #define MACHINE_TYPE		"pyramid"
-#define FASL_INTERNAL_FORMAT	FASL_PYR
+#define CURRENT_FASL_ARCH	FASL_PYR
 #define HEAP_IN_LOW_MEMORY
 #endif
 
 #ifdef alliant
 #define MACHINE_TYPE		"alliant"
-#define FASL_INTERNAL_FORMAT	FASL_ALLIANT
+#define CURRENT_FASL_ARCH	FASL_ALLIANT
 #define HEAP_IN_LOW_MEMORY
 #endif
 
 #ifdef apollo
 #if _ISP__M68K
 #define MACHINE_TYPE          "Apollo 68k"
-#define FASL_INTERNAL_FORMAT  FASL_APOLLO_68K
-#define TYPE_CODE_LENGTH	6
+#define CURRENT_FASL_ARCH     FASL_APOLLO_68K
 #else
 #define MACHINE_TYPE          "Apollo Prism"
-#define FASL_INTERNAL_FORMAT  FASL_APOLLO_PRISM
+#define CURRENT_FASL_ARCH     FASL_APOLLO_PRISM
 #endif
 #define HEAP_IN_LOW_MEMORY
 #endif
 
 #ifdef _IBMR2
 #define MACHINE_TYPE          "IBM RS6000"
-#define FASL_INTERNAL_FORMAT   FASL_RS6000
+#define CURRENT_FASL_ARCH     FASL_RS6000
 /* Heap is not in Low Memory. */
 #define FLONUM_MANTISSA_BITS   53
 #define FLONUM_EXPT_SIZE       10
 #define MAX_FLONUM_EXPONENT    1023
 #endif
 
-#ifdef NATIVE_CODE_IS_C
-#  ifndef HAS_COMPILER_SUPPORT
-#    define HAS_COMPILER_SUPPORT
-#  endif
-#  ifndef TYPE_CODE_LENGTH
-#    define TYPE_CODE_LENGTH 6
-#  endif
+#ifdef sonyrisc
+      /* On the Sony NEWS 3250, this procedure initializes the
+	 floating-point CPU control register to enable the IEEE traps.
+	 This is normally executed by 'compiler_reset' from LOAD-BAND,
+	 but the Sony operating system saves the control register in
+	 'setjmp' and restores it on 'longjmp', so we must initialize
+	 the register before 'setjmp' is called.  */
+#define CC_ARCH_INITIALIZE interface_initialize
 #endif
 
 /* Make sure that some definition applies.  If this error occurs, and
@@ -519,10 +583,6 @@ extern void EXFUN (win32_stack_reset, (void));
    explicitly specify this value unless it is different.  */
 #ifndef CHAR_BIT
 #  define CHAR_BIT 8
-#endif
-
-#ifndef TYPE_CODE_LENGTH
-#  define TYPE_CODE_LENGTH 8
 #endif
 
 /* The GNU C compiler does not have any of these bugs. */

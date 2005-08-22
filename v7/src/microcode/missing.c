@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: missing.c,v 9.35 2003/02/14 18:28:20 cph Exp $
+$Id: missing.c,v 9.35.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright (c) 1987-2000 Massachusetts Institute of Technology
+Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
+Copyright 1993,1998,2000,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -30,11 +31,9 @@ USA.
 #ifndef HAVE_FREXP
 
 double
-DEFUN (frexp, (value, eptr),
-       double value
-       AND int * eptr)
+frexp (double value, int * eptr)
 {
-  register double x = ((value < 0) ? (-value) : value);
+  double x = ((value < 0) ? (-value) : value);
   int e = 0;
   if (x >= 1)
     {
@@ -42,9 +41,9 @@ DEFUN (frexp, (value, eptr),
 	{
 	  if (x > 2)
 	    {
-	      register double xr = (x / 2);
-	      register double r = 2;
-	      register int n = 1;
+	      double xr = (x / 2);
+	      double r = 2;
+	      int n = 1;
 	      while (xr >= r)
 		{
 		  /* ((xr == (x / r)) && (xr >= r) && (x >= (r * r))) */
@@ -78,9 +77,9 @@ DEFUN (frexp, (value, eptr),
 	{
 	  if (x < 0.25)
 	    {
-	      register double xr = (x * 2);
-	      register double r = 0.5;
-	      register int n = 1;
+	      double xr = (x * 2);
+	      double r = 0.5;
+	      int n = 1;
 	      /* ((xr == (x / r)) && (xr < 0.5) && (x < (r / 2))) */
 	      while (xr < (r / 2))
 		{
@@ -108,13 +107,11 @@ DEFUN (frexp, (value, eptr),
 }
 
 double
-DEFUN (ldexp, (value, exponent),
-       double value
-       AND int exponent)
+ldexp (double value, int exponent)
 {
-  register double x = value;
-  register int e = exponent;
-  register double r = 2;
+  double x = value;
+  int e = exponent;
+  double r = 2;
   if (e > 0)
     {
       if (e == 1)
@@ -153,9 +150,7 @@ DEFUN (ldexp, (value, exponent),
 #ifndef HAVE_MODF
 
 double
-DEFUN (modf, (value, iptr),
-       double value
-       AND double * iptr)
+modf (double value, double * iptr)
 {
   int exponent;
   double significand = (frexp (value, (&exponent)));
@@ -165,10 +160,10 @@ DEFUN (modf, (value, iptr),
       return (value);
     }
   {
-    register double s =
+    double s =
       ((((significand < 0) ? (-significand) : significand) * 2) - 1);
-    register int e = (exponent - 1);
-    register double n = 1;
+    int e = (exponent - 1);
+    double n = 1;
     while (1)
       {
 	if (e == 0)
@@ -183,7 +178,7 @@ DEFUN (modf, (value, iptr),
 	    if (s <= 0)
 	      {
 		/* Multiply n by 2^e */
-		register double b = 2;
+		double b = 2;
 		if (e == 0)
 		  break;
 		while (1)
@@ -220,7 +215,7 @@ DEFUN (modf, (value, iptr),
 #ifndef HAVE_FLOOR
 
 double
-DEFUN (floor, (x), double x)
+floor (double x)
 {
   double iptr;
   double fraction = (modf (x, (&iptr)));
@@ -228,7 +223,7 @@ DEFUN (floor, (x), double x)
 }
 
 double
-DEFUN (ceil, (x), double x)
+ceil (double x)
 {
   double iptr;
   double fraction = (modf (x, (&iptr)));
@@ -238,8 +233,6 @@ DEFUN (ceil, (x), double x)
 #endif /* not HAVE_FLOOR */
 
 #ifdef DEBUG_MISSING
-
-#include <stdio.h>
 
 main ()
 {

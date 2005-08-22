@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2msg.h,v 1.18 2003/04/25 05:13:10 cph Exp $
+$Id: os2msg.h,v 1.18.2.1 2005/08/22 18:05:59 cph Exp $
 
-Copyright 1994,1995,1997,2003 Massachusetts Institute of Technology
+Copyright 1994,1995,1997,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -52,7 +52,7 @@ typedef enum
   /* This is a timer interrupt event.  It is generated automatically
      by the timer thread when the timer is active.  */
   mt_timer_event,
-  
+
   /* This event signals the termination of a child process.  It is
      generated automatically by the thread that monitors child
      processes.  */

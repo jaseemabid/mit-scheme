@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: pruxenv.c,v 1.22 2005/06/26 04:34:39 cph Exp $
+$Id: pruxenv.c,v 1.22.2.1 2005/08/22 18:06:00 cph Exp $
 
 Copyright 1990,1991,1992l,1993,1995,1997 Massachusetts Institute of Technology
 Copyright 2000,2005 Massachusetts Institute of Technology
@@ -31,6 +31,9 @@ USA.
 #include "ux.h"
 #include "uxtrap.h"
 
+extern const char * OS_current_user_name (void);
+extern const char * OS_current_user_home_directory (void);
+
 #ifdef HAVE_SOCKETS
 #  include "uxsock.h"
 #endif
@@ -44,7 +47,7 @@ DEFINE_PRIMITIVE ("FILE-TIME->STRING", Prim_file_time_to_string, 1, 1,
     time_t clock = (arg_integer (1));
     char * time_string = (UX_ctime (&clock));
     (time_string[24]) = '\0';
-    PRIMITIVE_RETURN (char_pointer_to_string ((unsigned char *) time_string));
+    PRIMITIVE_RETURN (char_pointer_to_string (time_string));
   }
 }
 
@@ -56,9 +59,9 @@ If no such user is known, #F is returned.")
   PRIMITIVE_HEADER (1);
   {
     struct passwd * entry = (UX_getpwnam (STRING_ARG (1)));
-    PRIMITIVE_RETURN
-      ((entry == 0) ? SHARP_F
-       : (char_pointer_to_string ((unsigned char *) (entry -> pw_dir))));
+    PRIMITIVE_RETURN ((entry == 0)
+		      ? SHARP_F
+		      : (char_pointer_to_string (entry -> pw_dir)));
   }
 }
 
@@ -69,9 +72,9 @@ If the argument is not a known user ID, #F is returned.")
   PRIMITIVE_HEADER (1);
   {
     struct passwd * entry = (UX_getpwuid (arg_nonnegative_integer (1)));
-    PRIMITIVE_RETURN
-      ((entry == 0) ? SHARP_F
-       : (char_pointer_to_string ((unsigned char *) (entry -> pw_name))));
+    PRIMITIVE_RETURN ((entry == 0)
+		      ? SHARP_F
+		      : (char_pointer_to_string (entry -> pw_name)));
   }
 }
 
@@ -82,9 +85,9 @@ If the argument is not a known group ID, #F is returned.")
   PRIMITIVE_HEADER (1);
   {
     struct group * entry = (UX_getgrgid (arg_nonnegative_integer (1)));
-    PRIMITIVE_RETURN
-      ((entry == 0) ? SHARP_F
-       : (char_pointer_to_string ((unsigned char *) (entry -> gr_name))));
+    PRIMITIVE_RETURN ((entry == 0)
+		      ? SHARP_F
+		      : (char_pointer_to_string (entry -> gr_name)));
   }
 }
 
@@ -126,20 +129,16 @@ DEFINE_PRIMITIVE ("REAL-GID", Prim_real_gid, 0, 0,
 DEFINE_PRIMITIVE ("CURRENT-USER-NAME", Prim_current_user_name, 0, 0,
   "Return (as a string) the user name of the user running Scheme.")
 {
-  extern CONST char * EXFUN (OS_current_user_name, (void));
   PRIMITIVE_HEADER (0);
-  PRIMITIVE_RETURN (char_pointer_to_string
-		    ((unsigned char *) OS_current_user_name ()));
+  PRIMITIVE_RETURN (char_pointer_to_string (OS_current_user_name ()));
 }
 
 DEFINE_PRIMITIVE ("CURRENT-USER-HOME-DIRECTORY", Prim_current_user_home_directory, 0, 0,
   "Return the name of the current user's home directory.")
 {
-  extern CONST char * EXFUN (OS_current_user_home_directory, (void));
   PRIMITIVE_HEADER (0);
   PRIMITIVE_RETURN
-    (char_pointer_to_string ((unsigned char *)
-			     OS_current_user_home_directory ()));
+    (char_pointer_to_string (OS_current_user_home_directory ()));
 }
 
 DEFINE_PRIMITIVE ("SYSTEM", Prim_system, 1, 1,
@@ -158,11 +157,10 @@ The result is either a string (the variable's value),\n\
 {
   PRIMITIVE_HEADER (1);
   {
-    CONST char * variable_value = (UX_getenv (STRING_ARG (1)));
-    PRIMITIVE_RETURN
-      ((variable_value == 0)
-       ? SHARP_F
-       : (char_pointer_to_string ((unsigned char *) variable_value)));
+    const char * variable_value = (UX_getenv (STRING_ARG (1)));
+    PRIMITIVE_RETURN ((variable_value == 0)
+		      ? SHARP_F
+		      : (char_pointer_to_string (variable_value)));
   }
 }
 
@@ -175,7 +173,6 @@ DEFINE_PRIMITIVE ("FULL-HOSTNAME", Prim_full_hostname, 0, 0,
   {
     char this_host_name [HOSTNAMESIZE];
 #ifdef HAVE_SOCKETS
-    struct hostent * EXFUN (gethostbyname, (CONST char *));
     struct hostent * this_host_entry;
 
     STD_VOID_SYSTEM_CALL
@@ -187,14 +184,11 @@ DEFINE_PRIMITIVE ("FULL-HOSTNAME", Prim_full_hostname, 0, 0,
 
 #ifdef HAVE_SOCKETS
     this_host_entry = (gethostbyname (this_host_name));
-    PRIMITIVE_RETURN
-      ((this_host_entry == 0)
-       ? SHARP_F
-       : (char_pointer_to_string
-	  ((unsigned char *) (this_host_entry -> h_name))));
+    PRIMITIVE_RETURN ((this_host_entry == 0)
+		      ? SHARP_F
+		      : (char_pointer_to_string (this_host_entry -> h_name)));
 #else
-    PRIMITIVE_RETURN
-      (char_pointer_to_string ((unsigned char *) this_host_name));
+    PRIMITIVE_RETURN (char_pointer_to_string (this_host_name));
 #endif
   }
 }
@@ -209,8 +203,7 @@ DEFINE_PRIMITIVE ("HOSTNAME", Prim_hostname, 0, 0,
 #ifdef HAVE_SOCKETS
     STD_VOID_SYSTEM_CALL (syscall_gethostname,
 			  UX_gethostname (this_host_name, HOSTNAMESIZE));
-    PRIMITIVE_RETURN
-      (char_pointer_to_string ((unsigned char *) this_host_name));
+    PRIMITIVE_RETURN (char_pointer_to_string (this_host_name));
 #else
     strcpy (this_host_name, "unknown-host");
 #endif
@@ -232,9 +225,9 @@ DEFINE_PRIMITIVE ("INSTRUCTION-ADDRESS->COMPILED-CODE-BLOCK",
       }
     else
       {
-	if (! (COMPILED_CODE_ADDRESS_P (object)))
+	if (!CC_ENTRY_P (object))
 	  error_bad_range_arg (1);
-	pc = ((unsigned long) (OBJECT_ADDRESS (object)));
+	pc = ((unsigned long) (CC_ENTRY_ADDRESS (object)));
       }
     PRIMITIVE_RETURN (find_ccblock (pc));
   }

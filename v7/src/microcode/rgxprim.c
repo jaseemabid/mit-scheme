@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: rgxprim.c,v 1.15 2003/02/14 18:28:23 cph Exp $
+$Id: rgxprim.c,v 1.15.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1987,1988,1989,1991,1993,1997 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -100,8 +101,8 @@ DEFINE_PRIMITIVE ("RE-CHAR-SET-ADJOIN!", Prim_re_char_set_adjoin, 2, 2, 0)
 
 DEFINE_PRIMITIVE ("RE-COMPILE-FASTMAP", Prim_re_compile_fastmap, 4, 4, 0)
 {
-  fast SCHEME_OBJECT pattern;
-  fast int can_be_null;
+  SCHEME_OBJECT pattern;
+  int can_be_null;
   PRIMITIVE_HEADER (4);
   CHECK_ARG (1, STRING_P);
   pattern = (ARG_REF (1));
@@ -135,7 +136,7 @@ DEFINE_PRIMITIVE ("RE-COMPILE-FASTMAP", Prim_re_compile_fastmap, 4, 4, 0)
 
 #define RE_SUBSTRING_PRIMITIVE(procedure)				\
 {									\
-  fast SCHEME_OBJECT regexp;						\
+  SCHEME_OBJECT regexp;							\
   long match_start, match_end, text_end;				\
   unsigned char * text;							\
   struct re_buffer buffer;						\
@@ -179,7 +180,7 @@ DEFINE_PRIMITIVE ("RE-SEARCH-SUBSTRING-BACKWARD", Prim_re_search_substr_backward
 
 #define RE_BUFFER_PRIMITIVE(procedure)					\
 {									\
-  fast SCHEME_OBJECT regexp, group;					\
+  SCHEME_OBJECT regexp, group;						\
   long match_start, match_end, text_start, text_end, gap_start;		\
   unsigned char * text;							\
   struct re_buffer buffer;						\

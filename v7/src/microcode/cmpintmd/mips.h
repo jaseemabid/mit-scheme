@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: mips.h,v 1.25 2003/02/14 18:28:31 cph Exp $
+$Id: mips.h,v 1.25.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright (c) 1989-1999 Massachusetts Institute of Technology
+Copyright 1990,1991,1992,1993,1994,1998 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -197,7 +198,7 @@ typedef unsigned short format_word;
   SLT	$at,$FREE,$MEMTOP
   BEQ	$at,$0,interrupt
   LW	$MEMTOP,REG_BLOCK
-  
+
   For a closure
 
   LUI	$at,FROB(TC_CLOSURE)	; temp <- closure tag
@@ -223,7 +224,7 @@ do {									\
 
    On the MIPS this is 2 format_words for the format word and gc
    offset words, and 8 more bytes for 2 instructions.
-   
+
    The two instructions are
 
    JAL	destination
@@ -234,7 +235,7 @@ do {									\
    not always work, thus closures are allocated from a pre-initialized
    pool where the entries have been initialized to contain
    the following instructions.
-   
+
    JALR LINKAGE,CLOSURE_HOOK
    ADDI LINKAGE,LINKAGE,-8
 
@@ -318,7 +319,7 @@ do {									\
 
 #define TRAMPOLINE_STORAGE(tramp_entry)					\
   ((((SCHEME_OBJECT *) (tramp_entry)) - TRAMPOLINE_BLOCK_TO_ENTRY) +	\
-   (2 + TRAMPOLINE_ENTRY_SIZE)) 
+   (2 + TRAMPOLINE_ENTRY_SIZE))
 
 #define SPECIAL_OPCODE	000
 #define ADDI_OPCODE	010
@@ -465,15 +466,15 @@ do {									\
 
 #define FLUSH_I_CACHE() do						\
 {									\
-  FLUSH_BOTH (Constant_Space,						\
-	      (((unsigned long) Heap_Top)				\
-	       - ((unsigned long) Constant_Space)));			\
+  FLUSH_BOTH (constant_start,						\
+	      (((unsigned long) active_heap_end)			\
+	       - ((unsigned long) constant_start)));			\
 } while (0)
 
 /* This flushes a region of the I-cache.
    It is used after updating an execute cache while running.
    Not needed during GC because FLUSH_I_CACHE will be used.
- */   
+ */
 
 #define FLUSH_I_CACHE_REGION(address, nwords) do			\
 {									\
@@ -500,9 +501,9 @@ do {									\
 {									\
   unsigned long _addr = ((unsigned long) (address));			\
   unsigned long _nbytes = ((sizeof (long)) * (nwords));			\
-  cacheflush (((PTR) _addr), _nbytes, DCACHE);				\
-  cacheflush (((PTR) _addr), 1, ICACHE);				\
-  cacheflush (((PTR) (_addr + (_nbytes - 1))), 1, ICACHE);		\
+  cacheflush (((void *) _addr), _nbytes, DCACHE);			\
+  cacheflush (((void *) _addr), 1, ICACHE);				\
+  cacheflush (((void *) (_addr + (_nbytes - 1))), 1, ICACHE);		\
 } while (0)
 
 #endif /* not USE_MPROTECT_CACHE_FLUSH */
@@ -510,9 +511,9 @@ do {									\
 #ifdef IN_CMPINT_C
 
 static void
-DEFUN_VOID (interface_initialize_C)
+interface_initialize_C (void)
 {
-  extern void EXFUN (interface_initialize, (void));
+  extern void interface_initialize (void);
 
   /* Prevent the OS from "fixing" unaligned accesses.
      Within Scheme, they are a BUG, and should fault.
@@ -537,7 +538,7 @@ static void * mprotect_start;
 static unsigned long mprotect_size;
 
 static void
-DEFUN (call_mprotect_1, (start, size), void * start AND unsigned long size)
+call_mprotect_1 (void * start, unsigned long size)
 {
   if ((mprotect (start, size, VM_PROT_SCHEME)) != 0)
     {
@@ -551,7 +552,7 @@ DEFUN (call_mprotect_1, (start, size), void * start AND unsigned long size)
 
 #ifdef USE_MPROTECT_CACHE_FLUSH
 void
-DEFUN (call_mprotect, (start, size), void * start AND unsigned long size)
+call_mprotect (void * start, unsigned long size)
 {
   unsigned long pagesize = (getpagesize ());
   unsigned long istart = ((unsigned long) start);
@@ -561,7 +562,7 @@ DEFUN (call_mprotect, (start, size), void * start AND unsigned long size)
 #endif /* USE_MPROTECT_CACHE_FLUSH */
 
 void *
-DEFUN (irix_heap_malloc, (size), long size)
+irix_heap_malloc (long size)
 {
   int pagesize = (getpagesize ());
   void * area = (malloc (size + pagesize));
@@ -584,17 +585,15 @@ DEFUN (irix_heap_malloc, (size), long size)
 
 static long closure_chunk = (1024 * CLOSURE_ENTRY_WORDS);
 
-#define REGBLOCK_CLOSURE_LIMIT	REGBLOCK_CLOSURE_SPACE
-
 /* The apparently random instances of the number 3 below arise from
    the convention that free_closure always points to a JAL instruction
    with (at least) 3 unused words preceding it.
    In this way, if there is enough space, we can use free_closure
    as the address of a new uni- or multi-closure.
-   
+
    The code below (in the initialization loop) depends on knowing that
    CLOSURE_ENTRY_WORDS is 3.
-   
+
    Random hack: ADDI instructions look like TC_TRUE objects, thus of the
    pre-initialized words, only the JALR looks like a pointer object
    (an SCODE-QUOTE).  Since there is exactly one JALR of waste between
@@ -606,13 +605,13 @@ static long closure_chunk = (1024 * CLOSURE_ENTRY_WORDS);
 /* size in Scheme objects of the block we need to allocate. */
 
 void
-DEFUN (allocate_closure, (size), long size)
+allocate_closure (long size)
 {
   long space;
   SCHEME_OBJECT * free_closure, * limit;
 
-  free_closure = ((SCHEME_OBJECT *) Registers[REGBLOCK_CLOSURE_FREE]);
-  limit = ((SCHEME_OBJECT *) Registers[REGBLOCK_CLOSURE_LIMIT]);
+  free_closure = GET_CLOSURE_FREE;
+  limit = GET_CLOSURE_SPACE;
   space =  ((limit - free_closure) + 3);
 
   /* Bump up to a multiple of CLOSURE_ENTRY_WORDS.
@@ -630,28 +629,28 @@ DEFUN (allocate_closure, (size), long size)
     /* Make the heap be parseable forward by protecting the waste
        in the last chunk.
      */
-       
+
     if ((space > 0) && (free_closure != ((SCHEME_OBJECT *) NULL)))
       free_closure[-3] = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, (space - 1)));
 
     free_closure = Free;
-    if ((size <= closure_chunk) && (!(GC_Check (closure_chunk))))
+    if ((size <= closure_chunk) && (!GC_NEEDED_P (closure_chunk)))
       limit = (free_closure + closure_chunk);
     else
     {
-      if (GC_Check (size))
+      if (GC_NEEDED_P (size))
       {
-	if ((Heap_Top - Free) < size)
+	if ((active_heap_end - Free) < size)
 	{
 	  /* No way to back out -- die. */
 	  fprintf (stderr, "\nC_allocate_closure (%d): No space.\n", size);
 	  Microcode_Termination (TERM_NO_SPACE);
 	  /* NOTREACHED */
 	}
-	Request_GC (0);
+	REQUEST_GC (0);
       }
       else if (size <= closure_chunk)
-	Request_GC (0);
+	REQUEST_GC (0);
       limit = (free_closure + size);
     }
     Free = limit;
@@ -665,10 +664,9 @@ DEFUN (allocate_closure, (size), long size)
       *ptr++ = SHARP_F;
     }
     PUSH_D_CACHE_REGION (free_closure, chunk_size);
-    Registers[REGBLOCK_CLOSURE_LIMIT] = ((SCHEME_OBJECT) limit);
-    Registers[REGBLOCK_CLOSURE_FREE] = ((SCHEME_OBJECT) (free_closure + 3));
+    SET_CLOSURE_SPACE (limit);
+    SET_CLOSURE_FREE (free_closure + 3);
   }
-  return;
 }
 
 #endif /* IN_CMPINT_C */

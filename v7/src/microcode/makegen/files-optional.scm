@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: files-optional.scm,v 1.6 2003/06/06 18:58:59 cph Exp $
+$Id: files-optional.scm,v 1.6.2.1 2005/08/22 18:06:01 cph Exp $
 
-Copyright 2000,2001,2003 Massachusetts Institute of Technology
+Copyright 2000,2001,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -33,6 +33,7 @@ USA.
 "prmhash"
 "prpgsql"
 "pruxdld"
+"svm1"
 "termcap"
 "terminfo"
 "tparam"

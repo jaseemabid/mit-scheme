@@ -1,6 +1,6 @@
-# $Id: Makefile.in.in,v 1.25 2005/06/26 05:36:52 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.1 2005/08/22 18:06:01 cph Exp $
 #
-# Copyright 2000,2001,2002,2003 Massachusetts Institute of Technology
+# Copyright 2000,2001,2002,2003,2005 Massachusetts Institute of Technology
 #
 # This file is part of MIT/GNU Scheme.
 #
@@ -79,7 +79,7 @@ AS_FLAGS = @AS_FLAGS@
 
 COMPILE = $(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) $(X_CFLAGS)
 CCLD = $(CC)
-LINK = $(CCLD) $(CFLAGS) $(LDFLAGS) -o $@
+LINK = $(CCLD) $(LDFLAGS) -o $@
 EXPAND = $(M4) $(M4_FLAGS)
 ASSEMBLE = $(AS) $(AS_FLAGS)
 
@@ -105,14 +105,10 @@ MODULE_LIBS = -lc
 CORE_SOURCES = @(write-sources "files-core")@
 OS_PRIM_SOURCES = @(write-sources "files-os-prim")@
 UNIX_SOURCES =  @(write-sources "files-unix")@
-STD_GC_SOURCES = @(write-sources "files-gc-std")@
-BCH_GC_SOURCES = @(write-sources "files-gc-bch")@
 
 CORE_OBJECTS = @(write-objects "files-core")@
 OS_PRIM_OBJECTS = @(write-objects "files-os-prim")@
 UNIX_OBJECTS =  @(write-objects "files-unix")@
-STD_GC_OBJECTS = @(write-objects "files-gc-std")@
-BCH_GC_OBJECTS = @(write-objects "files-gc-bch")@
 
 SHARED_SOURCES = $(CORE_SOURCES) $(OS_PRIM_SOURCES) $(UNIX_SOURCES) \
 	$(OPTIONAL_SOURCES)
@@ -122,47 +118,23 @@ SHARED_OBJECTS = $(CORE_OBJECTS) $(OS_PRIM_OBJECTS) $(UNIX_OBJECTS) \
 
 # **** Program definitions ****
 
-bin_PROGRAMS = scheme bchscheme
-aux_PROGRAMS = gcdrone
+bin_PROGRAMS = scheme
+aux_PROGRAMS =
 aux_LIBS = $(MODULE_TARGETS)
 aux_DATA = utabmd.bin
-EXTRA_PROGRAMS = findprim bintopsb psbtobin
+EXTRA_PROGRAMS = findprim
 
-scheme_SOURCES = $(SHARED_SOURCES) $(STD_GC_SOURCES) usrdef.c
-scheme_OBJECTS = $(SHARED_OBJECTS) $(STD_GC_OBJECTS) usrdef.o
+scheme_SOURCES = $(SHARED_SOURCES) usrdef.c
+scheme_OBJECTS = $(SHARED_OBJECTS) usrdef.o
 scheme_DEPENDENCIES = 
 scheme_LDFLAGS = @X_LIBS@ @DLD_LDFLAGS@
 scheme_LIBS = $(STATIC_LIBS) $(X_LIBS) $(LIBS)
-
-bchscheme_SOURCES = $(SHARED_SOURCES) $(BCH_GC_SOURCES) bchdef.c
-bchscheme_OBJECTS = $(SHARED_OBJECTS) $(BCH_GC_OBJECTS) bchdef.o
-bchscheme_DEPENDENCIES = 
-bchscheme_LDFLAGS = @X_LIBS@ @DLD_LDFLAGS@
-bchscheme_LIBS = $(STATIC_LIBS) $(X_LIBS) $(LIBS)
-
-bchdrn_SOURCES = bchdrn.c bchutl.c
-bchdrn_OBJECTS = bchdrn.o bchutl.o
-bchdrn_DEPENDENCIES = 
-bchdrn_LDFLAGS = 
-bchdrn_LIBS = $(LIBS)
 
 findprim_SOURCES = findprim.c
 findprim_OBJECTS = findprim.o
 findprim_DEPENDENCIES = 
 findprim_LDFLAGS = 
 findprim_LIBS = $(LIBS)
-
-bintopsb_SOURCES = bintopsb.c missing.c
-bintopsb_OBJECTS = bintopsb.o missing.o
-bintopsb_DEPENDENCIES = 
-bintopsb_LDFLAGS = 
-bintopsb_LIBS = $(LIBS)
-
-psbtobin_SOURCES = psbtobin.c missing.c
-psbtobin_OBJECTS = psbtobin.o missing.o
-psbtobin_DEPENDENCIES = 
-psbtobin_LDFLAGS = 
-psbtobin_LIBS = $(LIBS)
 
 ALL_PROGRAMS = $(bin_PROGRAMS) $(aux_PROGRAMS)
 ALL_LIBS = $(aux_LIBS)
@@ -173,9 +145,9 @@ MOSTLYCLEAN_FILES = *.o cmpauxmd.s usrdef.c bchdef.c
 CLEAN_FILES = $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA) $(EXTRA_PROGRAMS)
 
 DISTCLEAN_FILES = Makefile config.h config.cache config.log config.status \
-	cmpauxmd.m4 cmpintmd.h TAGS makegen-cc
+	cmpauxmd.m4 cmpintmd.h makegen-cc
 
-MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps config.h.in configure
+MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps config.h.in configure TAGS
 
 # **** Implicit rules ****
 
@@ -201,33 +173,13 @@ scheme: $(scheme_OBJECTS) $(scheme_DEPENDENCIES)
 	-rm -f $@
 	$(LINK) $(scheme_LDFLAGS) $(scheme_OBJECTS) $(scheme_LIBS)
 
-usrdef.c: $(SHARED_SOURCES) $(STD_GC_SOURCES) findprim
+usrdef.c: $(SHARED_SOURCES) findprim
 	-rm -f $@
-	./findprim $(SHARED_SOURCES) $(STD_GC_SOURCES) > usrdef.c
-
-bchscheme: $(bchscheme_OBJECTS) $(bchscheme_DEPENDENCIES)
-	-rm -f $@
-	$(LINK) $(bchscheme_LDFLAGS) $(bchscheme_OBJECTS) $(bchscheme_LIBS)
-
-bchdef.c: $(SHARED_SOURCES) $(BCH_GC_SOURCES) findprim
-	-rm -f $@
-	./findprim $(SHARED_SOURCES) $(BCH_GC_SOURCES) > bchdef.c
-
-gcdrone: $(bchdrn_OBJECTS) $(bchdrn_DEPENDENCIES)
-	-rm -f $@
-	$(LINK) $(bchdrn_LDFLAGS) $(bchdrn_OBJECTS) $(bchdrn_LIBS)
+	./findprim $(SHARED_SOURCES) > usrdef.c
 
 findprim: $(findprim_OBJECTS) $(findprim_DEPENDENCIES)
 	-rm -f $@
 	$(LINK) $(findprim_LDFLAGS) $(findprim_OBJECTS) $(findprim_LIBS)
-
-bintopsb: $(bintopsb_OBJECTS) $(bintopsb_DEPENDENCIES)
-	-rm -f $@
-	$(LINK) $(bintopsb_LDFLAGS) $(bintopsb_OBJECTS) $(bintopsb_LIBS)
-
-psbtobin: $(psbtobin_OBJECTS) $(psbtobin_DEPENDENCIES)
-	-rm -f $@
-	$(LINK) $(psbtobin_LDFLAGS) $(psbtobin_OBJECTS) $(psbtobin_LIBS)
 
 utabmd.bin: utabmd.scm
 	./utabmd.sh
@@ -257,7 +209,8 @@ prpgsql.so: prpgsql.o
 
 tags: TAGS
 TAGS:
-	etags -r '/^DEF[A-Za-z_ \t(]+"\([^"]+\)"/' *.[ch]
+	etags -r '/^DEF[A-Z0-9_]*[ \t]*(\("[^"]+"\|[a-zA-Z_][a-zA-Z0-9_]*\)/' \
+	    *.[ch] cmpintmd/*.h cmpauxmd/*.c
 
 mostlyclean:
 	-rm -f $(MOSTLYCLEAN_FILES)

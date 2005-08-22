@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: pros2io.c,v 1.13 2003/04/25 19:49:47 cph Exp $
+$Id: pros2io.c,v 1.13.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright 1994,1995,1997,2000,2003 Massachusetts Institute of Technology
+Copyright 1994,1995,1997,2000,2003,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -88,8 +88,8 @@ DEFINE_PRIMITIVE ("OS2-SELECT-REGISTRY-TEST", Prim_OS2_select_registry_test, 3, 
   if ((STRING_LENGTH (ARG_REF (1))) != (QID_MAX + 1))
     error_bad_range_arg (2);
   {
-    char * registry = (STRING_LOC ((ARG_REF (1)), 0));
-    char * results = (STRING_LOC ((ARG_REF (2)), 0));
+    char * registry = (STRING_POINTER (ARG_REF (1)));
+    char * results = (STRING_POINTER (ARG_REF (2)));
     int blockp = (BOOLEAN_ARG (3));
     int inputp = 0;
     int interruptp = 0;

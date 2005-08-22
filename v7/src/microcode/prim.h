@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: prim.h,v 9.50 2004/01/07 05:30:26 cph Exp $
+$Id: prim.h,v 9.50.2.1 2005/08/22 18:06:00 cph Exp $
 
 Copyright 1987,1988,1989,1992,1993,2001 Massachusetts Institute of Technology
-Copyright 2004 Massachusetts Institute of Technology
+Copyright 2004,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -32,24 +32,22 @@ USA.
 #ifndef SCM_PRIM_H
 #define SCM_PRIM_H
 
-typedef SCHEME_OBJECT EXFUN ((*primitive_procedure_t), (void));
+typedef SCHEME_OBJECT (*primitive_procedure_t) (void);
 
 extern primitive_procedure_t * Primitive_Procedure_Table;
 extern int * Primitive_Arity_Table;
 extern int * Primitive_Count_Table;
-extern CONST char ** Primitive_Name_Table;
-extern CONST char ** Primitive_Documentation_Table;
+extern const char ** Primitive_Name_Table;
+extern const char ** Primitive_Documentation_Table;
 extern unsigned long MAX_PRIMITIVE;
 
-extern SCHEME_OBJECT EXFUN
-  (declare_primitive,
-   (CONST char *, primitive_procedure_t, int, int, CONST char *));
+extern SCHEME_OBJECT declare_primitive
+  (const char *, primitive_procedure_t, int, int, const char *);
 
-extern SCHEME_OBJECT EXFUN
-  (install_primitive,
-   (CONST char *, primitive_procedure_t, int, int, CONST char *));
+extern SCHEME_OBJECT install_primitive
+  (const char *, primitive_procedure_t, int, int, const char *);
 
-extern SCHEME_OBJECT EXFUN (Prim_unimplemented, (void));
+extern SCHEME_OBJECT Prim_unimplemented (void);
 
 #define PRIMITIVE_NUMBER(primitive) (OBJECT_DATUM (primitive))
 
@@ -74,7 +72,7 @@ extern SCHEME_OBJECT EXFUN (Prim_unimplemented, (void));
 
 #define PRIMITIVE_N_ARGUMENTS(prim)					\
   (((PRIMITIVE_ARITY (prim)) == LEXPR_PRIMITIVE_ARITY)			\
-   ? ((long) (Registers[REGBLOCK_LEXPR_ACTUALS]))			\
+   ? GET_LEXPR_ACTUALS							\
    : (PRIMITIVE_ARITY (prim)))
 
 #endif /* SCM_PRIM_H */

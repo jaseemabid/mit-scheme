@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ostty.c,v 1.6 2003/02/14 18:28:22 cph Exp $
+$Id: ostty.c,v 1.6.2.1 2005/08/22 18:06:00 cph Exp $
 
-Copyright (c) 1990, 1999 Massachusetts Institute of Technology
+Copyright 1990,1992,1993,2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -25,11 +25,12 @@ USA.
 
 #include "ostty.h"
 #include "osscheme.h"
+#include "prims.h"
 
 static cc_t next_interrupt_char;
 
 void
-DEFUN (tty_set_next_interrupt_char, (c), cc_t c)
+tty_set_next_interrupt_char (cc_t c)
 {
   if (next_interrupt_char == '\0')
     {
@@ -39,7 +40,7 @@ DEFUN (tty_set_next_interrupt_char, (c), cc_t c)
 }
 
 cc_t
-DEFUN_VOID (OS_tty_next_interrupt_char)
+OS_tty_next_interrupt_char (void)
 {
   if (next_interrupt_char == '\0')
     error_external_return ();
