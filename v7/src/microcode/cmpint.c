@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.2 2005/08/23 02:55:00 cph Exp $
+$Id: cmpint.c,v 1.103.2.3 2005/08/23 05:16:49 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -396,7 +396,7 @@ make_compiler_utilities (void)
   block = Free;
   Free += n_words;
   (block[0]) = h1;
-  (block[1]) = h1;
+  (block[1]) = h2;
 
   {
     cc_entry_type_t cet;
