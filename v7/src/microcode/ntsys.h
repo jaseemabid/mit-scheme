@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ntsys.h,v 1.10.2.1 2005/08/23 02:55:11 cph Exp $
+$Id: ntsys.h,v 1.10.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 1992-1999 Massachusetts Institute of Technology
+Copyright 1993,1996,1997 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

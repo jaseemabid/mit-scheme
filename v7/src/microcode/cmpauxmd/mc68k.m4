@@ -1,8 +1,9 @@
 ### -*-Midas-*-
 ###
-### $Id: mc68k.m4,v 1.30.2.1 2005/08/23 02:55:14 cph Exp $
+### $Id: mc68k.m4,v 1.30.2.2 2005/08/23 04:15:28 cph Exp $
 ###
-### Copyright (c) 1989-2000, 2002 Massachusetts Institute of Technology
+### Copyright 1989,1990,1991,1992,1993 Massachusetts Institute of Technology
+### Copyright 2000,2002 Massachusetts Institute of Technology
 ###
 ### This file is part of MIT/GNU Scheme.
 ###

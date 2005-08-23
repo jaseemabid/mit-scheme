@@ -1,8 +1,9 @@
 /* #define DEBUG_INTERFACE */ /* -*-Midas-*- */
  ###
- ### $Id: mips.m4,v 1.18.2.1 2005/08/23 02:55:14 cph Exp $
+ ### $Id: mips.m4,v 1.18.2.2 2005/08/23 04:15:28 cph Exp $
  ###
- ### Copyright (c) 1989-1999, 2002 Massachusetts Institute of Technology
+ ### Copyright 1990,1991,1992,1993,1997 Massachusetts Institute of Technology
+ ### Copyright 1998,2002 Massachusetts Institute of Technology
  ###
  ### This file is part of MIT/GNU Scheme.
  ###

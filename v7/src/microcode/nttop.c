@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: nttop.c,v 1.35.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: nttop.c,v 1.35.2.3 2005/08/23 04:15:28 cph Exp $
 
 Copyright 1993,1997,1998,2000,2003,2004 Massachusetts Institute of Technology
 Copyright 2005 Massachusetts Institute of Technology
@@ -206,25 +206,15 @@ OS_initialize (void)
 void
 OS_announcement (void)
 {
-#if 0
-  /* To make our compiler vendors happy. */
-  outf_console
-    ("Copyright (c) 1993-1995 Massachusetts Institute of Technology\n");
-  outf_console ("\n");
-#endif
 }
 
 void
 OS_reset (void)
 {
-  /*
-    There should really be a reset for each initialize above,
-    but the rest seem innocuous.
-   */
-
+  /* There should really be a reset for each initialize above, but the
+     rest seem innocuous.  */
   NT_reset_channels ();
   execute_reload_cleanups ();
-  return;
 }
 
 void
@@ -232,7 +222,6 @@ OS_quit (int code, int abnormal_p)
 {
   outf_console ("\nScheme has terminated abnormally!\n");
   OS_restore_external_state ();
-  return;
 }
 
 /* Memory Allocation */
@@ -467,7 +456,6 @@ NT_prim_check_errno (enum syscall_names name)
   if (errno != EINTR)
     NT_error_unix_call (errno, name);
   deliver_pending_interrupts ();
-  return;
 }
 
 void
@@ -476,7 +464,6 @@ OS_restore_external_state (void)
   NT_restore_traps ();
   NT_restore_signals ();
   NT_restore_channels ();
-  return;
 }
 
 void
@@ -484,7 +471,6 @@ bcopy (const char * s1, char * s2, int n)
 {
   while (n-- > 0)
     *s2++ = *s1++;
-  return;
 }
 
 void *

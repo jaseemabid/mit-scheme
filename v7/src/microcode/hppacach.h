@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: hppacach.h,v 1.8.2.1 2005/08/23 02:55:10 cph Exp $
+$Id: hppacach.h,v 1.8.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 1990-2000 Massachusetts Institute of Technology
+Copyright 1990,1993,2000 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

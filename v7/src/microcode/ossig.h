@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: ossig.h,v 1.6.2.1 2005/08/23 02:55:11 cph Exp $
+$Id: ossig.h,v 1.6.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 1990-1999 Massachusetts Institute of Technology
+Copyright 1990,1992,1993 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

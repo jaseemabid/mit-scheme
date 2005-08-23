@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: mkos2pm.scm,v 1.4.2.1 2005/08/23 02:55:15 cph Exp $
+$Id: mkos2pm.scm,v 1.4.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 2000 Massachusetts Institute of Technology
+Copyright 2000 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

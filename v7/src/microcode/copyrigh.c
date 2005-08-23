@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: copyrigh.c,v 1.5.2.1 2005/08/23 02:55:08 cph Exp $
+$Id: copyrigh.c,v 1.5.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 1993, 1999 Massachusetts Institute of Technology
+Copyright 2005 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -22,6 +22,3 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
 USA.
 
 */
-
-
-

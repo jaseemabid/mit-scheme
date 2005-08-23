@@ -1,6 +1,8 @@
 /* -*-C-*-
 
-Copyright (c) 1987, 1988, 1989, 1999 Massachusetts Institute of Technology
+$Id: sample.c,v 9.28.2.2 2005/08/23 04:15:28 cph Exp $
+
+Copyright 1986,1987,1988,1989,1993 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -21,8 +23,6 @@ USA.
 
 */
 
-/* $Id: sample.c,v 9.28.2.1 2005/08/23 02:55:12 cph Exp $ */
-
 /* This file is intended to help you find out how to write primitives.
    Many concepts needed to write primitives can be found by looking
    at actual primitives in the system.  Hence this file will often
@@ -33,10 +33,10 @@ USA.
 #include "scheme.h"
 #include "prims.h"
 
-/* Scheme.h supplies useful macros that are used throughout the
-   system, and prims.h supplies macros that are used in defining
+/* "scheme.h" supplies useful macros that are used throughout the
+   system, and "prims.h" supplies macros that are used in defining
    primitives.  */
-
+
 /* To make a primitive, you must use the macro DEFINE_PRIMITIVE
    with six arguments, followed by the body of C source code
    that you want the primitive to execute.

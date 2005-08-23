@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: edwin.h,v 1.11.2.1 2005/08/23 02:55:08 cph Exp $
+$Id: edwin.h,v 1.11.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 1987-1999 Massachusetts Institute of Technology
+Copyright 1987,1988,1989,1991,1993,1996 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

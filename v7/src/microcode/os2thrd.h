@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: os2thrd.h,v 1.6.2.1 2005/08/23 02:55:11 cph Exp $
+$Id: os2thrd.h,v 1.6.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 1994-1999 Massachusetts Institute of Technology
+Copyright 1994,1995 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: lookup.h,v 9.57.2.1 2005/08/23 02:55:10 cph Exp $
+$Id: lookup.h,v 9.57.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 1988-2001 Massachusetts Institute of Technology
+Copyright 1987,1988,1989,1992,1993,1996 Massachusetts Institute of Technology
+Copyright 1997,2000,2001 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

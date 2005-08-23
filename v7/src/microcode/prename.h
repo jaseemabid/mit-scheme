@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: prename.h,v 1.11.2.1 2005/08/23 02:55:11 cph Exp $
+$Id: prename.h,v 1.11.2.2 2005/08/23 04:15:28 cph Exp $
 
-Copyright (c) 1988-1999 Massachusetts Institute of Technology
+Copyright 1988,1989,1990,1991,1992,1993 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
