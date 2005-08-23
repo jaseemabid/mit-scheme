@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: utabmd.scm,v 9.88.2.1 2005/08/22 18:06:01 cph Exp $
+$Id: utabmd.scm,v 9.88.2.2 2005/08/23 02:55:13 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1994,2001,2002,2005 Massachusetts Institute of Technology
@@ -19,7 +19,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with MIT/GNU Scheme; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
 USA.
 
 |#
@@ -611,4 +611,4 @@ USA.
 
 ;;; This identification string is saved by the system.
 
-"$Id: utabmd.scm,v 9.88.2.1 2005/08/22 18:06:01 cph Exp $"
+"$Id: utabmd.scm,v 9.88.2.2 2005/08/23 02:55:13 cph Exp $"

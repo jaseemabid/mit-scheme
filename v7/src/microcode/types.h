@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: types.h,v 9.40.2.1 2005/08/22 18:06:00 cph Exp $
+$Id: types.h,v 9.40.2.2 2005/08/23 02:55:13 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1997,2001,2002,2005 Massachusetts Institute of Technology
@@ -19,7 +19,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with MIT/GNU Scheme; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
 USA.
 
 */

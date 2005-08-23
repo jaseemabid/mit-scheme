@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prntfs.c,v 1.19.2.1 2005/08/22 18:06:00 cph Exp $
+$Id: prntfs.c,v 1.19.2.2 2005/08/23 02:55:12 cph Exp $
 
 Copyright 1993,1995,1996,1997,2000,2001 Massachusetts Institute of Technology
 Copyright 2005 Massachusetts Institute of Technology
@@ -19,7 +19,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with MIT/GNU Scheme; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
 USA.
 
 */
