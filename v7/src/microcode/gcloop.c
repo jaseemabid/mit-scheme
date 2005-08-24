@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.2 2005/08/23 02:55:09 cph Exp $
+$Id: gcloop.c,v 9.51.2.3 2005/08/24 05:20:24 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005 Massachusetts Institute of Technology
@@ -372,9 +372,7 @@ gc_transport_words (SCHEME_OBJECT * from,
     SCHEME_OBJECT * end = (to + n_words);
     if (! ((ADDRESS_IN_ACTIVE_HEAP_P (to))
 	   ? (ADDRESS_IN_ACTIVE_HEAP_P (end))
-	   : (ADDRESS_IN_CONSTANT_P (to))
-	   ? (ADDRESS_IN_CONSTANT_P (end))
-	   : 0))
+	   : (to == constant_alloc_next)))
       gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
 		"block overflows target space: %#lx %#lx",
 		((unsigned long) to),
