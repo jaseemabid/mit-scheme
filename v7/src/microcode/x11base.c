@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: x11base.c,v 1.81.2.3 2005/11/13 02:24:44 cph Exp $
+$Id: x11base.c,v 1.81.2.4 2005/11/13 03:47:14 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,1997,1998,2000,2001 Massachusetts Institute of Technology
@@ -326,12 +326,6 @@ static int
 any_x_errors_p (Display * display)
 {
   return ((x_error_code (display)) != 0);
-}
-
-static SCHEME_OBJECT
-x_error_message (void)
-{
-  return (char_pointer_to_string_no_gc (x_error_info.message));
 }
 
 /* Defaults and Attributes */
