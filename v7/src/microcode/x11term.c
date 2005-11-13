@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: x11term.c,v 1.29.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: x11term.c,v 1.29.2.3 2005/11/13 02:24:48 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1995 Massachusetts Institute of Technology
 Copyright 2000,2005 Massachusetts Institute of Technology
@@ -164,27 +164,10 @@ xterm_make_size_hints (XFontStruct * font, unsigned int extra)
 }
 
 static void
-xterm_set_wm_normal_hints (struct xwindow * xw,
-			   XSizeHints * size_hints,
-			   int geometry_mask,
-			   unsigned int x,
-			   unsigned int y)
+xterm_set_wm_normal_hints (struct xwindow * xw, XSizeHints * size_hints)
 {
-  (size_hints -> flags) |=
-    ((((geometry_mask & XValue) && (geometry_mask & YValue))
-      ? USPosition : PPosition)
-     | (((geometry_mask & WidthValue) && (geometry_mask & HeightValue))
-	? USSize : PSize));
-  (size_hints -> x) = x;
-  (size_hints -> y) = y;
-  (size_hints -> width) =
-    (((XW_X_CSIZE (xw)) * (size_hints -> width_inc))
-     + (size_hints -> base_width));
-  (size_hints -> height) =
-    (((XW_Y_CSIZE (xw)) * (size_hints -> height_inc))
-     + (size_hints -> base_height));
   XSetWMNormalHints ((XW_DISPLAY (xw)), (XW_WINDOW (xw)), size_hints);
-  XFree ((caddr_t) size_hints);
+  XFree (size_hints);
 }
 
 static void
@@ -194,8 +177,7 @@ xterm_update_normal_hints (struct xwindow * xw)
     (xw,
      (xterm_make_size_hints
       ((XW_FONT (xw)),
-       (2 * (XW_INTERNAL_BORDER_WIDTH (xw))))),
-     0, 0, 0);
+       (2 * (XW_INTERNAL_BORDER_WIDTH (xw))))));
 }
 
 static void
@@ -574,8 +556,7 @@ DEFINE_PRIMITIVE ("XTERM-OPEN-WINDOW", Prim_xterm_open_window, 3, 3, 0)
 	    (*scan++) = DEFAULT_HL;
 	}
 	(size_hints -> flags) |= PWinGravity;
-	xterm_set_wm_normal_hints
-	  (xw, size_hints, geometry_mask, x_pos, y_pos);
+	xterm_set_wm_normal_hints (xw, size_hints);
 	xw_set_wm_input_hint (xw, 1);
 	xw_set_wm_name (xw, "scheme-terminal");
 	xw_set_wm_icon_name (xw, "scheme-terminal");
