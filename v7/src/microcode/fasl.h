@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: fasl.h,v 9.40.2.3 2005/11/13 05:33:42 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
 Copyright 1994,1997,2002,2005 Massachusetts Institute of Technology
@@ -125,6 +125,8 @@ typedef struct
   unsigned long n_primitives;
   unsigned long primitive_table_size;
   SCHEME_OBJECT utilities_vector;
+  SCHEME_OBJECT * utilities_start;
+  SCHEME_OBJECT * utilities_end;
 } fasl_header_t;
 
 #define FASLHDR_VERSION(h) ((h)->version)
@@ -144,6 +146,8 @@ typedef struct
 #define FASLHDR_N_PRIMITIVES(h) ((h)->n_primitives)
 #define FASLHDR_PRIMITIVE_TABLE_SIZE(h) ((h)->primitive_table_size)
 #define FASLHDR_UTILITIES_VECTOR(h) ((h)->utilities_vector)
+#define FASLHDR_UTILITIES_START(h) ((h)->utilities_start)
+#define FASLHDR_UTILITIES_END(h) ((h)->utilities_end)
 
 #define FASLHDR_HEAP_SIZE(h)						\
   ((unsigned long)							\

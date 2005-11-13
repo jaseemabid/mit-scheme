@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: fasload.c,v 9.96.2.3 2005/11/13 05:33:46 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -46,6 +46,7 @@ typedef struct
   SCHEME_OBJECT * constant;
   SCHEME_OBJECT * stack_start;
   SCHEME_OBJECT * stack_end;
+  SCHEME_OBJECT * utilities;
 } fasl_basis_t;
 
 typedef struct
@@ -232,6 +233,10 @@ load_file (Tchannel channel, fasl_header_t * h)
   (nb->constant) = constant_alloc_next;
   (nb->stack_start) = stack_start;
   (nb->stack_end) = stack_end;
+  (nb->utilities)
+    = ((compiler_utilities == SHARP_F)
+       ? 0
+       : (OBJECT_ADDRESS (compiler_utilities)));
 
   Free = (read_from_file (channel, Free, (FASLHDR_HEAP_SIZE (h))));
   constant_alloc_next
@@ -250,17 +255,12 @@ load_file (Tchannel channel, fasl_header_t * h)
       (raw_prim_table, (FASLHDR_N_PRIMITIVES (h)), prim_table);
   }
 
-  if ((!FASLHDR_BAND_P (h)) && ((FASLHDR_UTILITIES_VECTOR (h)) != SHARP_F))
-    {
-      if (compiler_utilities == SHARP_F)
-	/* The file contains compiled code, but there's no
-	   compiled-code support available.  */
-	signal_error_from_primitive (ERR_FASLOAD_COMPILED_MISMATCH);
-      (nb->constant) = (OBJECT_ADDRESS (compiler_utilities));
-      (FASLHDR_CONSTANT_END (h))
-	= (VECTOR_LOC ((FASLHDR_UTILITIES_VECTOR (h)),
-		       (VECTOR_LENGTH (compiler_utilities))));
-    }
+  if ((!FASLHDR_BAND_P (h))
+      && ((FASLHDR_UTILITIES_VECTOR (h)) != SHARP_F)
+      && (compiler_utilities == SHARP_F))
+    /* The file contains compiled code, but there's no compiled-code
+       support available.  */
+    signal_error_from_primitive (ERR_FASLOAD_COMPILED_MISMATCH);
 
   if (! ((FASLHDR_BAND_P (h))
 	 && ((FASLHDR_HEAP_START (h)) == (nb->heap))
@@ -436,6 +436,11 @@ relocate_address (void * vaddr, fasl_header_t * h, fasl_basis_t * nb)
     result
       = (((byte_t *) (nb->constant))
 	 + (caddr - ((byte_t *) (FASLHDR_CONSTANT_START (h)))));
+  else if ((caddr >= ((byte_t *) (FASLHDR_UTILITIES_START (h))))
+	   && (caddr < ((byte_t *) (FASLHDR_UTILITIES_END (h)))))
+    result
+      = (((byte_t *) (nb->utilities))
+	 + (caddr - ((byte_t *) (FASLHDR_UTILITIES_START (h)))));
   else if (ADDRESS_IN_STACK_REGION_P (caddr,
 				      ((byte_t *) (FASLHDR_STACK_START (h))),
 				      ((byte_t *) (FASLHDR_STACK_END (h)))))
@@ -830,8 +835,21 @@ decode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
 
     {
       SCHEME_OBJECT ruv = (raw[FASL_OFFSET_UT_BASE]);
-      (FASLHDR_UTILITIES_VECTOR (h))
-	= (OBJECT_NEW_ADDRESS (ruv, (faslobj_address ((ruv), h))));
+      if (ruv == SHARP_F)
+	{
+	  (FASLHDR_UTILITIES_VECTOR (h)) = SHARP_F;
+	  (FASLHDR_UTILITIES_START (h)) = 0;
+	  (FASLHDR_UTILITIES_END (h)) = 0;
+	}
+      else
+	{
+	  SCHEME_OBJECT fuv
+	    = (OBJECT_NEW_ADDRESS (ruv, (faslobj_address (ruv, h))));
+	  (FASLHDR_UTILITIES_VECTOR (h)) = fuv;
+	  (FASLHDR_UTILITIES_START (h)) = (OBJECT_ADDRESS (fuv));
+	  (FASLHDR_UTILITIES_END (h))
+	    = (VECTOR_LOC (fuv, (VECTOR_LENGTH (fuv))));
+	}
     }
   }
   return (true);
