@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxsig.c,v 1.42.2.3 2006/03/11 03:01:41 cph Exp $
+$Id: uxsig.c,v 1.42.2.4 2006/03/11 04:10:46 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1996 Massachusetts Institute of Technology
 Copyright 2000,2001,2005 Massachusetts Institute of Technology
@@ -41,6 +41,7 @@ extern cc_t OS_ctty_int_char (void);
 extern cc_t OS_ctty_tstp_char (void);
 extern cc_t OS_ctty_disabled_char (void);
 extern void tty_set_next_interrupt_char (cc_t c);
+extern void UX_reinitialize_tty (void);
 
 /* Signal Manipulation */
 
@@ -490,7 +491,6 @@ OS_restartable_exit (void)
 static
 DEFUN_STD_HANDLER (sighnd_console_resize,
 {
-  extern void UX_reinitialize_tty (void);
   UX_reinitialize_tty ();
   request_console_resize_interrupt ();
 })
