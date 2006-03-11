@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: osscheme.c,v 1.14.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: osscheme.c,v 1.14.2.3 2006/03/11 03:01:41 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1996 Massachusetts Institute of Technology
 Copyright 2000,2002,2005 Massachusetts Institute of Technology
@@ -78,6 +78,12 @@ test_and_clear_attention_interrupt (void)
 }
 
 #endif /* __OS2__ */
+
+void
+request_console_resize_interrupt (void)
+{
+  REQUEST_INTERRUPT (INT_Global_3);
+}
 
 void
 request_character_interrupt (void)

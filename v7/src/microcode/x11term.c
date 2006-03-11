@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: x11term.c,v 1.29.2.4 2005/11/13 03:46:23 cph Exp $
+$Id: x11term.c,v 1.29.2.5 2006/03/11 03:01:41 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1995 Massachusetts Institute of Technology
-Copyright 2000,2005 Massachusetts Institute of Technology
+Copyright 2000,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -316,16 +316,11 @@ xterm_dump_rectangle (struct xwindow * xw,
 
 static void
 xterm_reconfigure (struct xwindow * xw,
-		   unsigned int width,
-		   unsigned int height)
+		   unsigned int x_csize,
+		   unsigned int y_csize)
 {
-  unsigned int extra = (2 * (XW_INTERNAL_BORDER_WIDTH (xw)));
-  unsigned int x_size = ((width < extra) ? 0 : (width - extra));
-  unsigned int y_size = ((height < extra) ? 0 : (height - extra));
-  if ((x_size != (XW_X_SIZE (xw))) || (y_size != (XW_Y_SIZE (xw))))
+  if ((x_csize != (XW_X_CSIZE (xw))) || (y_csize != (XW_Y_CSIZE (xw))))
     {
-      unsigned int x_csize = (x_size / (FONT_WIDTH (XW_FONT (xw))));
-      unsigned int y_csize = (y_size / (FONT_HEIGHT (XW_FONT (xw))));
       char * new_char_map = (x_malloc (x_csize * y_csize));
       char * new_hl_map = (x_malloc (x_csize * y_csize));
       unsigned int old_x_csize = (XW_X_CSIZE (xw));
@@ -373,12 +368,16 @@ xterm_reconfigure (struct xwindow * xw,
 	}
       free (XW_CHARACTER_MAP (xw));
       free (XW_HIGHLIGHT_MAP (xw));
-      (XW_X_SIZE (xw)) = x_size;
-      (XW_Y_SIZE (xw)) = y_size;
-      (XW_CLIP_X (xw)) = 0;
-      (XW_CLIP_Y (xw)) = 0;
-      (XW_CLIP_WIDTH (xw)) = x_size;
-      (XW_CLIP_HEIGHT (xw)) = y_size;
+      {
+	unsigned int x_size = (XTERM_X_PIXEL (xw, x_csize));
+	unsigned int y_size = (XTERM_Y_PIXEL (xw, x_csize));
+	(XW_X_SIZE (xw)) = x_size;
+	(XW_Y_SIZE (xw)) = y_size;
+	(XW_CLIP_X (xw)) = 0;
+	(XW_CLIP_Y (xw)) = 0;
+	(XW_CLIP_WIDTH (xw)) = x_size;
+	(XW_CLIP_HEIGHT (xw)) = y_size;
+      }
       (XW_X_CSIZE (xw)) = x_csize;
       (XW_Y_CSIZE (xw)) = y_csize;
       (XW_CHARACTER_MAP (xw))= new_char_map;

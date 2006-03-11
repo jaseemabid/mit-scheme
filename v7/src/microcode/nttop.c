@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: nttop.c,v 1.35.2.3 2005/08/23 04:15:28 cph Exp $
+$Id: nttop.c,v 1.35.2.4 2006/03/11 03:01:41 cph Exp $
 
 Copyright 1993,1997,1998,2000,2003,2004 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -466,12 +466,14 @@ OS_restore_external_state (void)
   NT_restore_channels ();
 }
 
+#ifndef __OPEN_WATCOM_14__
 void
 bcopy (const char * s1, char * s2, int n)
 {
   while (n-- > 0)
     *s2++ = *s1++;
 }
+#endif
 
 void *
 OS_malloc (unsigned int size)

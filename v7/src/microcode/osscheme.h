@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: osscheme.h,v 1.13.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: osscheme.h,v 1.13.2.3 2006/03/11 03:01:41 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,2000 Massachusetts Institute of Technology
 Copyright 2005 Massachusetts Institute of Technology
@@ -48,6 +48,7 @@ extern void error_floating_point_exception (void) NORETURN;
    extern int test_and_clear_attention_interrupt (void);
 #endif
 
+extern void request_console_resize_interrupt (void);
 extern void request_character_interrupt (void);
 extern void request_timer_interrupt (void);
 extern void request_suspend_interrupt (void);

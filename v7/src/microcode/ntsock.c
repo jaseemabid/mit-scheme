@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: ntsock.c,v 1.18.2.1 2005/08/23 02:55:11 cph Exp $
+$Id: ntsock.c,v 1.18.2.2 2006/03/11 03:01:41 cph Exp $
 
 Copyright 1997,1998,1999,2001,2002,2003 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -233,7 +234,7 @@ OS_listen_tcp_server_socket (Tchannel channel)
 
 Tchannel
 OS_server_connection_accept (Tchannel channel,
-			     char * peer_host, unsigned int * peer_port)
+			     void * peer_host, unsigned int * peer_port)
 {
   static struct sockaddr_in address;
   SOCKET s;

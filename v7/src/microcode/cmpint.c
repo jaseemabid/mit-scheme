@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.4 2005/08/24 05:22:33 cph Exp $
+$Id: cmpint.c,v 1.103.2.5 2006/03/11 03:01:41 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
-Copyright 2004,2005 Massachusetts Institute of Technology
+Copyright 2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -238,6 +238,18 @@ extern long C_to_interface (insn_t *);
    typedef insn_t * c_func_t;
 #else
    typedef void c_func_t (void);
+
+/* From trunk, but may not be needed: */
+#if 0
+#  ifdef __OPEN_WATCOM_14__
+#    define REFENTRY(name) ((void *) name)
+#  else
+#    define REFENTRY(name) ((void EXFUN ((*), (void))) name)
+#  endif
+#  define VARENTRY(name) void EXFUN ((*name), (void))
+#  define EXTENTRY(name) extern void EXFNX (name, (void))
+#endif
+
 #endif
 
 #define RETURN_TO_C(code) do						\

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtty.c,v 1.12.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: uxtty.c,v 1.12.2.3 2006/03/11 03:01:41 cph Exp $
 
 Copyright 1990,1991,1992,1993,2005 Massachusetts Institute of Technology
 
@@ -115,12 +115,8 @@ tputs_write_char (char c)
 }
 
 void
-UX_initialize_tty (void)
+UX_reinitialize_tty (void)
 {
-  input_channel = (OS_open_fd (STDIN_FILENO));
-  (CHANNEL_INTERNAL (input_channel)) = 1;
-  output_channel = (OS_open_fd (STDOUT_FILENO));
-  (CHANNEL_INTERNAL (output_channel)) = 1;
   tty_x_size = (-1);
   tty_y_size = (-1);
   tty_command_beep = ALERT_STRING;
@@ -187,4 +183,14 @@ UX_initialize_tty (void)
       (*tputs_output_scan++) = '\0';
       tty_command_clear = command;
     }
+}
+
+void
+UX_initialize_tty (void)
+{
+  input_channel = (OS_open_fd (STDIN_FILENO));
+  (CHANNEL_INTERNAL (input_channel)) = 1;
+  output_channel = (OS_open_fd (STDOUT_FILENO));
+  (CHANNEL_INTERNAL (output_channel)) = 1;
+  UX_reinitialize_tty ();
 }

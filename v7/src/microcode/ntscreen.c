@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: ntscreen.c,v 1.51.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: ntscreen.c,v 1.51.2.3 2006/03/11 03:01:41 cph Exp $
 
 Copyright 1993,1996,1997,1998,1999,2000 Massachusetts Institute of Technology
-Copyright 2002,2004,2005 Massachusetts Institute of Technology
+Copyright 2002,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -600,7 +600,7 @@ ScreenWndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
        return  (LRESULT)ReadScreen (screen, (LPSTR)lParam, (int)wParam);
 
      case SCREEN_SETMENU:
-       Screen_SetMenu (hWnd, (HMENU)lParam);
+       Screen_SetMenu (screen, (HMENU)lParam);
        return  0L;
 
      case SCREEN_CLEAR:
@@ -3641,7 +3641,7 @@ search_for_font (LOGFONT * lf)
   (args . foundp) = FALSE;
   (void) EnumFontFamilies (hdc,
 			   (lf -> lfFaceName),
-			   search_for_font_proc,
+			   ((void *) search_for_font_proc),
 			   ((LPARAM) (&args)));
   if (args . foundp)
     (*lf) = (args . elf . elfLogFont);
