@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.3 2005/08/24 05:20:24 cph Exp $
+$Id: gcloop.c,v 9.51.2.4 2006/03/11 02:34:23 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005 Massachusetts Institute of Technology
@@ -208,12 +208,13 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
     {
     case LINKAGE_SECTION_TYPE_REFERENCE:
     case LINKAGE_SECTION_TYPE_ASSIGNMENT:
-      while ((count--) > 0)
+      while (count > 0)
 	{
 	  WRITE_REFERENCE_OBJECT
 	    ((GC_HANDLE_TUPLE ((READ_REFERENCE_OBJECT (scan)), 3, ctx)),
 	     scan);
 	  scan += 1;
+	  count -= 1;
 	}
       break;
 
@@ -222,12 +223,13 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
       {
 	DECLARE_RELOCATION_REFERENCE (ref);
 	START_OPERATOR_RELOCATION (scan, ref);
-	while ((count--) > 0)
+	while (count > 0)
 	  {
 	    write_uuo_target
 	      ((GC_HANDLE_CC_ENTRY ((READ_UUO_TARGET (scan, ref)), ctx)),
 	       scan);
 	    scan += UUO_LINK_SIZE;
+	    count -= 1;
 	  }
 	END_OPERATOR_RELOCATION (scan, ref);
       }
@@ -387,10 +389,11 @@ gc_transport_words (SCHEME_OBJECT * from,
   {
     SCHEME_OBJECT * scan_to = to;
     SCHEME_OBJECT * scan_from = from;
-    while ((n_words--) > 0)
+    while (n_words > 0)
       {
 	DEBUG_TRANSPORT_ONE_WORD ((GCTX_OBJECT (ctx)), scan_from);
 	(*scan_to++) = (*scan_from++);
+	n_words -= 1;
       }
     (* (GCTX_PTO (ctx))) = scan_to;
   }
