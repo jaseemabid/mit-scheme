@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prmhash.c,v 11.6.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: prmhash.c,v 11.6.2.3 2006/03/11 04:10:25 cph Exp $
 
 Copyright 2000,2001,2005 Massachusetts Institute of Technology
 
@@ -38,7 +38,7 @@ USA.
 }
 
 static SCHEME_OBJECT
-cp2s (char * cp)
+cp2s (void * cp)
 {
   if (cp == 0)
     return (SHARP_F);
@@ -261,7 +261,7 @@ initialize_keygenid_map (void)
       keygenid_map = (OS_malloc ((sizeof (keygenid)) * keygenid_count));
       while (j < keygenid_count)
 	{
-	  char * name = (mhash_get_keygen_name (i));
+	  void * name = (mhash_get_keygen_name (i));
 	  if (name != 0)
 	    {
 	      (keygenid_map[j++]) = ((keygenid) i);
