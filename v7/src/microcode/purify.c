@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.65.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: purify.c,v 9.65.2.3 2006/03/11 06:38:03 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1997,2000,2001 Massachusetts Institute of Technology
@@ -206,6 +206,7 @@ purify (SCHEME_OBJECT object, bool pure_p)
   (*constant_alloc_next++) = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1));
   (*constant_alloc_next++) = (MAKE_OBJECT (END_OF_BLOCK, total_length));
 
+  PRESERVE_OLD_SPACE_LIMITS ();
   if (!update_allocator_parameters (0))
     gc_death (TERM_NO_SPACE, 0, 0, "object too large");
 
