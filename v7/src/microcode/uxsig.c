@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxsig.c,v 1.42.2.4 2006/03/11 04:10:46 cph Exp $
+$Id: uxsig.c,v 1.42.2.5 2006/03/11 04:15:36 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1996 Massachusetts Institute of Technology
 Copyright 2000,2001,2005 Massachusetts Institute of Technology
@@ -510,10 +510,11 @@ DEFUN_STD_HANDLER (sighnd_timer,
 
 #else /* not HAVE_SETITIMER */
 
+extern void reschedule_alarm (void);
+
 static
 DEFUN_STD_HANDLER (sighnd_timer,
 {
-  extern void reschedule_alarm (void);
   reschedule_alarm ();
   request_timer_interrupt ();
 })
