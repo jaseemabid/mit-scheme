@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.5 2006/03/11 03:01:41 cph Exp $
+$Id: cmpint.c,v 1.103.2.6 2006/03/12 02:08:26 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -638,14 +638,23 @@ compiled_with_stack_marker (SCHEME_OBJECT thunk)
   PUSH_REFLECTION (REFLECT_CODE_STACK_MARKER);
   {
     long code = (setup_compiled_invocation (thunk, 0));
-    if (code != PRIM_DONE)
+    switch (code)
       {
+      case PRIM_DONE:
+	/* Pun: thunk is being invoked as a return address.  */
+	STACK_PUSH (thunk);
+	break;
+
+      case PRIM_APPLY_INTERRUPT:
+	PRIMITIVE_ABORT (code);
+	break;
+
+      default:
 	PUSH_REFLECTION (REFLECT_CODE_INTERNAL_APPLY);
 	PRIMITIVE_ABORT (code);
+	break;
       }
   }
-  /* Pun: thunk is being invoked as a return address.  */
-  STACK_PUSH (thunk);
 }
 
 /* SCHEME_UTILITY procedures

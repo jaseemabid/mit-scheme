@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: interp.c,v 9.102.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: interp.c,v 9.102.2.3 2006/03/12 02:07:48 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,2000,2001,2002,2003,2004 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -281,6 +281,11 @@ Interpret (void)
     case PRIM_NO_TRAP_APPLY:
       PROCEED_AFTER_PRIMITIVE ();
       goto Apply_Non_Trapping;
+
+    case PRIM_APPLY_INTERRUPT:
+      PROCEED_AFTER_PRIMITIVE ();
+      PREPARE_APPLY_INTERRUPT ();
+      SIGNAL_INTERRUPT (PENDING_INTERRUPTS ());
 
     case PRIM_DO_EXPRESSION:
       SET_VAL (GET_EXP);
