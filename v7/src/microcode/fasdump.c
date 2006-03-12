@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: fasdump.c,v 9.68.2.3 2006/03/12 05:09:37 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -64,6 +64,7 @@ static gc_handler_t handle_primitive;
 static gc_handler_t handle_manifest_closure;
 static gc_handler_t handle_linkage_section;
 static gc_handler_t handle_symbol;
+static gc_handler_t handle_broken_heart;
 static gc_handler_t handle_variable;
 static gc_handler_t handle_environment;
 
@@ -226,6 +227,7 @@ fasdump_loop (env_mode_t mode, prim_renumber_t * pr, bool * cc_seen_p,
       (GCT_ENTRY ((&fasdump_table), TC_LINKAGE_SECTION))
 	= handle_linkage_section;
       (GCT_ENTRY ((&fasdump_table), TC_INTERNED_SYMBOL)) = handle_symbol;
+      (GCT_ENTRY ((&fasdump_table), TC_BROKEN_HEART)) = handle_broken_heart;
       (GCT_ENTRY ((&fasdump_table), TC_UNINTERNED_SYMBOL)) = handle_symbol;
       (GCT_ENTRY ((&fasdump_table), TC_VARIABLE)) = handle_variable;
       (GCT_ENTRY ((&fasdump_table), TC_ENVIRONMENT)) = handle_environment;
@@ -286,6 +288,15 @@ DEFINE_GC_HANDLER (handle_symbol)
     }
   (*scan) = (OBJECT_NEW_ADDRESS (object, new_address));
   return (scan + 1);
+}
+
+static
+DEFINE_GC_HANDLER (handle_broken_heart)
+{
+  return
+    (((OBJECT_DATUM (object)) == 0)
+     ? (scan + 1)
+     : (gc_handle_broken_heart (scan, object, ctx)));
 }
 
 static
