@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.4 2006/03/11 02:34:23 cph Exp $
+$Id: gcloop.c,v 9.51.2.5 2006/03/12 05:08:49 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
-Copyright 1992,1993,2000,2001,2005 Massachusetts Institute of Technology
+Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -372,9 +372,10 @@ gc_transport_words (SCHEME_OBJECT * from,
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
   {
     SCHEME_OBJECT * end = (to + n_words);
-    if (! ((ADDRESS_IN_ACTIVE_HEAP_P (to))
-	   ? (ADDRESS_IN_ACTIVE_HEAP_P (end))
-	   : (to == constant_alloc_next)))
+    if (((ADDRESS_IN_ACTIVE_HEAP_P (to))
+	 && (!ADDRESS_IN_ACTIVE_HEAP_P (end)))
+	|| ((ADDRESS_IN_INACTIVE_HEAP_P (to))
+	    && (!ADDRESS_IN_INACTIVE_HEAP_P (end))))
       gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
 		"block overflows target space: %#lx %#lx",
 		((unsigned long) to),
