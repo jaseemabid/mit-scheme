@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: comutl.c,v 1.33.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: comutl.c,v 1.33.2.3 2006/03/12 05:17:50 cph Exp $
 
 Copyright 1987,1988,1989,1991,1993,1997 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -194,7 +194,7 @@ DEFINE_PRIMITIVE ("DECLARE-COMPILED-CODE-BLOCK",
   PRIMITIVE_HEADER (1);
   {
     SCHEME_OBJECT new_cc_block = (ARG_REF (1));
-    if (CC_BLOCK_P (new_cc_block))
+    if (!CC_BLOCK_P (new_cc_block))
       error_wrong_type_arg (1);
     declare_compiled_code_block (new_cc_block);
     PRIMITIVE_RETURN (SHARP_T);
