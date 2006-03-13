@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: gc.h,v 9.36.2.2 2005/08/23 02:55:09 cph Exp $
+$Id: gc.h,v 9.36.2.3 2006/03/13 05:15:39 cph Exp $
 
 Copyright 1986,1987,1988,1989,1992,1993 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -89,7 +89,7 @@ extern bool object_pure_p (SCHEME_OBJECT);
   ((unsigned long) ((FREE_OK_P (Free)) ? (heap_alloc_limit - Free) : 0))
 
 #define FREE_OK_P(free)							\
-  (((free) >= active_heap_start) && ((free) <= heap_alloc_limit))
+  (((free) >= active_heap_start) && ((free) < heap_alloc_limit))
 
 #define HEAP_AVAILABLE_P(n_words)					\
   ((FREE_OK_P (Free)) && ((Free + (n_words)) <= heap_alloc_limit))
