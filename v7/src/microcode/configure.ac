@@ -1,13 +1,13 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.3 2006/03/11 03:01:41 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.4 2006/04/08 03:21:28 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
 
 AC_COPYRIGHT(
-[Copyright 2000,2002,2003,2004,2005 Massachusetts Institute of Technology
+[Copyright 2000,2002,2003,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -29,7 +29,7 @@ USA.
 
 AH_TOP([/*
 
-Copyright 2000,2002,2003,2004,2005 Massachusetts Institute of Technology
+Copyright 2000,2002,2003,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -572,6 +572,7 @@ fi
 dnl Checks for system characteristics.
 AC_CANONICAL_HOST
 AC_PATH_XTRA
+AC_SYS_LARGEFILE
 AC_SYS_LONG_FILE_NAMES
 AC_SYS_RESTARTABLE_SYSCALLS
 
