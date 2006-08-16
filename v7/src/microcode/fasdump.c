@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.3 2006/03/12 05:09:37 cph Exp $
+$Id: fasdump.c,v 9.68.2.4 2006/08/16 19:15:42 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -219,7 +219,8 @@ fasdump_loop (env_mode_t mode, prim_renumber_t * pr, bool * cc_seen_p,
 			   fasdump_tuple,
 			   fasdump_vector,
 			   fasdump_cc_entry,
-			   fasdump_weak_pair);
+			   fasdump_weak_pair,
+			   gc_precheck_from);
       (GCT_ENTRY ((&fasdump_table), TC_PRIMITIVE)) = handle_primitive;
       (GCT_ENTRY ((&fasdump_table), TC_PCOMB0)) = handle_primitive;
       (GCT_ENTRY ((&fasdump_table), TC_MANIFEST_CLOSURE))

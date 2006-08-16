@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.2 2005/08/23 02:55:09 cph Exp $
+$Id: gccode.h,v 9.60.2.3 2006/08/16 19:15:46 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
@@ -82,6 +82,8 @@ typedef SCHEME_OBJECT gc_object_handler_t
 #define DEFINE_GC_OBJECT_HANDLER(handler_name)				\
 SCHEME_OBJECT								\
 handler_name (SCHEME_OBJECT object, gc_ctx_t * ctx)
+
+typedef SCHEME_OBJECT * gc_precheck_from_t (SCHEME_OBJECT *, gc_ctx_t *);
 
 struct gc_table_s
 {
@@ -90,6 +92,7 @@ struct gc_table_s
   gc_vector_handler_t * vector_handler;
   gc_object_handler_t * cc_entry_handler;
   gc_object_handler_t * weak_pair_handler;
+  gc_precheck_from_t * precheck_from;
 };
 
 #define GCT_ENTRY(table, type) (((table)->handlers) [(type)])
@@ -97,6 +100,7 @@ struct gc_table_s
 #define GCT_VECTOR(table) ((table)->vector_handler)
 #define GCT_CC_ENTRY(table) ((table)->cc_entry_handler)
 #define GCT_WEAK_PAIR(table) ((table)->weak_pair_handler)
+#define GCT_PRECHECK_FROM(table) ((table)->precheck_from)
 
 #define GC_HANDLE_TUPLE(object, n_words, ctx)				\
   ((* (GCT_TUPLE ((ctx)->table))) ((object), (n_words), (ctx)))
@@ -106,6 +110,9 @@ struct gc_table_s
 
 #define GC_HANDLE_CC_ENTRY(object, ctx)					\
   ((* (GCT_CC_ENTRY ((ctx)->table))) ((object), (ctx)))
+
+#define GC_PRECHECK_FROM(from, ctx)					\
+  ((* (GCT_PRECHECK_FROM ((ctx)->table))) ((from), (ctx)))
 
 extern gc_handler_t gc_handle_non_pointer;
 extern gc_handler_t gc_handle_cell;
@@ -121,10 +128,11 @@ extern gc_handler_t gc_handle_reference_trap;
 extern gc_handler_t gc_handle_linkage_section;
 extern gc_handler_t gc_handle_manifest_closure;
 extern gc_handler_t gc_handle_undefined;
+extern gc_precheck_from_t gc_precheck_from;
 
 extern void initialize_gc_table
   (gc_table_t *, gc_tuple_handler_t *, gc_vector_handler_t *,
-   gc_object_handler_t *, gc_object_handler_t *);
+   gc_object_handler_t *, gc_object_handler_t *, gc_precheck_from_t *);
 
 extern void run_gc_loop (SCHEME_OBJECT *, SCHEME_OBJECT **, gc_ctx_t *);
 
@@ -132,6 +140,7 @@ extern SCHEME_OBJECT * gc_transport_words
   (SCHEME_OBJECT *, unsigned long, bool, gc_ctx_t *);
 
 extern SCHEME_OBJECT gc_transport_weak_pair (SCHEME_OBJECT, gc_ctx_t *);
+
 
 #ifndef BAD_TYPES_INNOCUOUS
 

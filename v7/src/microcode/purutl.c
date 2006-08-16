@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purutl.c,v 9.54.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: purutl.c,v 9.54.2.3 2006/08/16 19:15:52 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1996,2000,2001,2005 Massachusetts Institute of Technology
@@ -189,7 +189,8 @@ update_pointers (SCHEME_OBJECT * scan,
 			   update_tuple,
 			   update_vector,
 			   update_cc_entry,
-			   update_weak_pair);
+			   update_weak_pair,
+			   gc_precheck_from);
       initialized_p = true;
     }
 

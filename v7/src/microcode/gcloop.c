@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.5 2006/03/12 05:08:49 cph Exp $
+$Id: gcloop.c,v 9.51.2.6 2006/08/16 19:15:48 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -52,7 +52,6 @@ static gc_tuple_handler_t gc_tuple;
 static gc_vector_handler_t gc_vector;
 static gc_object_handler_t gc_cc_entry;
 static gc_object_handler_t gc_weak_pair;
-static SCHEME_OBJECT * precheck_from (SCHEME_OBJECT *, gc_ctx_t *);
 
 #define SIMPLE_HANDLER(name)						\
   (GCT_ENTRY (table, i)) = name;					\
@@ -63,7 +62,8 @@ initialize_gc_table (gc_table_t * table,
 		     gc_tuple_handler_t * tuple_handler,
 		     gc_vector_handler_t * vector_handler,
 		     gc_object_handler_t * cc_entry_handler,
-		     gc_object_handler_t * weak_pair_handler)
+		     gc_object_handler_t * weak_pair_handler,
+		     gc_precheck_from_t * precheck_from)
 {
   unsigned int i;
   for (i = 0; (i < N_TYPE_CODES); i += 1)
@@ -114,6 +114,7 @@ initialize_gc_table (gc_table_t * table,
   (GCT_VECTOR (table)) = vector_handler;
   (GCT_CC_ENTRY (table)) = cc_entry_handler;
   (GCT_WEAK_PAIR (table)) = weak_pair_handler;
+  (GCT_PRECHECK_FROM (table)) = precheck_from;
 }
 
 void
@@ -286,7 +287,8 @@ gc_loop (SCHEME_OBJECT * scan, SCHEME_OBJECT ** pend, SCHEME_OBJECT ** pto)
   if (!initialized_p)
     {
       initialize_gc_table
-	((&gc_table), gc_tuple, gc_vector, gc_cc_entry, gc_weak_pair);
+	((&gc_table),
+	 gc_tuple, gc_vector, gc_cc_entry, gc_weak_pair, gc_precheck_from);
       initialized_p = true;
     }
   (GCTX_TABLE (ctx)) = (&gc_table);
@@ -298,7 +300,7 @@ static
 DEFINE_GC_TUPLE_HANDLER (gc_tuple)
 {
   SCHEME_OBJECT * from = (OBJECT_ADDRESS (tuple));
-  SCHEME_OBJECT * new_address = (precheck_from (from, ctx));
+  SCHEME_OBJECT * new_address = (GC_PRECHECK_FROM (from, ctx));
   return
     (OBJECT_NEW_ADDRESS (tuple,
 			 ((new_address != 0)
@@ -313,7 +315,7 @@ static
 DEFINE_GC_VECTOR_HANDLER (gc_vector)
 {
   SCHEME_OBJECT * from = (OBJECT_ADDRESS (vector));
-  SCHEME_OBJECT * new_address = (precheck_from (from, ctx));
+  SCHEME_OBJECT * new_address = (GC_PRECHECK_FROM (from, ctx));
   return
     (OBJECT_NEW_ADDRESS (vector,
 			 ((new_address != 0)
@@ -338,14 +340,14 @@ static
 DEFINE_GC_OBJECT_HANDLER (gc_weak_pair)
 {
   SCHEME_OBJECT * new_address
-    = (precheck_from ((OBJECT_ADDRESS (object)), ctx));
+    = (GC_PRECHECK_FROM ((OBJECT_ADDRESS (object)), ctx));
   return ((new_address != 0)
 	  ? (OBJECT_NEW_ADDRESS (object, new_address))
 	  : (gc_transport_weak_pair (object, ctx)));
 }
 
-static SCHEME_OBJECT *
-precheck_from (SCHEME_OBJECT * from, gc_ctx_t * ctx)
+SCHEME_OBJECT *
+gc_precheck_from (SCHEME_OBJECT * from, gc_ctx_t * ctx)
 {
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
   if (!ADDRESS_IN_MEMORY_BLOCK_P (from))

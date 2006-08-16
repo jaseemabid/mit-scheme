@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.3 2005/11/13 05:33:46 cph Exp $
+$Id: fasload.c,v 9.96.2.4 2006/08/16 19:15:44 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -346,7 +346,8 @@ relocate_block (SCHEME_OBJECT * scan,
 			   fasload_tuple,
 			   fasload_vector,
 			   fasload_cc_entry,
-			   fasload_weak_pair);
+			   fasload_weak_pair,
+			   gc_precheck_from);
       (GCT_ENTRY ((&fasload_table), TC_PRIMITIVE)) = handle_primitive;
       (GCT_ENTRY ((&fasload_table), TC_PCOMB0)) = handle_primitive;
       (GCT_ENTRY ((&fasload_table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
@@ -483,7 +484,8 @@ intern_block (SCHEME_OBJECT * scan, SCHEME_OBJECT * end)
 			   intern_tuple,
 			   intern_vector,
 			   intern_cc_entry,
-			   intern_weak_pair);
+			   intern_weak_pair,
+			   gc_precheck_from);
       (GCT_ENTRY ((&intern_table), TC_INTERNED_SYMBOL)) = intern_handle_symbol;
       (GCT_ENTRY ((&intern_table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
       (GCT_ENTRY ((&intern_table), TC_MANIFEST_SPECIAL_NM_VECTOR))

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.65.2.4 2006/08/16 01:32:00 cph Exp $
+$Id: purify.c,v 9.65.2.5 2006/08/16 19:15:50 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1997,2000,2001 Massachusetts Institute of Technology
@@ -55,7 +55,7 @@ static gc_vector_handler_t purify_vector;
 static gc_object_handler_t purify_cc_entry;
 static gc_object_handler_t purify_weak_pair;
 static void purify_symbol_name (SCHEME_OBJECT, gc_ctx_t *);
-static SCHEME_OBJECT * precheck_from (SCHEME_OBJECT *);
+static gc_precheck_from_t precheck_from;
 
 /* Description of the algorithm for PURIFY:
 
@@ -193,7 +193,7 @@ purify (SCHEME_OBJECT object, bool pure_p)
   constant_end = constant_alloc_next;
 
   if (pure_p)
-    purify_loop (start_copy, (&constant_alloc_next), false);
+    purify_loop (start_pure, (&constant_alloc_next), false);
   else
     {
       initialize_weak_chain ();
@@ -227,7 +227,8 @@ purify_loop (SCHEME_OBJECT * scan, SCHEME_OBJECT ** pto, bool pure_p)
 			   purify_tuple,
 			   purify_vector,
 			   purify_cc_entry,
-			   purify_weak_pair);
+			   purify_weak_pair,
+			   precheck_from);
 
       (GCT_ENTRY ((&purify_table), TC_LINKAGE_SECTION))
 	= handle_linkage_section;
@@ -318,7 +319,7 @@ static
 DEFINE_GC_TUPLE_HANDLER (purify_tuple)
 {
   SCHEME_OBJECT * from = (OBJECT_ADDRESS (tuple));
-  SCHEME_OBJECT * address = (precheck_from (from));
+  SCHEME_OBJECT * address = (GC_PRECHECK_FROM (from, ctx));
   return
     (OBJECT_NEW_ADDRESS (tuple,
 			 ((address != 0)
@@ -333,7 +334,7 @@ static
 DEFINE_GC_VECTOR_HANDLER (purify_vector)
 {
   SCHEME_OBJECT * from = (OBJECT_ADDRESS (vector));
-  SCHEME_OBJECT * address = (precheck_from (from));
+  SCHEME_OBJECT * address = (GC_PRECHECK_FROM (from, ctx));
   return
     (OBJECT_NEW_ADDRESS (vector,
 			 ((address != 0)
@@ -358,7 +359,8 @@ DEFINE_GC_OBJECT_HANDLER (purify_cc_entry)
 static
 DEFINE_GC_OBJECT_HANDLER (purify_weak_pair)
 {
-  SCHEME_OBJECT * new_address = (precheck_from (OBJECT_ADDRESS (object)));
+  SCHEME_OBJECT * new_address
+    = (GC_PRECHECK_FROM ((OBJECT_ADDRESS (object)), ctx));
   return
     ((new_address != 0)
      ? (OBJECT_NEW_ADDRESS (object, new_address))
@@ -375,7 +377,7 @@ purify_symbol_name (SCHEME_OBJECT symbol, gc_ctx_t * ctx)
 }
 
 static SCHEME_OBJECT *
-precheck_from (SCHEME_OBJECT * from)
+precheck_from (SCHEME_OBJECT * from, gc_ctx_t * ctx)
 {
   return
     (((from >= constant_start) && (from < constant_alloc_next))
