@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.4 2006/04/08 03:21:28 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.5 2006/08/16 03:45:00 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -174,9 +174,25 @@ if test "${GCC}" = "yes"; then
 	CFLAGS="-O3"
     fi
     CFLAGS="${CFLAGS} -Wall -Wundef -Wpointer-arith -Winline"
-    CFLAGS="${CFLAGS} -Wstrict-prototypes -Wold-style-definition"
-    CFLAGS="${CFLAGS} -Wextra -Wno-sign-compare -Wno-unused-parameter"
-    CFLAGS="${CFLAGS} -Wnested-externs -Wredundant-decls"
+    CFLAGS="${CFLAGS} -Wstrict-prototypes -Wnested-externs -Wredundant-decls"
+
+    AC_MSG_CHECKING([for GCC>=4])
+    AC_TRY_COMPILE(
+	[],
+	[#if __GNUC__ >= 4
+	;
+	#else
+	#error "gcc too old"
+	#endif],
+	[gcc4_available=yes],
+	[gcc4_available=no])
+    AC_MSG_RESULT(${gcc4_available})
+
+    if test "${gcc4_available}" = yes; then
+        CFLAGS="${CFLAGS} -Wextra -Wno-sign-compare -Wno-unused-parameter"
+        CFLAGS="${CFLAGS} -Wold-style-definition"
+    fi
+
     # other possibilities:
     # -Wmissing-prototypes -Wunreachable-code -Wwrite-strings
 fi
