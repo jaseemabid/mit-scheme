@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.65.2.3 2006/03/11 06:38:03 cph Exp $
+$Id: purify.c,v 9.65.2.4 2006/08/16 01:32:00 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1997,2000,2001 Massachusetts Institute of Technology
-Copyright 2002,2005 Massachusetts Institute of Technology
+Copyright 2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -339,7 +339,7 @@ DEFINE_GC_VECTOR_HANDLER (purify_vector)
 			 ((address != 0)
 			  ? address
 			  : (gc_transport_words (from,
-						 (OBJECT_DATUM (*from)),
+						 (1 + (OBJECT_DATUM (*from))),
 						 align_p,
 						 ctx)))));
 }
@@ -378,7 +378,7 @@ static SCHEME_OBJECT *
 precheck_from (SCHEME_OBJECT * from)
 {
   return
-    ((ADDRESS_IN_CONSTANT_P (from))
+    (((from >= constant_start) && (from < constant_alloc_next))
      ? from
      : (BROKEN_HEART_P (*from))
      ? (OBJECT_ADDRESS (*from))
