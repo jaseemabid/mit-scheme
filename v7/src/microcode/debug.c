@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: debug.c,v 9.58.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: debug.c,v 9.58.2.3 2006/08/16 19:14:50 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -302,15 +302,25 @@ static void
 print_symbol (outf_channel stream, SCHEME_OBJECT symbol)
 {
   SCHEME_OBJECT string;
-  long length;
-  long i;
+  unsigned long length;
+  unsigned long limit;
+  unsigned long i;
   char * next;
 
   string = (MEMORY_REF (symbol, SYMBOL_NAME));
   length = (STRING_LENGTH (string));
+  limit = ((length > 64) ? 64 : length);
   next = (STRING_POINTER (string));
-  for (i = 0; (i < length); i += 1)
-    outf(stream, "%c", *next++);  /*should use %s? */
+  for (i = 0; (i < limit); i += 1)
+    {
+      int c = (*next++);
+      if (c < 0x80)
+	outf (stream, "%c", c);
+      else
+	outf (stream, "\\x%02x", c);
+    }
+  if (limit < length)
+    outf (stream, "...");
 }
 
 static void
