@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: intrpt.h,v 1.24.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: intrpt.h,v 1.24.2.3 2006/08/16 19:25:13 cph Exp $
 
 Copyright 1987,1992,1993,1994,1997,2000 Massachusetts Institute of Technology
-Copyright 2003,2005 Massachusetts Institute of Technology
+Copyright 2003,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -70,7 +70,7 @@ USA.
 {									\
   SET_MEMTOP								\
     (((PENDING_INTERRUPTS ()) != 0)					\
-     ? memory_block_end							\
+     ? memory_block_start						\
      : (GC_ENABLED_P ())						\
      ? heap_alloc_limit							\
      : active_heap_end);						\
