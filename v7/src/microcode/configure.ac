@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.5 2006/08/16 03:45:00 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.6 2006/08/16 04:23:12 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -644,6 +644,13 @@ if test "${scheme_cv_lib_crypto}" = "yes"; then
 	fi
     fi
 fi
+
+dnl These libraries might not be installed, so take care generating
+dnl file dependencies using "makegen/makegen.scm" when called on
+dnl "makegen/files-optional.scm".  To wit, "prmhash.c" & "prmcrypt.c"
+dnl must conditionalize their dependencies on <mhash.h> & <mcrypt.h>,
+dnl respectively, to avoid warnings in "Makefile.deps" and its embeds.
+dnl Finally, note that "prmd5.c" is similarly conditionalized as well.
 
 dnl The mhash library provides md5 support.  It can be loaded in addition
 dnl to other MD5 libraries and provides a rich set of hashes.

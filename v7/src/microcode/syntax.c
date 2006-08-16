@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: syntax.c,v 1.30.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: syntax.c,v 1.30.2.3 2006/08/16 04:23:12 cph Exp $
 
 Copyright 1987,1988,1989,1991,1993,1996 Massachusetts Institute of Technology
-Copyright 2000,2004,2005 Massachusetts Institute of Technology
+Copyright 2000,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -737,6 +737,17 @@ struct levelstruct { unsigned char * last, * previous; };
   (level -> last) = start;						\
 } while (0)
 
+#define SSF_STATE_LENGTH 9
+#define SSF_STATE_DEPTH 0
+#define SSF_STATE_IN_STRING_P 1
+#define SSF_STATE_COMMENT_STATE 2
+#define SSF_STATE_QUOTED_P 3
+#define SSF_STATE_START_OF_SEXP 4
+#define SSF_STATE_LAST_SEXP 5
+#define SSF_STATE_CONTAINING_SEXP 6
+#define SSF_STATE_LOCATION 7
+#define SSF_STATE_COMMENT_START 8
+
 DEFINE_PRIMITIVE ("SCAN-SEXPS-FORWARD", Prim_scan_sexps_forward, 7, 7, 0)
 {
   long target_depth;
@@ -778,18 +789,18 @@ DEFINE_PRIMITIVE ("SCAN-SEXPS-FORWARD", Prim_scan_sexps_forward, 7, 7, 0)
       in_comment = 0;
       quoted = false;
     }
-  else if ((VECTOR_P (state_argument)) &&
-	   (VECTOR_LENGTH (state_argument)) == 8)
+  else if ((VECTOR_P (state_argument))
+	   && (VECTOR_LENGTH (state_argument)) == SSF_STATE_LENGTH)
     {
       SCHEME_OBJECT temp;
 
-      temp = (VECTOR_REF (state_argument, 0));
+      temp = (VECTOR_REF (state_argument, SSF_STATE_DEPTH));
       if (FIXNUM_P (temp))
 	depth = (FIXNUM_TO_LONG (temp));
       else
 	error_bad_range_arg (7);
 
-      temp = (VECTOR_REF (state_argument, 1));
+      temp = (VECTOR_REF (state_argument, SSF_STATE_IN_STRING_P));
       if (temp == SHARP_F)
 	in_string = -1;
       else if ((UNSIGNED_FIXNUM_P (temp)) &&
@@ -798,7 +809,7 @@ DEFINE_PRIMITIVE ("SCAN-SEXPS-FORWARD", Prim_scan_sexps_forward, 7, 7, 0)
       else
 	error_bad_range_arg (7);
 
-      temp = (VECTOR_REF (state_argument, 2));
+      temp = (VECTOR_REF (state_argument, SSF_STATE_COMMENT_STATE));
       if (temp == SHARP_F)
 	in_comment = 0;
       else if (temp == (LONG_TO_UNSIGNED_FIXNUM (1)))
@@ -839,11 +850,11 @@ DEFINE_PRIMITIVE ("SCAN-SEXPS-FORWARD", Prim_scan_sexps_forward, 7, 7, 0)
       else
 	error_bad_range_arg (7);
 
-      quoted = ((VECTOR_REF (state_argument, 3)) != SHARP_F);
+      quoted = ((VECTOR_REF (state_argument, SSF_STATE_QUOTED_P)) != SHARP_F);
 
       if (in_comment != 0)
 	{
-	  temp = (VECTOR_REF (state_argument, 7));
+	  temp = (VECTOR_REF (state_argument, SSF_STATE_COMMENT_START));
 	  if (MARK_P (temp))
 	    comment_start = (INDEX_TO_SCAN (MARK_INDEX (temp)));
 	  else if (UNSIGNED_FIXNUM_P (temp))
@@ -859,7 +870,7 @@ DEFINE_PRIMITIVE ("SCAN-SEXPS-FORWARD", Prim_scan_sexps_forward, 7, 7, 0)
 
   /* Make sure there is enough room for the result before we start. */
 
-  Primitive_GC_If_Needed (8);
+  Primitive_GC_If_Needed (SSF_STATE_LENGTH);
 
   /* Enter main loop at place appropiate for initial state. */
 
@@ -1036,15 +1047,15 @@ DEFINE_PRIMITIVE ("SCAN-SEXPS-FORWARD", Prim_scan_sexps_forward, 7, 7, 0)
   start -= 1;
 
  done:
-  result = (allocate_marked_vector (TC_VECTOR, 8, true));
-  VECTOR_SET (result, 0, (LONG_TO_FIXNUM (depth)));
+  result = (allocate_marked_vector (TC_VECTOR, SSF_STATE_LENGTH, true));
+  VECTOR_SET (result, SSF_STATE_DEPTH, (LONG_TO_FIXNUM (depth)));
   VECTOR_SET
-    (result, 1,
+    (result, SSF_STATE_IN_STRING_P,
      ((in_string == -1)
       ? SHARP_F
       : (LONG_TO_UNSIGNED_FIXNUM (in_string))));
   VECTOR_SET
-    (result, 2,
+    (result, SSF_STATE_COMMENT_STATE,
      ((in_comment == 0)
       ? SHARP_F
       : (LONG_TO_UNSIGNED_FIXNUM
@@ -1054,22 +1065,28 @@ DEFINE_PRIMITIVE ("SCAN-SEXPS-FORWARD", Prim_scan_sexps_forward, 7, 7, 0)
 	  : (comment_style == COMMENT_STYLE_A)
 	  ? in_comment
 	  : (in_comment + 4)))));
-  VECTOR_SET (result, 3, (BOOLEAN_TO_OBJECT (quoted)));
+  VECTOR_SET (result, SSF_STATE_QUOTED_P, (BOOLEAN_TO_OBJECT (quoted)));
   VECTOR_SET
-    (result, 4,
+    (result, SSF_STATE_START_OF_SEXP,
+     (((level -> last) == NULL)
+      ? SHARP_F
+      : (LONG_TO_UNSIGNED_FIXNUM ((SCAN_TO_INDEX (level -> last)) - 1))));
+  VECTOR_SET
+    (result, SSF_STATE_LAST_SEXP,
      (((level -> previous) == NULL)
       ? SHARP_F
       : (LONG_TO_UNSIGNED_FIXNUM ((SCAN_TO_INDEX (level -> previous)) - 1))));
   VECTOR_SET
-    (result, 5,
+    (result, SSF_STATE_CONTAINING_SEXP,
      (((level == level_start) || (((level - 1) -> last) == NULL))
       ? SHARP_F
       : (LONG_TO_UNSIGNED_FIXNUM
 	 ((SCAN_TO_INDEX ((level - 1) -> last)) - 1))));
   VECTOR_SET
-    (result, 6, (LONG_TO_UNSIGNED_FIXNUM (SCAN_TO_INDEX (start))));
+    (result, SSF_STATE_LOCATION,
+     (LONG_TO_UNSIGNED_FIXNUM (SCAN_TO_INDEX (start))));
   VECTOR_SET
-    (result, 7,
+    (result, SSF_STATE_COMMENT_START,
      ((in_comment == 0)
       ? SHARP_F
       : (LONG_TO_UNSIGNED_FIXNUM (SCAN_TO_INDEX (comment_start)))));

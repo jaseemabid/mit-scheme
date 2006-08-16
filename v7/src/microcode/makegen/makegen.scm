@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: makegen.scm,v 1.7.2.1 2005/08/23 02:55:14 cph Exp $
+$Id: makegen.scm,v 1.7.2.2 2006/08/16 04:23:12 cph Exp $
 
 Copyright 2000,2001,2003 Massachusetts Institute of Technology
 
@@ -141,7 +141,7 @@ USA.
 (define (generate-rule filename)
   (parse-rule
    (unbreak-lines
-    (call-with-output-string
+    (with-string-output-port
      (lambda (port)
        (run-shell-command (string-append "./makegen-cc " filename)
 			  'OUTPUT port))))))

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: prmhash.c,v 11.6.2.3 2006/03/11 04:10:25 cph Exp $
+$Id: prmhash.c,v 11.6.2.4 2006/08/16 04:23:12 cph Exp $
 
-Copyright 2000,2001,2005 Massachusetts Institute of Technology
+Copyright 2000,2001,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -29,7 +29,13 @@ USA.
 #include "prims.h"
 #include "usrdef.h"
 #include "os.h"
-#include <mhash.h>
+
+/* If mhash.h unavailable, ignore it.  This helps
+   "makegen/makegen.scm" work properly on systems lacking this
+   library.  */
+#ifdef HAVE_MHASH_H
+#  include <mhash.h>
+#endif
 
 #define UNARY_OPERATION(name, get_arg, cvt_val)				\
 {									\

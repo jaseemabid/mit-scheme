@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: prmcrypt.c,v 1.5.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: prmcrypt.c,v 1.5.2.3 2006/08/16 04:23:12 cph Exp $
 
-Copyright 2001,2005 Massachusetts Institute of Technology
+Copyright 2001,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -29,7 +29,13 @@ USA.
 #include "prims.h"
 #include "usrdef.h"
 #include "os.h"
-#include <mcrypt.h>
+
+/* If mcrypt.h unavailable, ignore it.  This helps
+   "makegen/makegen.scm" work properly on systems lacking this
+   library.  */
+#ifdef HAVE_MCRYPT_H
+#  include <mcrypt.h>
+#endif
 
 static SCHEME_OBJECT
 cp2s (char * cp)

@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# $Id: utabmd.sh,v 1.5.2.1 2005/08/23 02:55:13 cph Exp $
+# $Id: utabmd.sh,v 1.5.2.2 2006/08/16 04:23:12 cph Exp $
 #
-# Copyright 2002,2003 Massachusetts Institute of Technology
+# Copyright 2002,2003,2006 Massachusetts Institute of Technology
 #
 # This file is part of MIT/GNU Scheme.
 #
@@ -24,4 +24,4 @@
 if [ -z "${SCHEME_COMPILER}" ]; then
     SCHEME_COMPILER="scheme --compiler"
 fi
-${SCHEME_COMPILER} --eval '(sf "utabmd")' < /dev/null
+echo '(sf "utabmd")' | ${SCHEME_COMPILER}
