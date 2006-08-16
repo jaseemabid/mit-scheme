@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: interp.c,v 9.102.2.3 2006/03/12 02:07:48 cph Exp $
+$Id: interp.c,v 9.102.2.4 2006/08/16 03:46:58 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,2000,2001,2002,2003,2004 Massachusetts Institute of Technology
@@ -948,7 +948,7 @@ Interpret (void)
 		SCHEME_OBJECT env
 		  = (MAKE_POINTER_OBJECT (TC_ENVIRONMENT, Free));
 		(*Free++) = (MAKE_OBJECT (TC_MANIFEST_VECTOR, frame_size));
-		STACK_POP ();
+		(void) STACK_POP ();
 		while (Free < end)
 		  (*Free++) = (STACK_POP ());
 		SET_ENV (env);
@@ -1279,7 +1279,7 @@ Interpret (void)
     case RC_RESTORE_DONT_COPY_HISTORY:
       {
 	prev_restore_history_offset = (OBJECT_DATUM (STACK_POP ()));
-	STACK_POP ();
+	(void) STACK_POP ();
 	history_register = (OBJECT_ADDRESS (GET_EXP));
 	break;
       }
@@ -1297,7 +1297,7 @@ Interpret (void)
 	    IMMEDIATE_GC (HEAP_AVAILABLE);
 	  }
 	prev_restore_history_offset = (OBJECT_DATUM (STACK_POP ()));
-	STACK_POP ();
+	(void) STACK_POP ();
 	if (prev_restore_history_offset > 0)
 	  (STACK_LOCATIVE_REFERENCE (STACK_BOTTOM,
 				     (-prev_restore_history_offset)))

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: hooks.c,v 9.66.2.2 2005/08/23 02:55:09 cph Exp $
+$Id: hooks.c,v 9.66.2.3 2006/08/16 03:46:52 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -640,14 +640,14 @@ and MARKER2 is data identifying the marker instance.")
     SCHEME_OBJECT thunk = (ARG_REF (1));
     if ((CC_ENTRY_P (STACK_REF (3))) && (CC_ENTRY_P (thunk)))
       {
-	STACK_POP ();
+	(void) STACK_POP ();
 	compiled_with_stack_marker (thunk);
 	UN_POP_PRIMITIVE_FRAME (3);
       }
     else
       {
 	canonicalize_primitive_context ();
-	STACK_POP ();
+	(void) STACK_POP ();
 	STACK_PUSH (MAKE_RETURN_CODE (RC_STACK_MARKER));
 	Will_Push (STACK_ENV_EXTRA_SLOTS + 1);
 	STACK_PUSH (thunk);
