@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.4 2006/08/16 19:15:44 cph Exp $
+$Id: fasload.c,v 9.96.2.5 2006/08/17 17:13:09 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -724,7 +724,16 @@ terminate_band_load (void * ap)
 
   fputs ("\nload-band: ", stderr);
   if (abort_value > 0)
-    outf_fatal ("Error %d (%s)", abort_value, (Error_Names[abort_value]));
+    {
+      const char * message
+	= ((abort_value <= MAX_ERROR)
+	   ? (Error_Names[abort_value])
+	   : 0);
+      if (message == 0)
+	outf_fatal ("Unknown error %#lx", ((unsigned long) abort_value));
+      else
+	outf_fatal ("Error %#lx (%s)", ((unsigned long) abort_value), message);
+    }
   else
     {
       abort_value = ((-abort_value) - 1);

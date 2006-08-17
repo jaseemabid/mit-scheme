@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.87.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: utils.c,v 9.87.2.3 2006/08/17 17:13:11 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -170,12 +170,14 @@ setup_interrupt (unsigned long masked_interrupts)
 void
 err_print (long error_code, outf_channel where)
 {
-  if (error_code > MAX_ERROR)
+  const char * message
+    = ((error_code <= MAX_ERROR)
+       ? (Error_Names[error_code])
+       : 0);
+  if (message == 0)
     outf (where, "Unknown error code %#lx.\n", error_code);
   else
-    outf (where, "Error code %#lx (%s).\n",
-	  error_code,
-	  (Error_Names [error_code]));
+    outf (where, "Error code %#lx (%s).\n", error_code, message);
 }
 
 long death_blow;

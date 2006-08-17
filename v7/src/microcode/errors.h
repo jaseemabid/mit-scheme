@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: errors.h,v 9.46.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: errors.h,v 9.46.2.3 2006/08/17 17:13:07 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
-Copyright 1993,2001,2005 Massachusetts Institute of Technology
+Copyright 1993,2001,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -108,8 +108,8 @@ USA.
 /* 0x01 */		"UNBOUND-VARIABLE",				\
 /* 0x02 */		"UNASSIGNED-VARIABLE",				\
 /* 0x03 */		"INAPPLICABLE-OBJECT",				\
-/* 0x04 */		"OUT-OF-HASH-NUMBERS",				\
-/* 0x05 */		"ENVIRONMENT-CHAIN-TOO-DEEP",			\
+/* 0x04 */		"ERROR-IN-SYSTEM-CALL",				\
+/* 0x05 */		"ERROR-WITH-ARGUMENT",				\
 /* 0x06 */		"BAD-FRAME",					\
 /* 0x07 */		"BROKEN-COMPILED-VARIABLE",			\
 /* 0x08 */		"UNDEFINED-USER-TYPE",				\
@@ -123,21 +123,21 @@ USA.
 /* 0x10 */		"ARG-1-BAD-RANGE",				\
 /* 0x11 */		"ARG-2-BAD-RANGE",				\
 /* 0x12 */		"ARG-3-BAD-RANGE",				\
-/* 0x13 */		"BAD-COMBINATION",				\
-/* 0x14 */		"FASDUMP-OVERFLOW",				\
-/* 0x15 */		"BAD-INTERRUPT-CODE",				\
-/* 0x16 */		"NO-ERRORS",					\
+/* 0x13 */		"MACRO-BINDING",				\
+/* 0x14 */		0,						\
+/* 0x15 */		0,						\
+/* 0x16 */		0,						\
 /* 0x17 */		"FASL-FILE-TOO-BIG",				\
 /* 0x18 */		"FASL-FILE-BAD-DATA",				\
 /* 0x19 */		"IMPURIFY-OUT-OF-SPACE",			\
 /* 0x1A */		"WRITE-INTO-PURE-SPACE",			\
-/* 0x1B */		"LOSING-SPARE-HEAP",				\
-/* 0x1C */		"NO-HASH-TABLE",				\
+/* 0x1B */		0,						\
+/* 0x1C */		0,						\
 /* 0x1D */		"BAD-SET",					\
 /* 0x1E */		"ARG-1-FAILED-COERCION",			\
 /* 0x1F */		"ARG-2-FAILED-COERCION",			\
 /* 0x20 */		"OUT-OF-FILE-HANDLES",				\
-/* 0x21 */		"SHELL-DIED",					\
+/* 0x21 */		0,						\
 /* 0x22 */		"ARG-4-BAD-RANGE",				\
 /* 0x23 */		"ARG-5-BAD-RANGE",				\
 /* 0x24 */		"ARG-6-BAD-RANGE",				\
