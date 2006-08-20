@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.87.2.3 2006/08/17 17:13:11 cph Exp $
+$Id: utils.c,v 9.87.2.4 2006/08/20 23:19:43 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -503,10 +503,22 @@ Do_Micro_Error (long error_code, bool from_pop_return_p)
 
 #ifdef ENABLE_DEBUGGING_TOOLS
   err_print (error_code, ERROR_OUTPUT);
-  Print_Expression (GET_EXP, "Expression was");
-  outf_error ("\n");
-  Print_Expression (GET_ENV, "Environment was");
-  outf_error ("\n");
+  if ((GET_RC == RC_INTERNAL_APPLY)
+      || (GET_RC == RC_INTERNAL_APPLY_VAL))
+    {
+      SCHEME_OBJECT * sp = (STACK_LOC (CONTINUATION_SIZE));
+      Print_Expression ((sp[STACK_ENV_FUNCTION]), "Procedure was");
+      outf_error ("\n");
+      outf_error ("# of arguments: %lu\n",
+		  (APPLY_FRAME_HEADER_N_ARGS (sp[STACK_ENV_HEADER])));
+    }
+  else
+    {
+      Print_Expression (GET_EXP, "Expression was");
+      outf_error ("\n");
+      Print_Expression (GET_ENV, "Environment was");
+      outf_error ("\n");
+    }
   Print_Return ("Return code");
   outf_error ("\n");
 #endif
