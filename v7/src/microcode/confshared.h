@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: confshared.h,v 11.8.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: confshared.h,v 11.8.2.3 2006/08/28 17:03:33 cph Exp $
 
-Copyright 2000,2002,2003,2005 Massachusetts Institute of Technology
+Copyright 2000,2002,2003,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -127,15 +127,6 @@ USA.
 #  define ATTRIBUTE(x)
 #  define NORETURN
 #endif
-
-/* This is the Scheme object type.
-   The various fields are defined in "object.h". */
-typedef unsigned long SCHEME_OBJECT;
-#define SIZEOF_SCHEME_OBJECT SIZEOF_UNSIGNED_LONG
-#define OBJECT_LENGTH (CHAR_BIT * SIZEOF_UNSIGNED_LONG)
-
-/* A convenience definition since "unsigned char" is so long.  */
-typedef unsigned char byte_t;
 
 /* Operating System / Machine dependencies:
 

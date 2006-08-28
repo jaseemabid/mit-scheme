@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: object.h,v 9.59.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: object.h,v 9.59.2.3 2006/08/28 17:03:34 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
-Copyright 2003,2005 Massachusetts Institute of Technology
+Copyright 2003,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -48,6 +48,13 @@ USA.
 #  define N_TYPE_CODES (((unsigned int) 1) << TYPE_CODE_LENGTH)
 #endif
 #define __LOW_TYPE_MASK ((unsigned long) (N_TYPE_CODES - 1))
+
+typedef unsigned long SCHEME_OBJECT;
+#define SIZEOF_SCHEME_OBJECT SIZEOF_UNSIGNED_LONG
+#define OBJECT_LENGTH (CHAR_BIT * SIZEOF_UNSIGNED_LONG)
+
+/* A convenience definition since "unsigned char" is so long.  */
+typedef unsigned char byte_t;
 
 #if (SIZEOF_UNSIGNED_LONG == 4)	/* 32 bit word versions */
 #  if (TYPE_CODE_LENGTH == 6)

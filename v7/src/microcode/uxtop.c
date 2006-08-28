@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtop.c,v 1.30.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: uxtop.c,v 1.30.2.3 2006/08/28 17:03:35 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1999,2000,2002,2003 Massachusetts Institute of Technology
@@ -32,6 +32,7 @@ USA.
 #include "errors.h"
 #include "option.h"
 #include "config.h"
+#include "object.h"
 #include "extern.h"
 
 extern void UX_initialize_channels (void);
