@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: types.h,v 9.40.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: types.h,v 9.40.2.3 2006/08/29 19:39:20 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
-Copyright 1993,1997,2001,2002,2005 Massachusetts Institute of Technology
+Copyright 1993,1997,2001,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -24,10 +24,8 @@ USA.
 
 */
 
-/* Type code definitions, numerical order */
+/* Type code definitions */
 
-/*	Name				Value	Previous Name */
-
 #define TC_NULL	                	0x00
 #define TC_LIST				0x01
 #define TC_CHARACTER			0x02
@@ -44,7 +42,7 @@ USA.
 #define TC_MANIFEST_CLOSURE		0x0D
 #define TC_BIG_FIXNUM			0x0E
 #define TC_PROCEDURE			0x0F
-#define TC_ENTITY			0x10 /* PRIMITIVE_EXTERNAL */
+#define TC_ENTITY			0x10
 #define TC_DELAY			0x11
 #define TC_ENVIRONMENT			0x12
 #define TC_DELAYED			0x13
@@ -60,7 +58,7 @@ USA.
 #define TC_INTERNED_SYMBOL		0x1D
 #define TC_CHARACTER_STRING		0x1E
 #define TC_ACCESS			0x1F
-#define TC_HUNK3_A			0x20 /* EXTENDED_FIXNUM */
+#define TC_HUNK3_A			0x20
 #define TC_DEFINITION			0x21
 #define TC_BROKEN_HEART			0x22
 #define TC_ASSIGNMENT			0x23
@@ -78,7 +76,7 @@ USA.
 #define TC_VECTOR_1B			0x2F
 #define TC_PCOMB0			0x30
 #define TC_VECTOR_16B			0x31
-#define TC_REFERENCE_TRAP		0x32 /* UNASSIGNED */
+#define TC_REFERENCE_TRAP		0x32
 #define TC_SEQUENCE_3			0x33
 #define TC_CONDITIONAL			0x34
 #define TC_DISJUNCTION			0x35
@@ -86,7 +84,7 @@ USA.
 #define TC_WEAK_CONS			0x37
 #define TC_QUAD				0x38
 #define TC_LINKAGE_SECTION		0x39
-#define TC_RATNUM			0x3A /* COMPILER_LINK */
+#define TC_RATNUM			0x3A
 #define TC_STACK_ENVIRONMENT		0x3B
 #define TC_COMPLEX			0x3C
 #define TC_COMPILED_CODE_BLOCK		0x3D
@@ -94,16 +92,14 @@ USA.
 /* #define TC_UNUSED			0x3F */
 
 /* If you add a new type, don't forget to update gccode.h, gctype.c,
-   and the type name table below. */
+   and TYPE_NAME_TABLE below. */
 
 #define MIN_TYPE_CODE_LENGTH 6
 #define TYPE_CODE_LIMIT (1 << MIN_TYPE_CODE_LENGTH)
 #define LAST_TYPE_CODE (TYPE_CODE_LIMIT - 1)
 
-#ifdef TYPE_CODE_LENGTH
-#if (TYPE_CODE_LENGTH < MIN_TYPE_CODE_LENGTH)
-#include ";; inconsistency between object.h and types.h: MIN_TYPE_CODE_LENGTH"
-#endif
+#if defined (TYPE_CODE_LENGTH) && (TYPE_CODE_LENGTH < MIN_TYPE_CODE_LENGTH)
+#  include ";; inconsistency: TYPE_CODE_LENGTH < MIN_TYPE_CODE_LENGTH"
 #endif
 
 #define TYPE_NAME_TABLE							\
@@ -173,12 +169,6 @@ USA.
   /* 0x3E */			"RECORD",				\
   /* 0x3F */			0					\
 }
-
-/* Flags and aliases */
-
-/* Type code 0x10 (used to be TC_PRIMITIVE_EXTERNAL) has been reused. */
-
-#define PRIMITIVE_EXTERNAL_REUSED
 
 /* Aliases */
 
