@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: memmag.c,v 9.71.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: memmag.c,v 9.71.2.3 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
-Copyright 2000,2002,2005 Massachusetts Institute of Technology
+Copyright 2000,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -377,8 +377,10 @@ note_weak_pair (SCHEME_OBJECT pair, SCHEME_OBJECT * new_addr)
       break;
 
     case GC_POINTER_COMPILED:
+#ifdef CC_SUPPORT_P
       caddr = (cc_entry_address_to_block_address (CC_ENTRY_ADDRESS (old_car)));
       break;
+#endif
 
     default:
       caddr = 0;
@@ -415,6 +417,7 @@ update_weak_pointers (void)
 	  break;
 
 	case GC_POINTER_COMPILED:
+#ifdef CC_SUPPORT_P
 	  {
 	    SCHEME_OBJECT * addr
 	      = (cc_entry_address_to_block_address
@@ -427,6 +430,7 @@ update_weak_pointers (void)
 		 : SHARP_F);
 	  }
 	  break;
+#endif
 
 	case GC_POINTER_NOT:
 	  /* Shouldn't happen -- filtered out in 'note_weak_pair'.  */

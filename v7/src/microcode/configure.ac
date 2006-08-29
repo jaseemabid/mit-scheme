@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.6 2006/08/16 04:23:12 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.7 2006/08/29 04:44:31 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -118,8 +118,10 @@ AC_ARG_ENABLE([valgrind-mode],
 [[  --enable-valgrind-mode   Support running under valgrind [no]]])
 AC_ARG_ENABLE([debugging],
 [[  --enable-debugging       Compile with debugging support [no]]])
-AC_ARG_WITH([svm],
-[[  --with-svm               Support Scheme Virtual Machine (svm) [no]]])
+AC_ARG_ENABLE([native-code],
+[[  --enable-native-code     Support native compiled code [yes]]])
+AC_ARG_ENABLE([svm],
+[[  --enable-svm             Support Scheme Virtual Machine (svm) [no]]])
 AC_ARG_WITH([openssl],
 [[  --with-openssl           Use OpenSSL crypto library if available [yes]]])
 AC_ARG_WITH([mhash],
@@ -132,6 +134,16 @@ AC_ARG_WITH([db4],
 [[  --with-db4               Use Berkeley DB v4 library if available [yes]]])
 AC_ARG_WITH([libpq],
 [[  --with-libpq             Use PostgreSQL libpq library if available [yes]]])
+
+enable_native_code="${enable_native_code:-yes}"
+enable_svm="${enable_svm:-no}"
+enable_cmpint="no"
+if test "${enable_native_code}" != "no"; then
+    enable_cmpint="yes"
+fi
+if test "${enable_svm}" != "no"; then
+    enable_cmpint="yes"
+fi
 
 dnl Substitution variables to be filled in below.
 AS_FLAGS=
@@ -820,13 +832,13 @@ fi
 dnl Add OS-dependent customizations.
 DO_GCC_TESTS="no"
 case "$host_os" in
-linux-gnu)
+(linux-gnu)
     DO_GCC_TESTS="yes"
     ;;
-freebsd*)
+(freebsd*)
     M4_FLAGS="${M4_FLAGS} -P SUPPRESS_LEADING_UNDERSCORE,1"
     ;;
-solaris*)
+(solaris*)
     if test "${GCC}" = "yes"; then
 	DO_GCC_TESTS="yes"
 	M4_FLAGS="${M4_FLAGS} -P SUPPRESS_LEADING_UNDERSCORE,1"
@@ -862,44 +874,48 @@ fi
 
 dnl Add architecture-dependent customizations.
 dnl This is mostly support for native-code compilation.
-scheme_arch=
-OPTIONAL_BASES="${OPTIONAL_BASES} cmpint"
-GC_HEAD_FILES="gccode.h cmpgc.h"
+if test "${enable_cmpint}" = "yes"; then
+    SCM_ARCH=
+    OPTIONAL_BASES="${OPTIONAL_BASES} cmpint comutl"
+    GC_HEAD_FILES="gccode.h cmpgc.h"
 
-if test "${with_svm:-no}" = "yes"; then
-    test -f cmpintmd.h || ${LN_S} cmpintmd/svm1.h cmpintmd.h
-    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} svm1.c"
-    OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} svm1.o"
-    GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
-else
-    case "$host_cpu" in
-    alpha*)
-	scheme_arch=alpha
-	;;
-    hppa*)
-	scheme_arch=hppa
-	GC_HEAD_FILES="${GC_HEAD_FILES} hppacach.h"
-	;;
-    i?86)
-	scheme_arch=i386
-	;;
-    m68k|m680?0)
-	scheme_arch=mc68k
-	;;
-    mips*)
-	scheme_arch=mips
-	;;
-    vax)
-	scheme_arch=vax
-	;;
-    esac
-    if test "${scheme_arch}" != ""; then
-	test -f cmpauxmd.m4 || ${LN_S} cmpauxmd/${scheme_arch}.m4 cmpauxmd.m4
-	test -f cmpintmd.h || ${LN_S} cmpintmd/${scheme_arch}.h cmpintmd.h
-	OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpauxmd.m4"
-	OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpauxmd.o"
+    if test "${enable_svm}" != "no"; then
+	test -f cmpintmd.h || ${LN_S} cmpintmd/svm1.h cmpintmd.h
+	OPTIONAL_SOURCES="${OPTIONAL_SOURCES} svm1.c"
+	OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} svm1.o"
 	GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
+    else
+	case "$host_cpu" in
+	(alpha*)
+	    SCM_ARCH=alpha
+	    ;;
+	(hppa*)
+	    SCM_ARCH=hppa
+	    GC_HEAD_FILES="${GC_HEAD_FILES} hppacach.h"
+	    ;;
+	(i?86)
+	    SCM_ARCH=i386
+	    ;;
+	(m68k|m680?0)
+	    SCM_ARCH=mc68k
+	    ;;
+	(mips*)
+	    SCM_ARCH=mips
+	    ;;
+	(vax)
+	    SCM_ARCH=vax
+	    ;;
+	esac
+	if test "${SCM_ARCH}" != ""; then
+	    test -f cmpauxmd.m4 || ${LN_S} cmpauxmd/${SCM_ARCH}.m4 cmpauxmd.m4
+	    test -f cmpintmd.h || ${LN_S} cmpintmd/${SCM_ARCH}.h cmpintmd.h
+	    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpauxmd.m4"
+	    OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpauxmd.o"
+	    GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
+	fi
     fi
+else
+    test -f cmpintmd.h || ${LN_S} cmpintmd/none.h cmpintmd.h
 fi
 
 for base in ${OPTIONAL_BASES}; do

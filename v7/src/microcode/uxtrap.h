@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: uxtrap.h,v 1.35.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: uxtrap.h,v 1.35.2.3 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1990,1991,1992,1993,1996,1998 Massachusetts Institute of Technology
-Copyright 2000,2001,2004,2005 Massachusetts Institute of Technology
+Copyright 2000,2001,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -658,7 +658,9 @@ extern void hard_reset (SIGCONTEXT_T * scp);
 extern void soft_reset (void);
 extern void trap_handler
   (const char *, int, SIGINFO_T, SIGCONTEXT_T *);
-extern SCHEME_OBJECT find_ccblock (unsigned long);
+#ifdef CC_SUPPORT_P
+   extern SCHEME_OBJECT find_ccblock (unsigned long);
+#endif
 
 #define STATE_UNKNOWN		(LONG_TO_UNSIGNED_FIXNUM (0))
 #define STATE_PRIMITIVE		(LONG_TO_UNSIGNED_FIXNUM (1))

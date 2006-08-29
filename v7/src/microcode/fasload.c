@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.5 2006/08/17 17:13:09 cph Exp $
+$Id: fasload.c,v 9.96.2.6 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
-Copyright 1998,2000,2001,2002,2005 Massachusetts Institute of Technology
+Copyright 1998,2000,2001,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -404,10 +404,14 @@ DEFINE_GC_VECTOR_HANDLER (fasload_vector)
 static
 DEFINE_GC_OBJECT_HANDLER (fasload_cc_entry)
 {
+#ifdef CC_SUPPORT_P
   return (CC_ENTRY_NEW_ADDRESS (object,
 				(relocate_address ((CC_ENTRY_ADDRESS (object)),
 						   (CTX_HEADER (ctx)),
 						   (CTX_BASIS (ctx))))));
+#else
+  return (object);
+#endif
 }
 
 static
@@ -567,11 +571,13 @@ can, however, be any file which can be loaded with BINARY-FASLOAD.")
   INITIALIZE_INTERRUPTS ();
   INITIALIZE_STACK ();
   RESET_HEAP_ALLOC_LIMIT ();
+#ifdef CC_SUPPORT_P
   compiler_utilities = (PAIR_CDR (result));
   if (compiler_utilities != SHARP_F)
     compiler_reset (compiler_utilities);
   else
     compiler_initialize (true);
+#endif
   SET_INTERRUPT_MASK (0);	/* Until the continuation is invoked.  */
   fixed_objects = SHARP_F;
   current_state_point = SHARP_F;

@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: gctype.c,v 9.36.2.2 2005/08/23 02:55:09 cph Exp $
+$Id: gctype.c,v 9.36.2.3 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1992,1997,2002 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -138,7 +138,9 @@ get_object_address (SCHEME_OBJECT object)
       return (OBJECT_ADDRESS (object));
 
     case GC_POINTER_COMPILED:
+#ifdef CC_SUPPORT_P
       return (cc_entry_to_block_address (object));
+#endif
 
     default:
       return (0);

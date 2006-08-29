@@ -1,8 +1,8 @@
-#| -*-Scheme-*-
+/* -*-C-*-
 
-$Id: files-core.scm,v 1.4.2.3 2006/08/29 04:44:32 cph Exp $
+$Id: none.h,v 1.1.2.1 2006/08/29 04:44:32 cph Exp $
 
-Copyright 2000,2005,2006 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -21,59 +21,26 @@ along with MIT/GNU Scheme; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
 USA.
 
-|#
+*/
 
-;;;; Core C files used on all platforms.
+/* Compiled code interface stub.  */
 
-"artutl"
-"avltree"
-"bkpt"
-"bignum"
-"bigprm"
-"bitstr"
-"boot"
-"char"
-"daemon"
-"debug"
-"dfloat"
-"error"
-"extern"
-"fasdump"
-"fasload"
-"fixnum"
-"flonum"
-"gcloop"
-"generic"
-"hooks"
-"hunk"
-"intern"
-"interp"
-"intprm"
-"list"
-"lookprm"
-"lookup"
-"memmag"
-"missing"
-"obstack"
-"option"
-"osscheme"
-"ostty"
-"outf"
-"prim"
-"primutl"
-"ptrvec"
-"purify"
-"purutl"
-"regex"
-"rgxprim"
-"step"
-"storage"
-"string"
-"syntax"
-"sysprim"
-"term"
-"transact"
-"tterm"
-"utils"
-"vector"
-"wind"
+#ifndef SCM_CMPINTMD_NONE_H
+#define SCM_CMPINTMD_NONE_H
+
+#define COMPILER_PROCESSOR_TYPE COMPILER_NONE_TYPE
+typedef byte_t insn_t;
+
+#define compiler_interface_version (0UL)
+#define compiler_processor_type ((unsigned long) COMPILER_PROCESSOR_TYPE)
+#define compiler_utilities SHARP_F
+
+#define return_to_interpreter SHARP_F
+#define reflect_to_interface SHARP_F
+
+#define compiler_initialize(faslp) do {} while (false)
+#define guarantee_interp_return() do {} while (false)
+
+#define CC_ENTRY_P(object) (false)
+
+#endif /* not SCM_CMPINTMD_NONE_H */

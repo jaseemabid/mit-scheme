@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: hooks.c,v 9.66.2.3 2006/08/16 03:46:52 cph Exp $
+$Id: hooks.c,v 9.66.2.4 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
-Copyright 2002,2004,2005 Massachusetts Institute of Technology
+Copyright 2002,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -98,6 +98,7 @@ Invokes PROCEDURE on the arguments in ARG-LIST.")
       stack_pointer = sp;
     }
 
+#ifdef CC_SUPPORT_P
     if (CC_ENTRY_P (STACK_REF (n_args)))
       {
 	long code = (apply_compiled_from_primitive (n_args, procedure));
@@ -106,6 +107,7 @@ Invokes PROCEDURE on the arguments in ARG-LIST.")
 	UN_POP_PRIMITIVE_FRAME (2);
 	PRIMITIVE_RETURN (UNSPECIFIC);
       }
+#endif
 
     STACK_PUSH (procedure);
     PUSH_APPLY_FRAME_HEADER (n_args);
@@ -638,6 +640,7 @@ and MARKER2 is data identifying the marker instance.")
   PRIMITIVE_HEADER (3);
   {
     SCHEME_OBJECT thunk = (ARG_REF (1));
+#ifdef CC_SUPPORT_P
     if ((CC_ENTRY_P (STACK_REF (3))) && (CC_ENTRY_P (thunk)))
       {
 	(void) STACK_POP ();
@@ -645,6 +648,7 @@ and MARKER2 is data identifying the marker instance.")
 	UN_POP_PRIMITIVE_FRAME (3);
       }
     else
+#endif
       {
 	canonicalize_primitive_context ();
 	(void) STACK_POP ();
@@ -689,6 +693,7 @@ with_new_interrupt_mask (unsigned long new_mask)
 {
   SCHEME_OBJECT receiver = (ARG_REF (2));
 
+#ifdef CC_SUPPORT_P
   if ((CC_ENTRY_P (STACK_REF (2))) && (CC_ENTRY_P (receiver)))
     {
       unsigned long current_mask = GET_INT_MASK;
@@ -698,6 +703,7 @@ with_new_interrupt_mask (unsigned long new_mask)
       SET_INTERRUPT_MASK (new_mask);
     }
   else
+#endif
     {
       canonicalize_primitive_context ();
       POP_PRIMITIVE_FRAME (2);

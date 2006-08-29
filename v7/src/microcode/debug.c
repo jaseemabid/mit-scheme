@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: debug.c,v 9.58.2.3 2006/08/16 19:14:50 cph Exp $
+$Id: debug.c,v 9.58.2.4 2006/08/29 04:44:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
-Copyright 2001,2002,2004,2005 Massachusetts Institute of Technology
+Copyright 2001,2002,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -32,8 +32,11 @@ USA.
 #include "trap.h"
 #include "lookup.h"
 
-static SCHEME_OBJECT compiled_entry_debug_filename (SCHEME_OBJECT);
-static SCHEME_OBJECT compiled_block_debug_filename (SCHEME_OBJECT);
+#ifdef CC_SUPPORT_P
+   static SCHEME_OBJECT compiled_entry_debug_filename (SCHEME_OBJECT);
+   static SCHEME_OBJECT compiled_block_debug_filename (SCHEME_OBJECT);
+#endif
+
 static SCHEME_OBJECT * check_for_block_start (SCHEME_OBJECT *);
 
 static void do_printing (outf_channel, SCHEME_OBJECT, bool);
@@ -41,6 +44,8 @@ static bool print_primitive_name (outf_channel, SCHEME_OBJECT);
 static void print_expression (outf_channel, SCHEME_OBJECT, char *);
 
 /* Compiled Code Debugging */
+
+#ifdef CC_SUPPORT_P
 
 char *
 compiled_entry_filename (SCHEME_OBJECT entry)
@@ -78,6 +83,8 @@ compiled_block_debug_filename (SCHEME_OBJECT block)
      ? info
      : SHARP_F);
 }
+
+#endif /* CC_SUPPORT_P */
 
 void
 Show_Pure (void)
@@ -323,6 +330,7 @@ print_symbol (outf_channel stream, SCHEME_OBJECT symbol)
     outf (stream, "...");
 }
 
+#ifdef CC_SUPPORT_P
 static void
 print_filename (outf_channel stream, SCHEME_OBJECT filename)
 {
@@ -340,6 +348,7 @@ print_filename (outf_channel stream, SCHEME_OBJECT filename)
       slash = scan;
   outf (stream, "\"%s\"", slash);
 }
+#endif
 
 static void
 print_object (SCHEME_OBJECT object)
@@ -423,6 +432,7 @@ do_printing (outf_channel stream, SCHEME_OBJECT Expr, bool Detailed)
       outf (stream, "[REFLECT_TO_INTERFACE]");
       return;
     }
+
 
   switch (OBJECT_TYPE (Expr))
     {
@@ -599,6 +609,7 @@ do_printing (outf_channel stream, SCHEME_OBJECT Expr, bool Detailed)
     case TC_CONSTANT:
       break;
 
+#ifdef CC_SUPPORT_P
     case TC_COMPILED_ENTRY:
       {
 	SCHEME_OBJECT entry = Expr;
@@ -673,6 +684,7 @@ do_printing (outf_channel stream, SCHEME_OBJECT Expr, bool Detailed)
 	outf (stream, "]");
 	return;
       }
+#endif
 
     default:
       break;
@@ -694,7 +706,8 @@ do_printing (outf_channel stream, SCHEME_OBJECT Expr, bool Detailed)
 extern void
 Debug_Print (SCHEME_OBJECT Expr, bool Detailed)
 {
-  do_printing(ERROR_OUTPUT, Expr, Detailed);
+  do_printing (ERROR_OUTPUT, Expr, Detailed);
+  outf_error ("\n");
   outf_flush_error ();
 }
 

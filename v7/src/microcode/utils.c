@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.87.2.4 2006/08/20 23:19:43 cph Exp $
+$Id: utils.c,v 9.87.2.5 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
-Copyright 1998,2000,2001,2002,2005 Massachusetts Institute of Technology
+Copyright 1998,2000,2001,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -226,6 +226,8 @@ canonicalize_primitive_context (void)
 
   assert (PRIMITIVE_P (primitive));
   n_args = (PRIMITIVE_N_ARGUMENTS (primitive));
+
+#ifdef CC_SUPPORT_P
   if (CC_ENTRY_P (STACK_REF (n_args)))
     {
       /* The primitive has been invoked from compiled code. */
@@ -236,6 +238,7 @@ canonicalize_primitive_context (void)
       PRIMITIVE_ABORT (PRIM_APPLY);
       /*NOTREACHED*/
     }
+#endif
 }
 
 /* back_out_of_primitive sets the registers up so that the backout
@@ -473,6 +476,7 @@ interpreter_applicable_p (SCHEME_OBJECT object)
 	object = (MEMORY_REF (object, ENTITY_OPERATOR));
 	goto tail_recurse;
       }
+#ifdef CC_SUPPORT_P
     case TC_COMPILED_ENTRY:
       {
 	cc_entry_type_t cet;
@@ -481,6 +485,7 @@ interpreter_applicable_p (SCHEME_OBJECT object)
 	   ? false
 	   : ((cet.marker) == CET_PROCEDURE));
       }
+#endif
     default:
       return (false);
     }

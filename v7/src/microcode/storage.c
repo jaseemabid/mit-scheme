@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: storage.c,v 9.60.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: storage.c,v 9.60.2.3 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
-Copyright 1993,2000,2002,2005 Massachusetts Institute of Technology
+Copyright 1993,2000,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -29,6 +29,10 @@ USA.
 #include "scheme.h"
 #include "gctype.c"
 
+#ifndef CC_SUPPORT_P
+   SCHEME_OBJECT Registers [REGBLOCK_MINIMUM_LENGTH];
+#endif
+
 /* next free word in heap */
 SCHEME_OBJECT * Free;
 

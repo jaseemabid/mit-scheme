@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.65.2.5 2006/08/16 19:15:50 cph Exp $
+$Id: purify.c,v 9.65.2.6 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1997,2000,2001 Massachusetts Institute of Technology
@@ -348,12 +348,18 @@ DEFINE_GC_VECTOR_HANDLER (purify_vector)
 static
 DEFINE_GC_OBJECT_HANDLER (purify_cc_entry)
 {
+#ifdef CC_SUPPORT_P
   SCHEME_OBJECT old_block = (cc_entry_to_block (object));
   return
     (CC_ENTRY_NEW_BLOCK
      (object,
       (OBJECT_ADDRESS (purify_vector (old_block, true, ctx))),
       (OBJECT_ADDRESS (old_block))));
+#else
+  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
+	    "No native-code support.");
+  return (object);
+#endif
 }
 
 static

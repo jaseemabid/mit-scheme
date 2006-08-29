@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: interp.c,v 9.102.2.4 2006/08/16 03:46:58 cph Exp $
+$Id: interp.c,v 9.102.2.5 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,2000,2001,2002,2003,2004 Massachusetts Institute of Technology
@@ -466,9 +466,11 @@ Interpret (void)
       PUSH_ENV ();
       PUSH_NTH_THEN (RC_CONDITIONAL_DECIDE, COND_PREDICATE);
 
+#ifdef CC_SUPPORT_P
     case TC_COMPILED_ENTRY:
       dispatch_code = (enter_compiled_expression ());
       goto return_from_compiled_code;
+#endif
 
     case TC_DEFINITION:
       Will_Push (CONTINUATION_SIZE + 1);
@@ -660,6 +662,8 @@ Interpret (void)
 	DO_ANOTHER_THEN (RC_COMB_APPLY_FUNCTION, COMB_FN_SLOT);
       }
 
+#ifdef CC_SUPPORT_P
+
 #define DEFINE_COMPILER_RESTART(return_code, entry)			\
     case return_code:							\
       {									\
@@ -697,6 +701,8 @@ Interpret (void)
     case RC_REENTER_COMPILED_CODE:
       dispatch_code = (return_to_compiled_code ());
       goto return_from_compiled_code;
+
+#endif
 
     case RC_CONDITIONAL_DECIDE:
       END_SUBPROBLEM ();
@@ -1077,6 +1083,7 @@ Interpret (void)
 	      REDUCES_TO (Get_Body_Elambda (lambda));
 	    }
 
+#ifdef CC_SUPPORT_P
 	  case TC_COMPILED_ENTRY:
 	    {
 	      guarantee_cc_return (1 + (APPLY_FRAME_SIZE ()));
@@ -1106,6 +1113,7 @@ Interpret (void)
 		  POP_RETURN_ERROR (dispatch_code);
 		}
 	    }
+#endif
 
 	  default:
 	    APPLICATION_ERROR (ERR_INAPPLICABLE_OBJECT);

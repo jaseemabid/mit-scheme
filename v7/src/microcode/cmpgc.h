@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: cmpgc.h,v 1.34.2.2 2005/08/23 02:55:00 cph Exp $
+$Id: cmpgc.h,v 1.34.2.3 2006/08/29 04:44:31 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
-Copyright 1995,2000,2001,2005 Massachusetts Institute of Technology
+Copyright 1995,2000,2001,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -49,23 +49,27 @@ USA.
 #  define DECLARE_RELOCATION_REFERENCE(reference)
 #endif
 #ifndef START_CLOSURE_RELOCATION
-#  define START_CLOSURE_RELOCATION(scan, reference) do {} while (0)
+#  define START_CLOSURE_RELOCATION(scan, reference) do {} while (false)
 #endif
 #ifndef END_CLOSURE_RELOCATION
-#  define END_CLOSURE_RELOCATION(scan, reference) do {} while (0)
+#  define END_CLOSURE_RELOCATION(scan, reference) do {} while (false)
 #endif
 #ifndef START_OPERATOR_RELOCATION
-#  define START_OPERATOR_RELOCATION(scan, reference) do {} while (0)
+#  define START_OPERATOR_RELOCATION(scan, reference) do {} while (false)
 #endif
 #ifndef END_OPERATOR_RELOCATION
-#  define END_OPERATOR_RELOCATION(scan, reference) do {} while (0)
+#  define END_OPERATOR_RELOCATION(scan, reference) do {} while (false)
 #endif
 
+#ifdef CC_SUPPORT_P
 #define CC_TRANSPORT_END() do						\
 {									\
   SET_CLOSURE_FREE (0);							\
   SET_CLOSURE_SPACE (0);						\
   FLUSH_I_CACHE ();							\
-} while (0)
+} while (false)
+#else
+#  define CC_TRANSPORT_END() do {} while (false)
+#endif
 
 #endif /* SCM_CMPGC_H */

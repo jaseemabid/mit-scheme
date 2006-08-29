@@ -1,8 +1,8 @@
 #| -*-Scheme-*-
 
-$Id: files-optional.scm,v 1.6.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: files-optional.scm,v 1.6.2.3 2006/08/29 04:44:32 cph Exp $
 
-Copyright 2000,2001,2003,2005 Massachusetts Institute of Technology
+Copyright 2000,2001,2003,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -26,6 +26,7 @@ USA.
 ;;;; Optional C files that are conditionally linked in.
 
 "cmpint"
+"comutl"
 "prbfish"
 "prgdbm"
 "prmcrypt"

@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: cmpint.h,v 10.12.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: cmpint.h,v 10.12.2.3 2006/08/29 04:44:31 cph Exp $
 
 Copyright 1987,1988,1989,1990,1993,2000 Massachusetts Institute of Technology
-Copyright 2002,2005 Massachusetts Institute of Technology
+Copyright 2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -29,8 +29,14 @@ USA.
 #ifndef SCM_CMPINT_H
 #define SCM_CMPINT_H 1
 
+#include "config.h"
 #include "cmptype.h"
 #include "cmpintmd.h"
+
+#if (COMPILER_PROCESSOR_TYPE == COMPILER_NONE_TYPE)
+#  undef CC_SUPPORT_P
+#else
+#  define CC_SUPPORT_P 1
 
 /* The following code handles compiled entry points, where the
    addresses point to the "middle" of the code vector.  From the entry
@@ -445,4 +451,5 @@ extern utility_proc_t comutil_interrupt_continuation_2;
 extern utility_proc_t comutil_compiled_code_bkpt;
 extern utility_proc_t comutil_compiled_closure_bkpt;
 
+#endif /* (COMPILER_PROCESSOR_TYPE != COMPILER_NONE_TYPE) */
 #endif /* not SCM_CMPINT_H */

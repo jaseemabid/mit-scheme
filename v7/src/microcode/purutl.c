@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: purutl.c,v 9.54.2.3 2006/08/16 19:15:52 cph Exp $
+$Id: purutl.c,v 9.54.2.4 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
-Copyright 1993,1996,2000,2001,2005 Massachusetts Institute of Technology
+Copyright 1993,1996,2000,2001,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -80,8 +80,10 @@ Remove OBJECT from pure space, allowing it to be modified.")
 	break;
 
       case GC_POINTER_COMPILED:
+#ifdef CC_SUPPORT_P
 	normalized = (cc_entry_to_block (object));
 	break;
+#endif
 
       default:
 	PRIMITIVE_RETURN (object);
@@ -129,10 +131,12 @@ Remove OBJECT from pure space, allowing it to be modified.")
       (constant_start, constant_alloc_next, old_start, old_end, new_start);
     EXIT_CRITICAL_SECTION ({});
 
-    PRIMITIVE_RETURN
-      ((normalized != object)
-       ? (CC_ENTRY_NEW_BLOCK (object, new_start, old_start))
-       : (OBJECT_NEW_ADDRESS (object, new_start)));
+#ifdef CC_SUPPORT_P
+    if (normalized != object)
+      PRIMITIVE_RETURN (CC_ENTRY_NEW_BLOCK (object, new_start, old_start));
+#endif
+
+    PRIMITIVE_RETURN (OBJECT_NEW_ADDRESS (object, new_start));
   }
 }
 
@@ -151,8 +155,10 @@ object_length (SCHEME_OBJECT object)
     case GC_VECTOR:
       return (1 + (VECTOR_LENGTH (object)));
 
+#ifdef CC_SUPPORT_P
     case GC_COMPILED:
       return (1 + (VECTOR_LENGTH (cc_entry_to_block (object))));
+#endif
 
     case GC_SPECIAL:
       if (REFERENCE_TRAP_P (object))
@@ -223,6 +229,7 @@ DEFINE_GC_VECTOR_HANDLER (update_vector)
 static
 DEFINE_GC_OBJECT_HANDLER (update_cc_entry)
 {
+#ifdef CC_SUPPORT_P
   insn_t * addr = (CC_ENTRY_ADDRESS (object));
   return
     (((addr >= ((insn_t *) (CTX_OLD_START (ctx))))
@@ -231,6 +238,11 @@ DEFINE_GC_OBJECT_HANDLER (update_cc_entry)
 			    (CTX_NEW_START (ctx)),
 			    (CTX_OLD_START (ctx))))
      : object);
+#else
+  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
+	    "No native-code support.");
+  return (object);
+#endif
 }
 
 static

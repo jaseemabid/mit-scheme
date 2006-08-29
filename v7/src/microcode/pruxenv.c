@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: pruxenv.c,v 1.22.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: pruxenv.c,v 1.22.2.3 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1990,1991,1992l,1993,1995,1997 Massachusetts Institute of Technology
-Copyright 2000,2005 Massachusetts Institute of Technology
+Copyright 2000,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -214,6 +214,7 @@ DEFINE_PRIMITIVE ("INSTRUCTION-ADDRESS->COMPILED-CODE-BLOCK",
 		  Prim_instruction_address_to_compiled_code_block, 1, 1, 0)
 {
   PRIMITIVE_HEADER (1);
+#ifdef CC_SUPPORT_P
   {
     SCHEME_OBJECT object = (ARG_REF (1));
     unsigned long pc;
@@ -231,4 +232,8 @@ DEFINE_PRIMITIVE ("INSTRUCTION-ADDRESS->COMPILED-CODE-BLOCK",
       }
     PRIMITIVE_RETURN (find_ccblock (pc));
   }
+#else
+  error_unimplemented_primitive ();
+  PRIMITIVE_RETURN (UNSPECIFIC);
+#endif
 }

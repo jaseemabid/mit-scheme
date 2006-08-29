@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.6 2006/08/16 19:15:48 cph Exp $
+$Id: gcloop.c,v 9.51.2.7 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -203,6 +203,7 @@ DEFINE_GC_HANDLER (gc_handle_reference_trap)
 
 DEFINE_GC_HANDLER (gc_handle_linkage_section)
 {
+#ifdef CC_SUPPORT_P
   unsigned long count = (linkage_section_count (object));
   scan += 1;
   switch (linkage_section_type (object))
@@ -242,10 +243,16 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
       break;
     }
   return (scan);
+#else
+  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
+	    "No native-code support.");
+  return (scan);
+#endif
 }
 
 DEFINE_GC_HANDLER (gc_handle_manifest_closure)
 {
+#ifdef CC_SUPPORT_P
 #ifdef EMBEDDED_CLOSURE_ADDRS_P
   DECLARE_RELOCATION_REFERENCE (ref);
   START_CLOSURE_RELOCATION (scan, ref);
@@ -268,6 +275,11 @@ DEFINE_GC_HANDLER (gc_handle_manifest_closure)
   return (scan);
 #else
   return (compiled_closure_objects (scan + 1));
+#endif
+#else
+  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
+	    "No native-code support.");
+  return (scan);
 #endif
 }
 
@@ -329,11 +341,17 @@ DEFINE_GC_VECTOR_HANDLER (gc_vector)
 static
 DEFINE_GC_OBJECT_HANDLER (gc_cc_entry)
 {
+#ifdef CC_SUPPORT_P
   SCHEME_OBJECT old_block = (cc_entry_to_block (object));
   SCHEME_OBJECT new_block = (GC_HANDLE_VECTOR (old_block, true, ctx));
   return (CC_ENTRY_NEW_BLOCK (object,
 			      (OBJECT_ADDRESS (new_block)),
 			      (OBJECT_ADDRESS (old_block))));
+#else
+  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
+	    "No native-code support.");
+  return (object);
+#endif
 }
 
 static

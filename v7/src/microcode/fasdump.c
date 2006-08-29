@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.4 2006/08/16 19:15:42 cph Exp $
+$Id: fasdump.c,v 9.68.2.5 2006/08/29 04:44:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -363,6 +363,7 @@ DEFINE_GC_VECTOR_HANDLER (fasdump_vector)
 static
 DEFINE_GC_OBJECT_HANDLER (fasdump_cc_entry)
 {
+#ifdef CC_SUPPORT_P
   SCHEME_OBJECT * old_block = (cc_entry_to_block_address (object));
   SCHEME_OBJECT * new_block;
 
@@ -380,6 +381,9 @@ DEFINE_GC_OBJECT_HANDLER (fasdump_cc_entry)
 	(new_block[length]) = SHARP_F;
     }
   return (CC_ENTRY_NEW_BLOCK (object, new_block, old_block));
+#else
+  return (object);
+#endif
 }
 
 static

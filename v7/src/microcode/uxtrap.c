@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: uxtrap.c,v 1.41.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: uxtrap.c,v 1.41.2.3 2006/08/29 04:44:32 cph Exp $
 
 Copyright 1990,1991,1992,1993,1995,1997 Massachusetts Institute of Technology
-Copyright 2000,2001,2002,2003,2005 Massachusetts Institute of Technology
+Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -93,12 +93,13 @@ static SIGCONTEXT_T * saved_scp;
 static void continue_from_trap
   (int, SIGINFO_T, SIGCONTEXT_T *);
 
-static SCHEME_OBJECT * find_heap_address (unsigned long);
-static SCHEME_OBJECT * find_constant_address (unsigned long);
-
-#ifdef ENABLE_TRAP_RECOVERY
-   static SCHEME_OBJECT * find_block_address_in_area
-     (SCHEME_OBJECT *, SCHEME_OBJECT *);
+#ifdef CC_SUPPORT_P
+   static SCHEME_OBJECT * find_heap_address (unsigned long);
+   static SCHEME_OBJECT * find_constant_address (unsigned long);
+#  ifdef ENABLE_TRAP_RECOVERY
+     static SCHEME_OBJECT * find_block_address_in_area
+       (SCHEME_OBJECT *, SCHEME_OBJECT *);
+#  endif
 #endif
 
 static void setup_trap_frame
@@ -169,6 +170,7 @@ soft_reset (void)
   setup_trap_frame (0, 0, 0, (&trinfo), new_stack_pointer);
 }
 
+#ifdef CC_SUPPORT_P
 SCHEME_OBJECT
 find_ccblock (unsigned long pc)
 {
@@ -179,6 +181,7 @@ find_ccblock (unsigned long pc)
   classify_pc (pc, (&block_addr), (&index));
   return ((block_addr != 0) ? (MAKE_CC_BLOCK (block_addr)) : SHARP_F);
 }
+#endif
 
 void
 trap_handler (const char * message,
@@ -355,6 +358,7 @@ continue_from_trap (int signo, SIGINFO_T info, SIGCONTEXT_T * scp)
 
     case pcl_heap:
     case pcl_constant:
+#ifdef CC_SUPPORT_P
       new_sp = ((SCHEME_OBJECT *) (SIGCONTEXT_SCHSP (scp)));
       Free = ((SCHEME_OBJECT *) (SIGCONTEXT_RFREE (scp)));
       SET_RECOVERY_INFO
@@ -362,17 +366,22 @@ continue_from_trap (int signo, SIGINFO_T info, SIGCONTEXT_T * scp)
 	 (MAKE_CC_BLOCK (block_addr)),
 	 (LONG_TO_UNSIGNED_FIXNUM (pc - ((unsigned long) block_addr))));
       break;
+#endif
 
     case pcl_utility:
+#ifdef CC_SUPPORT_P
       new_sp = stack_pointer;
       SET_RECOVERY_INFO (STATE_UTILITY, (ULONG_TO_FIXNUM (index)), UNSPECIFIC);
       break;
+#endif
 
     case pcl_builtin:
+#ifdef CC_SUPPORT_P
       new_sp = ((SCHEME_OBJECT *) (SIGCONTEXT_SCHSP (scp)));
       Free = ((SCHEME_OBJECT *) (SIGCONTEXT_RFREE (scp)));
       SET_RECOVERY_INFO (STATE_BUILTIN, (ULONG_TO_FIXNUM (index)), UNSPECIFIC);
       break;
+#endif
 
     case pcl_unknown:
       new_sp = 0;
@@ -424,6 +433,8 @@ continue_from_trap (int signo, SIGINFO_T info, SIGCONTEXT_T * scp)
    This attempts to be more efficient than `find_block_address_in_area'.
    If the pointer is in the heap, it can actually do twice as
    much work, but it is expected to pay off on the average. */
+
+#ifdef CC_SUPPORT_P
 
 #define MINIMUM_SCAN_RANGE 2048
 
@@ -524,6 +535,7 @@ find_block_address_in_area (SCHEME_OBJECT * pcp, SCHEME_OBJECT * area_start)
     }
   return (0);
 }
+#endif /* CC_SUPPORT_P */
 
 #else /* not ENABLE_TRAP_RECOVERY */
 
@@ -543,6 +555,8 @@ continue_from_trap (int signo, SIGINFO_T info, SIGCONTEXT_T * scp)
   setup_trap_frame (signo, info, scp, (&dummy_recovery_info), 0);
 }
 
+#ifdef CC_SUPPORT_P
+
 static SCHEME_OBJECT *
 find_heap_address (unsigned long pc)
 {
@@ -555,6 +569,7 @@ find_constant_address (unsigned long pc)
   return (0);
 }
 
+#endif /* CC_SUPPORT_P */
 #endif /* not ENABLE_TRAP_RECOVERY */
 
 static void
@@ -687,29 +702,28 @@ classify_pc (unsigned long pc,
 	     SCHEME_OBJECT ** r_block_addr,
 	     unsigned int * r_index)
 {
+#ifdef CC_SUPPORT_P
   if (PC_ALIGNED_P (pc))
     {
       if (HEAP_ADDRESS_P ((SCHEME_OBJECT *) pc))
 	{
 	  SCHEME_OBJECT * block_addr = (find_heap_address (pc));
-	  if (block_addr != 0)
-	    {
-	      if (r_block_addr != 0)
-		(*r_block_addr) = block_addr;
-	      return (pcl_heap);
-	    }
+	  if (block_addr == 0)
+	    return (pcl_unknown);
+	  if (r_block_addr != 0)
+	    (*r_block_addr) = block_addr;
+	  return (pcl_heap);
 	}
-      else if (ADDRESS_IN_CONSTANT_P ((SCHEME_OBJECT *) pc))
+      if (ADDRESS_IN_CONSTANT_P ((SCHEME_OBJECT *) pc))
 	{
 	  SCHEME_OBJECT * block_addr = (find_constant_address (pc));
-	  if (block_addr != 0)
-	    {
-	      if (r_block_addr != 0)
-		(*r_block_addr) = block_addr;
-	      return (pcl_constant);
-	    }
+	  if (block_addr == 0)
+	    return (pcl_unknown);
+	  if (r_block_addr != 0)
+	    (*r_block_addr) = block_addr;
+	  return (pcl_constant);
 	}
-      else if (ADDRESS_UCODE_P (pc))
+      if (ADDRESS_UCODE_P (pc))
 	{
 	  int index = (pc_to_builtin_index (pc));
 	  if (index >= 0)
@@ -729,6 +743,11 @@ classify_pc (unsigned long pc,
 	    return (pcl_primitive);
 	}
     }
+#else
+  if ((ADDRESS_UCODE_P (pc))
+      && ((OBJECT_TYPE (GET_PRIMITIVE)) == TC_PRIMITIVE))
+    return (pcl_primitive);
+#endif
   return (pcl_unknown);
 }
 
