@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: svm1.h,v 1.1.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: svm1.h,v 1.1.2.3 2006/08/29 04:37:46 cph Exp $
 
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,9 +28,7 @@ USA.
 #ifndef SCM_CMPINTMD_SVM1_H
 #define SCM_CMPINTMD_SVM1_H 1
 
-#include "config.h"
 #include "svm1-defns.h"
-#include "cmpint.h"
 
 #define COMPILER_PROCESSOR_TYPE COMPILER_SVM_TYPE
 

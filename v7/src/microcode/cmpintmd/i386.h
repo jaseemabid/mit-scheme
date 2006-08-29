@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.37.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: i386.h,v 1.37.2.3 2006/08/29 04:37:41 cph Exp $
 
 Copyright 1992,1993,1994,1995,1996,2000 Massachusetts Institute of Technology
-Copyright 2001,2002,2005 Massachusetts Institute of Technology
+Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,9 +28,6 @@ USA.
 
 #ifndef SCM_CMPINTMD_I386_H
 #define SCM_CMPINTMD_I386_H
-
-#include "config.h"
-#include "cmpint.h"
 
 extern void ia32_cache_synchronize (void);
 extern int ia32_cpuid_needed;
