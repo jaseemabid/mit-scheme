@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: object.h,v 9.59.2.3 2006/08/28 17:03:34 cph Exp $
+$Id: object.h,v 9.59.2.4 2006/08/29 19:38:49 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
@@ -30,53 +30,54 @@ USA.
 */
 #ifndef SCM_OBJECT_H
 #define SCM_OBJECT_H
+
+#include "config.h"
 
-/* The value in "wsize.c" for 'TYPE_CODE_LENGTH' must match this!! */
-#define TYPE_CODE_LENGTH (6)
+#define TYPE_CODE_LENGTH (6U)
 
 #if defined(MIN_TYPE_CODE_LENGTH) && (TYPE_CODE_LENGTH < MIN_TYPE_CODE_LENGTH)
-#  include "Inconsistency between object.h and types.h: MIN_TYPE_CODE_LENGTH"
+#  include ";; inconsistency: TYPE_CODE_LENGTH < MIN_TYPE_CODE_LENGTH"
 #endif
 
 #if (TYPE_CODE_LENGTH == 8)
-#  define N_TYPE_CODES	(0x100)
+#  define N_TYPE_CODES (0x100)
 #endif
 #if (TYPE_CODE_LENGTH == 6)
-#  define N_TYPE_CODES	(0x40)
+#  define N_TYPE_CODES (0x40)
 #endif
 #ifndef N_TYPE_CODES
-#  define N_TYPE_CODES (((unsigned int) 1) << TYPE_CODE_LENGTH)
+#  define N_TYPE_CODES (1U << TYPE_CODE_LENGTH)
 #endif
-#define __LOW_TYPE_MASK ((unsigned long) (N_TYPE_CODES - 1))
+#define __LOW_TYPE_MASK ((unsigned long) (N_TYPE_CODES - 1U))
 
 typedef unsigned long SCHEME_OBJECT;
 #define SIZEOF_SCHEME_OBJECT SIZEOF_UNSIGNED_LONG
-#define OBJECT_LENGTH (CHAR_BIT * SIZEOF_UNSIGNED_LONG)
+#define OBJECT_LENGTH ((unsigned int) (CHAR_BIT * SIZEOF_UNSIGNED_LONG))
 
-/* A convenience definition since "unsigned char" is so long.  */
+/* A convenience definition since "unsigned char" is so verbose.  */
 typedef unsigned char byte_t;
 
 #if (SIZEOF_UNSIGNED_LONG == 4)	/* 32 bit word versions */
 #  if (TYPE_CODE_LENGTH == 6)
-#    define DATUM_LENGTH	(26)
-#    define FIXNUM_LENGTH	(25)
+#    define DATUM_LENGTH	(26U)
+#    define FIXNUM_LENGTH	(25U)
 #    define FIXNUM_SIGN_BIT	(0x02000000L)
 #    define SIGN_MASK		(0xFE000000L)
 #    define SMALLEST_FIXNUM	(-33554432L)
 #    define BIGGEST_FIXNUM	(33554431L)
-#    define HALF_DATUM_LENGTH	(13)
+#    define HALF_DATUM_LENGTH	(13U)
 #    define HALF_DATUM_MASK	(0x00001FFFL)
 #    define DATUM_MASK		(0x03FFFFFFL)
 #    define TYPE_CODE_MASK	(0XFC000000L)
 #  endif
 #  if (TYPE_CODE_LENGTH == 8)
-#    define DATUM_LENGTH	(24)
-#    define FIXNUM_LENGTH	(23)
+#    define DATUM_LENGTH	(24U)
+#    define FIXNUM_LENGTH	(23U)
 #    define FIXNUM_SIGN_BIT	(0x00800000L)
 #    define SIGN_MASK		(0xFF800000L)
 #    define SMALLEST_FIXNUM	(-8388608)
 #    define BIGGEST_FIXNUM	(8388607)
-#    define HALF_DATUM_LENGTH	(12)
+#    define HALF_DATUM_LENGTH	(12U)
 #    define HALF_DATUM_MASK	(0x00000FFFL)
 #    define DATUM_MASK		(0x00FFFFFFL)
 #    define TYPE_CODE_MASK	(0xFF000000L)
@@ -85,13 +86,13 @@ typedef unsigned char byte_t;
 
 #if (SIZEOF_UNSIGNED_LONG == 8)	/* 64 bit word versions */
 #  if (TYPE_CODE_LENGTH == 6)
-#    define DATUM_LENGTH	(58)
-#    define FIXNUM_LENGTH	(57)
+#    define DATUM_LENGTH	(58U)
+#    define FIXNUM_LENGTH	(57U)
 #    define FIXNUM_SIGN_BIT	(0x0200000000000000L)
 #    define SIGN_MASK		(0xFE00000000000000L)
 #    define SMALLEST_FIXNUM	(-144115188075855872L)
 #    define BIGGEST_FIXNUM	(144115188075855871L)
-#    define HALF_DATUM_LENGTH	(29)
+#    define HALF_DATUM_LENGTH	(29U)
 #    define HALF_DATUM_MASK	(0x000000001FFFFFFFL)
 #    define DATUM_MASK		(0x03FFFFFFFFFFFFFFL)
 #    define TYPE_CODE_MASK	(0XFC00000000000000L)
@@ -101,15 +102,15 @@ typedef unsigned char byte_t;
 #ifndef DATUM_LENGTH		/* Safe versions */
 #  define DATUM_LENGTH		(OBJECT_LENGTH - TYPE_CODE_LENGTH)
    /* FIXNUM_LENGTH does NOT include the sign bit! */
-#  define FIXNUM_LENGTH		(DATUM_LENGTH - 1)
+#  define FIXNUM_LENGTH		(DATUM_LENGTH - 1U)
 #  define FIXNUM_SIGN_BIT	(1UL << FIXNUM_LENGTH)
-#  define __SIGN_MASK		((unsigned long) ((N_TYPE_CODES * 2) - 1))
+#  define __SIGN_MASK		((unsigned long) ((N_TYPE_CODES * 2U) - 1U))
 #  define SIGN_MASK		(__SIGN_MASK << FIXNUM_LENGTH)
 #  define SMALLEST_FIXNUM	SIGN_MASK
-#  define BIGGEST_FIXNUM	((1UL << FIXNUM_LENGTH) - 1)
-#  define HALF_DATUM_LENGTH	(DATUM_LENGTH / 2)
-#  define HALF_DATUM_MASK	((1UL << HALF_DATUM_LENGTH) - 1)
-#  define DATUM_MASK		((1UL << DATUM_LENGTH) - 1)
+#  define BIGGEST_FIXNUM	((1UL << FIXNUM_LENGTH) - 1U)
+#  define HALF_DATUM_LENGTH	(DATUM_LENGTH / 2U)
+#  define HALF_DATUM_MASK	((1UL << HALF_DATUM_LENGTH) - 1UL)
+#  define DATUM_MASK		((1UL << DATUM_LENGTH) - 1UL)
 #  define TYPE_CODE_MASK	(__LOW_TYPE_MASK << DATUM_LENGTH)
 #endif
 
