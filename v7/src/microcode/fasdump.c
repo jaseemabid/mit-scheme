@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.5 2006/08/29 04:44:31 cph Exp $
+$Id: fasdump.c,v 9.68.2.6 2006/08/29 19:40:25 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -84,9 +84,8 @@ static void initialize_object_fasl_header (fasl_header_t *);
 static void initialize_band_fasl_header (fasl_header_t *);
 static void initialize_fasl_header_1 (fasl_header_t *);
 static void save_fasl_header_cc_info (fasl_header_t *, bool);
-static bool write_fasl_file (Tchannel, SCHEME_OBJECT *, fasl_header_t *);
-static void encode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
-static bool write_file_section (Tchannel, void *, size_t);
+static bool write_fasl_file
+  (fasl_header_t *, SCHEME_OBJECT *, fasl_file_handle_t);
 
 /* FASDUMP:
 
@@ -110,7 +109,7 @@ objects; any other value is like #F except that environments pointed\n\
 at by compiled code are ignored (and discarded).")
 {
   const char * filename;
-  Tchannel channel;
+  fasl_file_handle_t handle;
   fasl_header_t h;
   bool cc_seen_p;
   SCHEME_OBJECT * to;
@@ -121,8 +120,7 @@ at by compiled code are ignored (and discarded).")
   PRIMITIVE_HEADER (3);
 
   filename = (STRING_ARG (2));
-  channel = (OS_open_dump_file (filename));
-  if (channel == NO_CHANNEL)
+  if (!open_fasl_output_file (filename, (&handle)))
     error_bad_range_arg (2);
 
   initialize_object_fasl_header (&h);
@@ -171,7 +169,7 @@ at by compiled code are ignored (and discarded).")
   transaction_commit ();
 
   code
-    = ((write_fasl_file (channel, prim_table_start, (&h)))
+    = ((write_fasl_file ((&h), prim_table_start, handle))
        ? PRIM_DONE
        : PRIM_INTERRUPT);
 
@@ -183,8 +181,7 @@ at by compiled code are ignored (and discarded).")
       (*address) = (*fix++);
     }
 
-  OS_channel_close_noerror (channel);
-  if (code != PRIM_DONE)
+  if (!close_fasl_output_file (handle))
     OS_file_remove (filename);
 
   if (code == PRIM_DONE)
@@ -463,7 +460,7 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
       const char * filename = (STRING_POINTER (ARG_REF (2)));
       SCHEME_OBJECT * faligned_heap = active_heap_start;
       SCHEME_OBJECT * faligned_constant = constant_start;
-      Tchannel channel;
+      fasl_file_handle_t handle;
 
       export_primitive_table (prim_table_start);
 
@@ -479,14 +476,12 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
       (FASLHDR_CONSTANT_END (&h)) = constant_alloc_next;
 
       OS_file_remove_link (filename);
-      channel = (OS_open_dump_file (filename));
-      if (channel == NO_CHANNEL)
+      if (!open_fasl_output_file (filename, (&handle)))
 	error_bad_range_arg (2);
 
-      result = (write_fasl_file (channel, prim_table_start, (&h)));
+      result = (write_fasl_file ((&h), prim_table_start, handle));
 
-      OS_channel_close_noerror (channel);
-      if (!result)
+      if (!close_fasl_output_file (handle))
 	OS_file_remove (filename);
     }
   PRIMITIVE_RETURN (BOOLEAN_TO_OBJECT (result));
@@ -544,92 +539,19 @@ save_fasl_header_cc_info (fasl_header_t * h, bool save_p)
 }
 
 static bool
-write_fasl_file (Tchannel channel,
+write_fasl_file (fasl_header_t * h,
 		 SCHEME_OBJECT * prim_table_start,
-		 fasl_header_t * h)
+		 fasl_file_handle_t handle)
 {
-  SCHEME_OBJECT raw [FASL_HEADER_LENGTH];
-
-  encode_fasl_header (raw, h);
   return
-    ((write_file_section (channel, raw, FASL_HEADER_LENGTH))
-     && (write_file_section (channel,
-			     (FASLHDR_HEAP_START (h)),
-			     (FASLHDR_HEAP_SIZE (h))))
-     && (write_file_section (channel,
-			     (FASLHDR_CONSTANT_START (h)),
-			     (FASLHDR_CONSTANT_SIZE (h))))
-     && (write_file_section (channel,
-			     prim_table_start,
-			     (FASLHDR_PRIMITIVE_TABLE_SIZE (h)))));
-}
-
-static void
-encode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
-{
-  {
-    SCHEME_OBJECT * p = raw;
-    SCHEME_OBJECT * e = (raw + FASL_HEADER_LENGTH);
-    while (p < e)
-      (*p++) = SHARP_F;
-  }
-#ifdef DEBUG
-#ifdef HEAP_IN_LOW_MEMORY
-  fprintf (stderr, "\nmemory_base = %#lx\n",
-	   ((unsigned long) (FASLHDR_MEMORY_BASE (h))));
-#endif
-  fprintf (stderr, "\nheap start %#lx\n",
-	   ((unsigned long) (FASLHDR_HEAP_START (h))));
-  fprintf (stderr, "\nroot object %#lx\n",
-	   ((unsigned long) (FASLHDR_ROOT_POINTER (h))));
-#endif
-
-  (raw[FASL_OFFSET_MARKER]) = FASL_FILE_MARKER;
-
-  (raw[FASL_OFFSET_VERSION])
-    = (MAKE_FASL_VERSION ((FASLHDR_VERSION (h)), (FASLHDR_ARCH (h))));
-  (raw[FASL_OFFSET_CI_VERSION])
-    = (MAKE_CI_VERSION ((FASLHDR_BAND_P (h)),
-			(FASLHDR_CC_VERSION (h)),
-			(FASLHDR_CC_ARCH (h))));
-
-  (raw[FASL_OFFSET_MEM_BASE])
-    = ((SCHEME_OBJECT) (FASLHDR_MEMORY_BASE (h)));
-
-  (raw[FASL_OFFSET_DUMPED_OBJ])
-    = (MAKE_BROKEN_HEART (FASLHDR_ROOT_POINTER (h)));
-
-  (raw[FASL_OFFSET_HEAP_BASE])
-    = (MAKE_BROKEN_HEART (FASLHDR_HEAP_START (h)));
-  (raw[FASL_OFFSET_HEAP_SIZE])
-    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_HEAP_SIZE (h))));
-  (raw[FASL_OFFSET_HEAP_RSVD])
-    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_HEAP_RESERVED (h))));
-
-  (raw[FASL_OFFSET_CONST_BASE])
-    = (MAKE_BROKEN_HEART (FASLHDR_CONSTANT_START (h)));
-  (raw[FASL_OFFSET_CONST_SIZE])
-    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_CONSTANT_SIZE (h))));
-
-  (raw[FASL_OFFSET_STACK_START])
-    = (MAKE_BROKEN_HEART (FASLHDR_STACK_START (h)));
-  (raw[FASL_OFFSET_STACK_SIZE])
-    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_STACK_SIZE (h))));
-
-  (raw[FASL_OFFSET_PRIM_LENGTH])
-    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_N_PRIMITIVES (h))));
-  (raw[FASL_OFFSET_PRIM_SIZE])
-    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_PRIMITIVE_TABLE_SIZE (h))));
-
-  (raw[FASL_OFFSET_UT_BASE]) = (FASLHDR_UTILITIES_VECTOR (h));
-}
-
-static bool
-write_file_section (Tchannel channel, void * start, size_t n_words)
-{
-  size_t n_bytes = (n_words * (sizeof (SCHEME_OBJECT)));
-  return
-    ((n_bytes > 0)
-     ? ((OS_channel_write_dump_file (channel, start, n_bytes)) == n_bytes)
-     : true);
+    ((write_fasl_header (h, handle))
+     && (write_fasl_section ((FASLHDR_HEAP_START (h)),
+			     (FASLHDR_HEAP_SIZE (h)),
+			     handle))
+     && (write_fasl_section ((FASLHDR_CONSTANT_START (h)),
+			     (FASLHDR_CONSTANT_SIZE (h)),
+			     handle))
+     && (write_fasl_section (prim_table_start,
+			     (FASLHDR_PRIMITIVE_TABLE_SIZE (h)),
+			     handle)));
 }

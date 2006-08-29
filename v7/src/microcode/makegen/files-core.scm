@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: files-core.scm,v 1.4.2.3 2006/08/29 04:44:32 cph Exp $
+$Id: files-core.scm,v 1.4.2.4 2006/08/29 19:40:32 cph Exp $
 
 Copyright 2000,2005,2006 Massachusetts Institute of Technology
 
@@ -39,6 +39,7 @@ USA.
 "error"
 "extern"
 "fasdump"
+"fasl"
 "fasload"
 "fixnum"
 "flonum"

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.6 2006/08/29 04:44:32 cph Exp $
+$Id: fasload.c,v 9.96.2.7 2006/08/29 19:40:28 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -77,9 +77,10 @@ static unsigned long reload_constant_size = 0;
 static gc_table_t fasload_table;
 static gc_table_t intern_table;
 
-static Tchannel read_file_start (const char *, bool, fasl_header_t *h);
-static SCHEME_OBJECT load_file (Tchannel, fasl_header_t *);
-static void * read_from_file (Tchannel, void *, size_t);
+static fasl_file_handle_t read_file_start
+  (const char *, bool, fasl_header_t *h);
+static SCHEME_OBJECT load_file (fasl_file_handle_t, fasl_header_t *);
+static void * read_from_file (void *, size_t, fasl_file_handle_t);
 static bool primitive_numbers_unchanged_p (SCHEME_OBJECT *, fasl_header_t *);
 
 static void relocate_block
@@ -106,8 +107,6 @@ static void save_memmag_state (void);
 static void abort_band_load (void *);
 static void terminate_band_load (void *);
 
-static bool decode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
-static SCHEME_OBJECT * faslobj_address (SCHEME_OBJECT, fasl_header_t *);
 static fasl_read_status_t check_fasl_version (fasl_header_t *);
 static fasl_read_status_t check_fasl_cc_version (fasl_header_t *);
 static void print_fasl_information (fasl_header_t *);
@@ -127,37 +126,31 @@ that was dumped.")
   }
 }
 
-static Tchannel
+static fasl_file_handle_t
 read_file_start (const char * file_name, bool band_mode_p, fasl_header_t * h)
 {
   static unsigned long failed_heap_length = 0;
-  Tchannel channel;
+  fasl_file_handle_t handle;
 
   if (Per_File)
     debug_edit_flags ();
 
-  channel = (OS_open_load_file (file_name));
-  if (channel == NO_CHANNEL)
+  if (!open_fasl_input_file (file_name, (&handle)))
     error_bad_range_arg (1);
 
-  {
-    SCHEME_OBJECT raw [FASL_HEADER_LENGTH];
-    read_from_file (channel, raw, FASL_HEADER_LENGTH);
-    if (!decode_fasl_header (raw, h))
-      {
-	OS_channel_close_noerror (channel);
-	signal_error_from_primitive (ERR_FASL_FILE_BAD_DATA);
-      }
-  }
+  if (!read_fasl_header (h, handle))
+    {
+      (void) close_fasl_input_file (handle);
+      signal_error_from_primitive (ERR_FASL_FILE_BAD_DATA);
+    }
 
 #ifndef INHIBIT_FASL_VERSION_CHECK
   {
     fasl_read_status_t status = (check_fasl_version (h));
     if (status != FASL_FILE_FINE)
       {
-	OS_channel_close_noerror (channel);
+	(void) close_fasl_input_file (handle);
 	signal_error_from_primitive (ERR_FASL_FILE_BAD_DATA);
-	/*NOTREACHED*/
       }
   }
 #endif
@@ -167,9 +160,8 @@ read_file_start (const char * file_name, bool band_mode_p, fasl_header_t * h)
     fasl_read_status_t status = (check_fasl_cc_version (h));
     if (status != FASL_FILE_FINE)
       {
-	OS_channel_close_noerror (channel);
+	(void) close_fasl_input_file (handle);
 	signal_error_from_primitive (ERR_FASLOAD_COMPILED_MISMATCH);
-	/*NOTREACHED*/
       }
   }
 #endif
@@ -182,7 +174,7 @@ read_file_start (const char * file_name, bool band_mode_p, fasl_header_t * h)
 	 : ((constant_alloc_next + (FASLHDR_CONSTANT_SIZE (h)))
 	    <= constant_end)))
     {
-      OS_channel_close_noerror (channel);
+      (void) close_fasl_input_file (handle);
       signal_error_from_primitive (ERR_FASL_FILE_TOO_BIG);
     }
   if (band_mode_p)
@@ -196,17 +188,15 @@ read_file_start (const char * file_name, bool band_mode_p, fasl_header_t * h)
       {
 	if (band_mode_p || (heap_length == failed_heap_length))
 	  {
-	    OS_channel_close_noerror (channel);
+	    (void) close_fasl_input_file (handle);
 	    signal_error_from_primitive (ERR_FASL_FILE_TOO_BIG);
-	    /*NOTREACHED*/
 	  }
 	else
 	  {
 	    failed_heap_length = heap_length;
-	    OS_channel_close_noerror (channel);
+	    (void) close_fasl_input_file (handle);
 	    REQUEST_GC (heap_length);
 	    signal_interrupt_from_primitive ();
-	    /*NOTREACHED*/
 	  }
       }
   }
@@ -214,16 +204,15 @@ read_file_start (const char * file_name, bool band_mode_p, fasl_header_t * h)
 
   if ((FASLHDR_BAND_P (h)) && (!band_mode_p))
     {
-      OS_channel_close_noerror (channel);
+      (void) close_fasl_input_file (handle);
       signal_error_from_primitive (ERR_FASLOAD_BAND);
-      /*NOTREACHED*/
     }
 
-  return (channel);
+  return (handle);
 }
 
 static SCHEME_OBJECT
-load_file (Tchannel channel, fasl_header_t * h)
+load_file (fasl_file_handle_t handle, fasl_header_t * h)
 {
   fasl_basis_t new_basis;
   fasl_basis_t * nb = (&new_basis);
@@ -238,19 +227,19 @@ load_file (Tchannel channel, fasl_header_t * h)
        ? 0
        : (OBJECT_ADDRESS (compiler_utilities)));
 
-  Free = (read_from_file (channel, Free, (FASLHDR_HEAP_SIZE (h))));
+  Free = (read_from_file (Free, (FASLHDR_HEAP_SIZE (h)), handle));
   constant_alloc_next
-    = (read_from_file (channel,
-		       constant_alloc_next,
-		       (FASLHDR_CONSTANT_SIZE (h))));
+    = (read_from_file (constant_alloc_next,
+		       (FASLHDR_CONSTANT_SIZE (h)),
+		       handle));
 
   prim_table = Free;
   {
     SCHEME_OBJECT * raw_prim_table = (Free + (FASLHDR_N_PRIMITIVES (h)));
-    read_from_file (channel,
-		    raw_prim_table,
-		    (FASLHDR_PRIMITIVE_TABLE_SIZE (h)));
-    OS_channel_close_noerror (channel);
+    read_from_file (raw_prim_table,
+		    (FASLHDR_PRIMITIVE_TABLE_SIZE (h)),
+		    handle);
+    (void) close_fasl_input_file (handle);
     import_primitive_table
       (raw_prim_table, (FASLHDR_N_PRIMITIVES (h)), prim_table);
   }
@@ -303,15 +292,14 @@ load_file (Tchannel channel, fasl_header_t * h)
 }
 
 static void *
-read_from_file (Tchannel channel, void * p, size_t n_words)
+read_from_file (void * p, size_t n_words, fasl_file_handle_t handle)
 {
-  size_t n_bytes = (n_words * (sizeof (SCHEME_OBJECT)));
-  if ((OS_channel_read_load_file (channel, p, n_bytes)) < n_bytes)
+  if (!read_fasl_section (p, n_words, handle))
     {
-      OS_channel_close_noerror (channel);
+      (void) close_fasl_input_file (handle);
       signal_error_from_primitive (ERR_FASL_FILE_BAD_DATA);
     }
-  return (((char *) p) + n_bytes);
+  return (((char *) p) + (n_words * SIZEOF_SCHEME_OBJECT));
 }
 
 static bool
@@ -609,7 +597,7 @@ read_band_file (SCHEME_OBJECT s)
   const char * file_name;
   struct load_band_termination_state * state;
   fasl_header_t h;
-  Tchannel channel;
+  fasl_file_handle_t handle;
   SCHEME_OBJECT result;
 
   transaction_begin ();		/* 1 */
@@ -625,13 +613,13 @@ read_band_file (SCHEME_OBJECT s)
   reset_allocator_parameters ();
   SET_HEAP_ALLOC_LIMIT (active_heap_end);
   ENTER_CRITICAL_SECTION ("band load");
-  channel = (read_file_start (file_name, true, (&h)));
+  handle = (read_file_start (file_name, true, (&h)));
   transaction_commit ();	/* 2 */
 
   /* Now read the file into memory.  Past this point we can't abort
      and return to the old image.  */
   (state->no_return_p) = true;
-  result = (load_file (channel, (&h)));
+  result = (load_file (handle, (&h)));
 
   /* Done -- we have the new image.  */
   transaction_commit ();	/* 1 */
@@ -784,103 +772,6 @@ execute_reload_cleanups (void)
     (* ((cleanup_t *) (scan++))) ();
 }
 
-static bool
-decode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
-{
-  if ((raw[FASL_OFFSET_MARKER]) != FASL_FILE_MARKER)
-    return (false);
-  {
-    SCHEME_OBJECT object = (raw[FASL_OFFSET_VERSION]);
-    (h->version) = (FASL_VERSION (object));
-    (h->arch) = (FASL_ARCH (object));
-  }
-  {
-    SCHEME_OBJECT object = (raw[FASL_OFFSET_CI_VERSION]);
-    (h->cc_version) = (CI_VERSION (object));
-    (h->cc_arch) = (CI_PROCESSOR (object));
-    (h->band_p) = (CI_BAND_P (object));
-  }
-  {
-    SCHEME_OBJECT * fasl_memory_base
-      = ((SCHEME_OBJECT *) (raw[FASL_OFFSET_MEM_BASE]));
-    (FASLHDR_MEMORY_BASE (h)) = fasl_memory_base;
-
-    (FASLHDR_ROOT_POINTER (h))
-      = (faslobj_address ((raw[FASL_OFFSET_DUMPED_OBJ]), h));
-
-    (FASLHDR_HEAP_START (h))
-      = (faslobj_address ((raw[FASL_OFFSET_HEAP_BASE]), h));
-    (FASLHDR_HEAP_END (h))
-      = ((FASLHDR_HEAP_START (h))
-	 + (OBJECT_DATUM (raw[FASL_OFFSET_HEAP_SIZE])));
-    (FASLHDR_HEAP_RESERVED (h))
-      = (((h->version) >= FASL_VERSION_STACK_END)
-	 ? (OBJECT_DATUM (raw[FASL_OFFSET_HEAP_RSVD]))
-	 : 4500);
-
-    (FASLHDR_CONSTANT_START (h))
-      = (faslobj_address ((raw[FASL_OFFSET_CONST_BASE]), h));
-    (FASLHDR_CONSTANT_END (h))
-      = ((FASLHDR_CONSTANT_START (h))
-	 + (OBJECT_DATUM (raw[FASL_OFFSET_CONST_SIZE])));
-
-    if ((h->version) >= FASL_VERSION_STACK_END)
-      {
-	(FASLHDR_STACK_START (h))
-	  = (faslobj_address ((raw[FASL_OFFSET_STACK_START]), h));
-	(FASLHDR_STACK_END (h))
-	  = ((FASLHDR_STACK_START (h))
-	     + (OBJECT_DATUM (raw[FASL_OFFSET_STACK_SIZE])));
-      }
-    else
-      /* In older versions, the "stack start" field held "stack
-	 bottom" instead.  Since the stack grows downwards, this was
-	 the maximum address.  */
-      {
-	(FASLHDR_STACK_END (h))
-	  = (faslobj_address ((raw[FASL_OFFSET_STACK_START]), h));
-	/* If !HEAP_IN_LOW_MEMORY then fasl_memory_base is the right
-	   value.  Otherwise, fasl_memory_base is zero and that is at
-	   least guaranteed to encompass the whole stack.  */
-	(FASLHDR_STACK_START (h)) = fasl_memory_base;
-      }
-
-    (FASLHDR_N_PRIMITIVES (h))
-      = (OBJECT_DATUM (raw[FASL_OFFSET_PRIM_LENGTH]));
-    (FASLHDR_PRIMITIVE_TABLE_SIZE (h))
-      = (OBJECT_DATUM (raw[FASL_OFFSET_PRIM_SIZE]));
-
-    {
-      SCHEME_OBJECT ruv = (raw[FASL_OFFSET_UT_BASE]);
-      if (ruv == SHARP_F)
-	{
-	  (FASLHDR_UTILITIES_VECTOR (h)) = SHARP_F;
-	  (FASLHDR_UTILITIES_START (h)) = 0;
-	  (FASLHDR_UTILITIES_END (h)) = 0;
-	}
-      else
-	{
-	  SCHEME_OBJECT fuv
-	    = (OBJECT_NEW_ADDRESS (ruv, (faslobj_address (ruv, h))));
-	  (FASLHDR_UTILITIES_VECTOR (h)) = fuv;
-	  (FASLHDR_UTILITIES_START (h)) = (OBJECT_ADDRESS (fuv));
-	  (FASLHDR_UTILITIES_END (h))
-	    = (VECTOR_LOC (fuv, (VECTOR_LENGTH (fuv))));
-	}
-    }
-  }
-  return (true);
-}
-
-static SCHEME_OBJECT *
-faslobj_address (SCHEME_OBJECT o, fasl_header_t * h)
-{
-  return
-    (((FASLHDR_MEMORY_BASE (h)) == 0)
-     ? (OBJECT_ADDRESS (o))
-     : ((FASLHDR_MEMORY_BASE (h)) + (OBJECT_DATUM (o))));
-}
-
 /* The error messages here should be handled by the runtime system! */
 
 static fasl_read_status_t

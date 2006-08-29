@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: option.c,v 1.61.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: option.c,v 1.61.2.3 2006/08/29 19:40:31 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,1999,2000,2001 Massachusetts Institute of Technology
@@ -922,62 +922,21 @@ conflicting_options (const char * option1, const char * option2)
 #define SCHEME_WORDS_TO_BLOCKS(n) (((n) + 1023) / 1024)
 
 static int
-read_band_header (const char * filename, SCHEME_OBJECT * header)
-{
-#ifdef __WIN32__
-
-  HANDLE handle
-    = (CreateFile (filename,
-		   GENERIC_READ,
-		   (FILE_SHARE_READ | FILE_SHARE_WRITE),
-		   0,
-		   OPEN_EXISTING,
-		   (FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN),
-		   0));
-  DWORD bytes_to_read = ((sizeof (SCHEME_OBJECT)) * FASL_HEADER_LENGTH);
-  DWORD bytes_read;
-  if (handle == INVALID_HANDLE_VALUE)
-    return (0);
-  if (! ((ReadFile (handle, header, bytes_to_read, (&bytes_read), 0))
-	 && (bytes_read == bytes_to_read)))
-    {
-      CloseHandle (handle);
-      return (0);
-    }
-  CloseHandle (handle);
-  return (1);
-
-#else /* not __WIN32__ */
-
-  FILE * stream = (fopen (filename, "r"));
-  if (stream == 0)
-    return (0);
-  if ((fread (header, (sizeof (SCHEME_OBJECT)), FASL_HEADER_LENGTH, stream))
-      != FASL_HEADER_LENGTH)
-    {
-      fclose (stream);
-      return (0);
-    }
-  fclose (stream);
-  return (1);
-
-#endif /* not __WIN32__ */
-}
-
-static int
 read_band_sizes (const char * filename,
 		 unsigned long * constant_size,
 		 unsigned long * heap_size)
 {
-  SCHEME_OBJECT header [FASL_HEADER_LENGTH];
-  if (!read_band_header (filename, header))
+  fasl_file_handle_t handle;
+  fasl_header_t h;
+  bool ok;
+
+  if (!open_fasl_input_file (filename, (&handle)))
     return (0);
-  (*constant_size)
-    = (SCHEME_WORDS_TO_BLOCKS
-       (OBJECT_DATUM (header[FASL_OFFSET_CONST_SIZE])));
-  (*heap_size)
-    = (SCHEME_WORDS_TO_BLOCKS
-       (OBJECT_DATUM (header[FASL_OFFSET_HEAP_SIZE])));
+  ok = (read_fasl_header ((&h), handle));
+  if (! ((close_fasl_input_file (handle)) && ok))
+    return (0);
+  (*constant_size) = (SCHEME_WORDS_TO_BLOCKS (FASLHDR_CONSTANT_SIZE (&h)));
+  (*heap_size) = (SCHEME_WORDS_TO_BLOCKS (FASLHDR_HEAP_SIZE (&h)));
   return (1);
 }
 

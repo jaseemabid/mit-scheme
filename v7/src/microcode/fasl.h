@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40.2.3 2005/11/13 05:33:42 cph Exp $
+$Id: fasl.h,v 9.40.2.4 2006/08/29 19:40:27 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
-Copyright 1994,1997,2002,2005 Massachusetts Institute of Technology
+Copyright 1994,1997,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -32,8 +32,8 @@ USA.
 #ifndef SCM_FASL_H
 #define SCM_FASL_H 1
 
-#include "scheme.h"
-#include "osio.h"
+#include "types.h"
+#include "object.h"
 
 #define FASL_FILE_MARKER	0xFAFAFAFA
 
@@ -147,7 +147,9 @@ typedef struct
 #define FASLHDR_PRIMITIVE_TABLE_SIZE(h) ((h)->primitive_table_size)
 #define FASLHDR_UTILITIES_VECTOR(h) ((h)->utilities_vector)
 #define FASLHDR_UTILITIES_START(h) ((h)->utilities_start)
-#define FASLHDR_UTILITIES_END(h) ((h)->utilities_end)
+#define __FASLHDR_UTILITIES_END(h) ((h)->utilities_end)
+
+#define FASLHDR_UTILITIES_END(h) (faslhdr_utilities_end (h))
 
 #define FASLHDR_HEAP_SIZE(h)						\
   ((unsigned long)							\
@@ -172,5 +174,17 @@ typedef enum
   FASL_FILE_BAD_PROCESSOR,
   FASL_FILE_BAD_INTERFACE
 } fasl_read_status_t;
+
+typedef FILE * fasl_file_handle_t;
+
+extern bool open_fasl_output_file (const char *, fasl_file_handle_t *);
+extern bool close_fasl_output_file (fasl_file_handle_t);
+extern bool write_fasl_header (fasl_header_t *, fasl_file_handle_t);
+extern bool write_fasl_section (const void *, size_t, fasl_file_handle_t);
+extern bool open_fasl_input_file (const char *, fasl_file_handle_t *);
+extern bool close_fasl_input_file (fasl_file_handle_t);
+extern bool read_fasl_header (fasl_header_t *, fasl_file_handle_t);
+extern bool read_fasl_section (void *, size_t, fasl_file_handle_t);
+extern SCHEME_OBJECT * faslhdr_utilities_end (fasl_header_t *);
 
 #endif /* not SCM_FASL_H */
