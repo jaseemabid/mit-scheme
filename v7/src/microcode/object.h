@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: object.h,v 9.59.2.4 2006/08/29 19:38:49 cph Exp $
+$Id: object.h,v 9.59.2.5 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
@@ -32,7 +32,8 @@ USA.
 #define SCM_OBJECT_H
 
 #include "config.h"
-
+#include "types.h"
+
 #define TYPE_CODE_LENGTH (6U)
 
 #if defined(MIN_TYPE_CODE_LENGTH) && (TYPE_CODE_LENGTH < MIN_TYPE_CODE_LENGTH)
@@ -53,7 +54,7 @@ USA.
 typedef unsigned long SCHEME_OBJECT;
 #define SIZEOF_SCHEME_OBJECT SIZEOF_UNSIGNED_LONG
 #define OBJECT_LENGTH ((unsigned int) (CHAR_BIT * SIZEOF_UNSIGNED_LONG))
-
+
 /* A convenience definition since "unsigned char" is so verbose.  */
 typedef unsigned char byte_t;
 
@@ -494,5 +495,29 @@ extern SCHEME_OBJECT * memory_base;
   while (!FLOATING_ALIGNED_P (loc))					\
     (*(loc)++) = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, 0));		\
 } while (0)
+
+/* Assigned TC_CONSTANT datum values:
+   0 #t
+   1 unspecific
+   2 [non-object]
+   3 #!optional
+   4 #!rest
+   5 #!key
+   6 #!eof
+   7 #!default
+   8 #!aux
+   9 '()
+ */
+
+#define SHARP_F			MAKE_OBJECT (TC_NULL, 0)
+#define SHARP_T			MAKE_OBJECT (TC_CONSTANT, 0)
+#define UNSPECIFIC		MAKE_OBJECT (TC_CONSTANT, 1)
+#define DEFAULT_OBJECT		MAKE_OBJECT (TC_CONSTANT, 7)
+#define EMPTY_LIST		MAKE_OBJECT (TC_CONSTANT, 9)
+#define FIXNUM_ZERO		MAKE_OBJECT (TC_FIXNUM, 0)
+#define BROKEN_HEART_ZERO	MAKE_OBJECT (TC_BROKEN_HEART, 0)
+
+/* Last immediate reference trap. */
+#define TRAP_MAX_IMMEDIATE 9
 
 #endif /* SCM_OBJECT_H */

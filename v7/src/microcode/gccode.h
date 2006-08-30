@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.4 2006/08/30 02:59:58 cph Exp $
+$Id: gccode.h,v 9.60.2.5 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
@@ -32,6 +32,7 @@ USA.
 #ifndef SCM_GCCODE_H
 #define SCM_GCCODE_H 1
 
+#include "gc.h"
 #include "cmpgc.h"
 
 #ifdef ENABLE_DEBUGGING_TOOLS
@@ -160,21 +161,12 @@ extern void std_gc_loop
    SCHEME_OBJECT **, SCHEME_OBJECT **,
    SCHEME_OBJECT *, SCHEME_OBJECT *);
 
-extern void gc_death
-  (long, SCHEME_OBJECT *, SCHEME_OBJECT **, const char *, ...)
-  ATTRIBUTE ((__noreturn__, __format__ (__printf__, 4, 5)));
-extern void gc_no_cc_support (gc_ctx_t * ctx) NORETURN;
+typedef void gc_abort_handler_t (void);
+extern gc_abort_handler_t * gc_abort_handler NORETURN;
 
-#ifndef BAD_TYPES_INNOCUOUS
-#  define GC_BAD_TYPE(object, scan, pto)				\
-    (gc_death								\
-     (TERM_INVALID_TYPE_CODE, (scan), (pto),				\
-      "bad type code: %#02lx %#lx", (OBJECT_TYPE (object)), (object)))
-#else
-#  define GC_BAD_TYPE(object, scan, pto)				\
-    (outf_error								\
-     ("\nbad type code: %#02lx %#lx -- treating as non-pointer.\n",	\
-      (OBJECT_TYPE (object)), (object)))
-#endif
+extern void std_gc_death (gc_ctx_t * ctx, const char *, ...)
+  ATTRIBUTE ((__noreturn__, __format__ (__printf__, 2, 3)));
+extern void gc_no_cc_support (gc_ctx_t * ctx) NORETURN;
+extern void gc_bad_type (SCHEME_OBJECT, gc_ctx_t * ctx) NORETURN;
 
 #endif /* not SCM_GCCODE_H */

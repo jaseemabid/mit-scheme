@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: types.h,v 9.40.2.3 2006/08/29 19:39:20 cph Exp $
+$Id: types.h,v 9.40.2.4 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1997,2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -91,7 +91,7 @@ USA.
 #define TC_RECORD			0x3E
 /* #define TC_UNUSED			0x3F */
 
-/* If you add a new type, don't forget to update gccode.h, gctype.c,
+/* If you add a new type, don't forget to update "gcloop.c"
    and TYPE_NAME_TABLE below. */
 
 #define MIN_TYPE_CODE_LENGTH 6

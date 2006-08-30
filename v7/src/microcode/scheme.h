@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: scheme.h,v 9.42.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: scheme.h,v 9.42.2.3 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
-Copyright 1997,2000,2005 Massachusetts Institute of Technology
+Copyright 1997,2000,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -39,6 +39,7 @@ USA.
 #include "intrpt.h"		/* Interrupt processing macros */
 #include "critsec.h"		/* Critical sections */
 #include "gc.h"			/* Memory management related macros */
+#include "memmag.h"
 #include "scode.h"		/* Scheme scode representation */
 #include "sdata.h"		/* Scheme user data representation */
 #include "errors.h"		/* Error code numbers */

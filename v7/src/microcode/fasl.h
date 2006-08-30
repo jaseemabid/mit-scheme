@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40.2.4 2006/08/29 19:40:27 cph Exp $
+$Id: fasl.h,v 9.40.2.5 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
 Copyright 1994,1997,2002,2005,2006 Massachusetts Institute of Technology
@@ -32,7 +32,6 @@ USA.
 #ifndef SCM_FASL_H
 #define SCM_FASL_H 1
 
-#include "types.h"
 #include "object.h"
 
 #define FASL_FILE_MARKER	0xFAFAFAFA

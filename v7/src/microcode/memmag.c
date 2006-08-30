@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: memmag.c,v 9.71.2.4 2006/08/30 03:00:08 cph Exp $
+$Id: memmag.c,v 9.71.2.5 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -30,9 +30,38 @@ USA.
 #include "scheme.h"
 #include "prims.h"
 #include "history.h"
-#include "memmag.h"
 #include "gccode.h"
 #include "osscheme.h"
+
+#ifdef __WIN32__
+   extern void win32_allocate_registers (void);
+   extern void win32_deallocate_registers (void);
+#  define ALLOCATE_REGISTERS win32_allocate_registers
+#  define DEALLOCATE_REGISTERS win32_deallocate_registers
+
+#  include "ntscmlib.h"
+
+   extern BOOL win32_under_win32s_p (void);
+
+   extern char * NT_allocate_heap (unsigned long, unsigned long *);
+   extern void NT_release_heap (char *, unsigned long);
+#  define WIN32_ALLOCATE_HEAP NT_allocate_heap
+#  define WIN32_RELEASE_HEAP NT_release_heap
+
+   static unsigned long scheme_heap_handle;
+#endif
+
+#ifndef HEAP_FREE
+#  define HEAP_FREE free
+#endif
+
+#ifndef ALLOCATE_REGISTERS
+#  define ALLOCATE_REGISTERS() do { } while (0)
+#endif
+
+#ifndef DEALLOCATE_REGISTERS
+#  define DEALLOCATE_REGISTERS() do { } while (0)
+#endif
 
 #ifndef DEFAULT_ACTIVE_HEAP_RESERVED
 #  define DEFAULT_ACTIVE_HEAP_RESERVED 4500
@@ -46,6 +75,8 @@ USA.
 static unsigned long saved_heap_size;
 static unsigned long saved_constant_size;
 static unsigned long saved_stack_size;
+
+static void abort_gc (void) NORETURN;
 
 #ifdef __WIN32__
    static bool win32_flush_old_halfspace_p = false;
@@ -123,6 +154,13 @@ setup_memory (unsigned long heap_size,
   saved_constant_size = constant_size;
   saved_stack_size = stack_size;
   reset_allocator_parameters ();
+  gc_abort_handler = abort_gc;
+}
+
+static void
+abort_gc (void)
+{
+  Microcode_Termination (TERM_EXIT);
 }
 
 void

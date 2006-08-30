@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: const.h,v 9.52.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: const.h,v 9.52.2.3 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1997,2000,2002,2004 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,27 +28,6 @@ USA.
 /* Named constants used throughout the interpreter */
 
 #define PI 3.1415926535
-
-/* Assigned TC_CONSTANT datum values:
-   0 #t
-   1 unspecific
-   2 [non-object]
-   3 #!optional
-   4 #!rest
-   5 #!key
-   6 #!eof
-   7 #!default
-   8 #!aux
-   9 '()
- */
-
-#define SHARP_F			MAKE_OBJECT (TC_NULL, 0)
-#define SHARP_T			MAKE_OBJECT (TC_CONSTANT, 0)
-#define UNSPECIFIC		MAKE_OBJECT (TC_CONSTANT, 1)
-#define DEFAULT_OBJECT		MAKE_OBJECT (TC_CONSTANT, 7)
-#define EMPTY_LIST		MAKE_OBJECT (TC_CONSTANT, 9)
-#define FIXNUM_ZERO		MAKE_OBJECT (TC_FIXNUM, 0)
-#define BROKEN_HEART_ZERO	MAKE_OBJECT (TC_BROKEN_HEART, 0)
 
 /* Assorted sizes used in various places */
 
@@ -77,9 +56,6 @@ USA.
 #define MAX_LIST_PRINT 10
 
 #define ILLEGAL_PRIMITIVE -1
-
-/* Last immediate reference trap. */
-#define TRAP_MAX_IMMEDIATE 9
 
 /* For headers in pure / constant area */
 #define END_OF_BLOCK	TC_FIXNUM

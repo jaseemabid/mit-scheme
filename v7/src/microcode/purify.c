@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.65.2.7 2006/08/30 03:00:13 cph Exp $
+$Id: purify.c,v 9.65.2.8 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1997,2000,2001 Massachusetts Institute of Technology
@@ -218,7 +218,7 @@ purify (SCHEME_OBJECT object, bool pure_p)
   (*constant_alloc_next++) = (MAKE_OBJECT (END_OF_BLOCK, total_length));
 
   if (!update_allocator_parameters (0))
-    gc_death (TERM_NO_SPACE, 0, 0, "object too large");
+    std_gc_death (0, "object too large");
 
   RESET_HEAP_ALLOC_LIMIT ();
   garbage_collect (from_start, from_end);
@@ -275,8 +275,7 @@ static
 DEFINE_GC_HANDLER (handle_linkage_section)
 {
   if (CTX_PURE_P (ctx))
-    gc_death (TERM_COMPILER_DEATH, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	      "linkage section in pure area");
+    std_gc_death (ctx, "linkage section in pure area");
   return (gc_handle_linkage_section (scan, object, ctx));
 }
 
@@ -284,8 +283,7 @@ static
 DEFINE_GC_HANDLER (handle_manifest_closure)
 {
   if (CTX_PURE_P (ctx))
-    gc_death (TERM_COMPILER_DEATH, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	      "compiled closure in pure area");
+    std_gc_death (ctx, "compiled closure in pure area");
   return (gc_handle_manifest_closure (scan, object, ctx));
 }
 

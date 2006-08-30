@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purutl.c,v 9.54.2.5 2006/08/30 03:00:18 cph Exp $
+$Id: purutl.c,v 9.54.2.6 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1996,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -171,7 +171,7 @@ object_length (SCHEME_OBJECT object)
 	}
 
     default:
-      GC_BAD_TYPE (object, 0, 0);
+      gc_bad_type (object, 0);
       error_wrong_type_arg (1);
       /*NOTREACHED*/
       return (0);

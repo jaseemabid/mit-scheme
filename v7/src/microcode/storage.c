@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: storage.c,v 9.60.2.3 2006/08/29 04:44:32 cph Exp $
+$Id: storage.c,v 9.60.2.4 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,2000,2002,2005,2006 Massachusetts Institute of Technology
@@ -27,7 +27,6 @@ USA.
 /* Global-variable storage */
 
 #include "scheme.h"
-#include "gctype.c"
 
 #ifndef CC_SUPPORT_P
    SCHEME_OBJECT Registers [REGBLOCK_MINIMUM_LENGTH];

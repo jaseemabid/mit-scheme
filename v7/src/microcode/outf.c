@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: outf.c,v 1.14.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: outf.c,v 1.14.2.3 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1993,1994,1995,1998,2000,2005 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -39,7 +40,8 @@ USA.
    Use outf where you would normally think of using fprintf and
    outf_flush where you would normally use fflush.  */
 
-#include "scheme.h"
+#include "config.h"
+#include "outf.h"
 
 #ifdef __WIN32__
 #  include <windows.h>

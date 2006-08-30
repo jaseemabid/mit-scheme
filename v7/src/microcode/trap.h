@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: trap.h,v 9.51.2.2 2005/08/23 04:15:28 cph Exp $
+$Id: trap.h,v 9.51.2.3 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1987,1988,1989,1993,2000,2001 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -24,7 +25,7 @@ USA.
 */
 
 #ifndef SCM_TRAP_H
-#define SCM_TRAP_H
+#define SCM_TRAP_H 1
 
 /* Kinds of traps:
 
@@ -41,7 +42,7 @@ typedef unsigned long trap_kind_t;
 #define TRAP_UNASSIGNED				0
 #define TRAP_UNBOUND				2
 #define TRAP_EXPENSIVE				6
-/* TRAP_MAX_IMMEDIATE is defined in const.h */
+/* TRAP_MAX_IMMEDIATE is defined in object.h */
 
 /* The following are non-immediate traps: */
 #define TRAP_COMPILER_CACHED			14

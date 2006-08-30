@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.8 2006/08/30 03:00:03 cph Exp $
+$Id: gcloop.c,v 9.51.2.9 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -26,8 +26,11 @@ USA.
 
 /* Inner loop of garbage collector.  */
 
-#include "scheme.h"
+#include "object.h"
+#include "outf.h"
 #include "gccode.h"
+
+gc_abort_handler_t * gc_abort_handler NORETURN = 0;
 
 #ifndef READ_REFERENCE_OBJECT
 #  define READ_REFERENCE_OBJECT(addr)					\
@@ -130,8 +133,7 @@ initialize_gc_table (gc_table_t * table,
 	    SIMPLE_HANDLER (gc_handle_nmv);
 
 	  default:
-	    outf_fatal ("\nunknown GC special type: %#x\n", i);
-	    termination_init_error ();
+	    std_gc_death (0, "unknown GC special type: %#02x\n", i);
 	    break;
 	  }
 	break;
@@ -208,9 +210,7 @@ DEFINE_GC_HANDLER (gc_handle_unaligned_vector)
 
 DEFINE_GC_HANDLER (gc_handle_broken_heart)
 {
-  gc_death (TERM_BROKEN_HEART, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	    "broken heart in scan: %#lx", object);
-  /*NOTREACHED*/
+  std_gc_death (ctx, "broken heart in scan: %#lx", object);
   return (scan);
 }
 
@@ -264,8 +264,7 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
       break;
 
     default:
-      gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-		"Unknown linkage-section type.");
+      std_gc_death (ctx, "Unknown linkage-section type.");
       break;
     }
   return (scan);
@@ -309,7 +308,7 @@ DEFINE_GC_HANDLER (gc_handle_manifest_closure)
 
 DEFINE_GC_HANDLER (gc_handle_undefined)
 {
-  GC_BAD_TYPE (object, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)));
+  gc_bad_type (object, ctx);
   return (scan + 1);
 }
 
@@ -415,8 +414,7 @@ gc_precheck_from (SCHEME_OBJECT * from, gc_ctx_t * ctx)
 {
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
   if (!ADDRESS_IN_MEMORY_BLOCK_P (from))
-    gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	      "out of range pointer: %#lx", ((unsigned long) from));
+    std_gc_death (ctx, "out of range pointer: %#lx", ((unsigned long) from));
 #endif
   return
     ((!address_in_from_space_p (from, ctx))
@@ -437,14 +435,12 @@ gc_transport_words (SCHEME_OBJECT * from,
     ALIGN_FLOAT (to);
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
   if (to >= (* (GCTX_PTO_END (ctx))))
-    gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	      "target space completely filled");
+    std_gc_death (ctx, "target space completely filled");
   {
     SCHEME_OBJECT * end = (to + n_words);
     if (end > (* (GCTX_PTO_END (ctx))))
-      gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-		"block overflows target space: %#lx",
-		((unsigned long) end));
+      std_gc_death (ctx, "block overflows target space: %#lx",
+		    ((unsigned long) end));
   }
   if (n_words > 0x10000)
     {
@@ -592,32 +588,38 @@ update_weak_pointers (void)
 }
 
 void
-gc_death (long code, SCHEME_OBJECT * scan, SCHEME_OBJECT ** pfree,
-	  const char * format, ...)
+std_gc_death (gc_ctx_t * ctx, const char * format, ...)
 {
   va_list ap;
 
-  outf_fatal ("\n");
   va_start (ap, format);
-  voutf_fatal (format, ap);
-  va_end (ap);
   outf_fatal ("\n");
-  if (scan != 0)
+  voutf_fatal (format, ap);
+  outf_fatal ("\n");
+  if (ctx != 0)
     {
-      outf_fatal ("scan = 0x%lx", ((unsigned long) scan));
-      if (pfree != 0)
-	outf_fatal ("; free = 0x%lx", ((unsigned long) (*pfree)));
+      outf_fatal ("scan = 0x%lx", ((unsigned long) (GCTX_SCAN (ctx))));
+      outf_fatal ("; to = 0x%lx", ((unsigned long) (* (GCTX_PTO (ctx)))));
       outf_fatal ("\n");
     }
-  Microcode_Termination (code);
-  /*NOTREACHED*/
+  va_end (ap);
+  if (gc_abort_handler != 0)
+    (*gc_abort_handler) ();
+  exit (1);
 }
 
 void
 gc_no_cc_support (gc_ctx_t * ctx)
 {
-  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	    "No compiled-code support.");
+  std_gc_death (ctx, "No compiled-code support.");
+}
+
+void
+gc_bad_type (SCHEME_OBJECT object, gc_ctx_t * ctx)
+{
+  std_gc_death (ctx, "bad type code: %#02lx %#lx",
+		(OBJECT_TYPE (object)),
+		object);
 }
 
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
@@ -722,8 +724,8 @@ scan_gc_objects_referencing (SCHEME_OBJECT * from_start,
 		     (&end), (&end),
 		     from_start, from_end);
 	if (end != gc_objects_referencing_scan)
-	  gc_death (TERM_BROKEN_HEART, 0, 0,
-		    "scan of gc_objects_referencing performed transport");
+	  std_gc_death
+	    (0, "scan of gc_objects_referencing performed transport");
       }
       gc_objects_referencing = SHARP_F;
       gc_object_referenced = SHARP_F;
@@ -748,3 +750,130 @@ update_gc_objects_referencing (void)
 }
 
 #endif /* ENABLE_GC_DEBUGGING_TOOLS */
+
+gc_type_t gc_type_map [N_TYPE_CODES] =
+{
+  GC_NON_POINTER,		/* TC_NULL,etc */
+  GC_PAIR,			/* TC_LIST */
+  GC_NON_POINTER,		/* TC_CHARACTER */
+  GC_PAIR,		   	/* TC_SCODE_QUOTE */
+  GC_TRIPLE,		        /* TC_PCOMB2 */
+  GC_PAIR,			/* TC_UNINTERNED_SYMBOL */
+  GC_VECTOR,			/* TC_BIG_FLONUM */
+  GC_PAIR,			/* TC_COMBINATION_1 */
+  GC_NON_POINTER,		/* TC_CONSTANT */
+  GC_PAIR,			/* TC_EXTENDED_PROCEDURE */
+  GC_VECTOR,			/* TC_VECTOR */
+  GC_NON_POINTER,		/* TC_RETURN_CODE */
+  GC_TRIPLE,			/* TC_COMBINATION_2 */
+  GC_SPECIAL,			/* TC_MANIFEST_CLOSURE */
+  GC_VECTOR,			/* TC_BIG_FIXNUM */
+  GC_PAIR,			/* TC_PROCEDURE */
+  GC_PAIR,			/* TC_ENTITY */
+  GC_PAIR,			/* TC_DELAY */
+  GC_VECTOR,			/* TC_ENVIRONMENT */
+  GC_PAIR,			/* TC_DELAYED */
+  GC_TRIPLE,			/* TC_EXTENDED_LAMBDA */
+  GC_PAIR,			/* TC_COMMENT */
+  GC_VECTOR,			/* TC_NON_MARKED_VECTOR */
+  GC_PAIR,			/* TC_LAMBDA */
+  GC_NON_POINTER,		/* TC_PRIMITIVE */
+  GC_PAIR,			/* TC_SEQUENCE_2 */
+  GC_NON_POINTER,		/* TC_FIXNUM */
+  GC_PAIR,			/* TC_PCOMB1 */
+  GC_VECTOR,			/* TC_CONTROL_POINT */
+  GC_PAIR,			/* TC_INTERNED_SYMBOL */
+  GC_VECTOR,			/* TC_CHARACTER_STRING,TC_VECTOR_8B */
+  GC_PAIR,			/* TC_ACCESS */
+  GC_TRIPLE,			/* TC_HUNK3_A */
+  GC_PAIR,			/* TC_DEFINITION */
+  GC_SPECIAL,			/* TC_BROKEN_HEART */
+  GC_PAIR,			/* TC_ASSIGNMENT */
+  GC_TRIPLE,			/* TC_HUNK3_B */
+  GC_PAIR,			/* TC_IN_PACKAGE */
+  GC_VECTOR,			/* TC_COMBINATION */
+  GC_SPECIAL,			/* TC_MANIFEST_NM_VECTOR */
+  GC_COMPILED,			/* TC_COMPILED_ENTRY */
+  GC_PAIR,			/* TC_LEXPR */
+  GC_VECTOR,			/* TC_PCOMB3 */
+  GC_SPECIAL,			/* TC_MANIFEST_SPECIAL_NM_VECTOR */
+  GC_TRIPLE,			/* TC_VARIABLE */
+  GC_NON_POINTER,		/* TC_THE_ENVIRONMENT */
+  GC_UNDEFINED,			/* 0x2E */
+  GC_VECTOR,			/* TC_VECTOR_1B,TC_BIT_STRING */
+  GC_NON_POINTER,		/* TC_PCOMB0 */
+  GC_VECTOR,			/* TC_VECTOR_16B */
+  GC_SPECIAL,			/* TC_REFERENCE_TRAP */
+  GC_TRIPLE,			/* TC_SEQUENCE_3 */
+  GC_TRIPLE,			/* TC_CONDITIONAL */
+  GC_PAIR,			/* TC_DISJUNCTION */
+  GC_CELL,			/* TC_CELL */
+  GC_PAIR,			/* TC_WEAK_CONS */
+  GC_QUADRUPLE,			/* TC_QUAD */
+  GC_SPECIAL,			/* TC_LINKAGE_SECTION */
+  GC_PAIR,			/* TC_RATNUM */
+  GC_NON_POINTER,		/* TC_STACK_ENVIRONMENT */
+  GC_PAIR,			/* TC_COMPLEX */
+  GC_VECTOR,			/* TC_COMPILED_CODE_BLOCK */
+  GC_VECTOR,			/* TC_RECORD */
+  GC_UNDEFINED			/* 0x3F */
+};
+
+#if (N_TYPE_CODES != 0x40)
+#  include "gcloop.c and object.h inconsistent -- gc_type_map"
+#endif
+
+gc_type_t
+gc_type_code (unsigned int type_code)
+{
+  gc_type_t type = (gc_type_map[type_code]);
+  if (type == GC_UNDEFINED)
+    std_gc_death (0, "bad type code = 0x%02x\n", type_code);
+  return (type);
+}
+
+gc_ptr_type_t
+gc_ptr_type (SCHEME_OBJECT object)
+{
+  switch (GC_TYPE (object))
+    {
+    case GC_SPECIAL:
+      return
+	(((REFERENCE_TRAP_P (object))
+	  && ((OBJECT_DATUM (object)) >= TRAP_MAX_IMMEDIATE))
+	 ? GC_POINTER_NORMAL
+	 : GC_POINTER_NOT);
+
+    case GC_CELL:
+    case GC_PAIR:
+    case GC_TRIPLE:
+    case GC_QUADRUPLE:
+    case GC_VECTOR:
+      return (GC_POINTER_NORMAL);
+
+    case GC_COMPILED:
+      return (GC_POINTER_COMPILED);
+      break;
+
+    default:
+      return (GC_POINTER_NOT);
+    }
+}
+
+SCHEME_OBJECT *
+get_object_address (SCHEME_OBJECT object)
+{
+  switch (gc_ptr_type (object))
+    {
+    case GC_POINTER_NORMAL:
+      return (OBJECT_ADDRESS (object));
+
+    case GC_POINTER_COMPILED:
+#ifdef CC_SUPPORT_P
+      return (cc_entry_to_block_address (object));
+#endif
+
+    default:
+      return (0);
+    }
+}

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.87.2.5 2006/08/29 04:44:32 cph Exp $
+$Id: utils.c,v 9.87.2.6 2006/08/30 05:17:31 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -1086,23 +1086,6 @@ C_call_scheme (SCHEME_OBJECT proc,
 
 #endif /* not __OS2__ */
 
-#ifndef BAD_TYPES_INNOCUOUS
-
-gc_type_t
-gc_type_code (unsigned int type_code)
-{
-  gc_type_t type = (gc_type_map[type_code]);
-  if (type == GC_UNDEFINED)
-    {
-      outf_fatal ("\nbad type code = 0x%02x\n", type_code);
-      Microcode_Termination (TERM_INVALID_TYPE_CODE);
-      /*NOTREACHED*/
-    }
-  return (type);
-}
-
-#endif /* not BAD_TYPES_INNOCUOUS */
-
 void
 set_ptr_register (unsigned int index, SCHEME_OBJECT * p)
 {

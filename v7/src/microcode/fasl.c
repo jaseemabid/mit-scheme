@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.c,v 1.1.2.1 2006/08/29 19:40:26 cph Exp $
+$Id: fasl.c,v 1.1.2.2 2006/08/30 05:17:31 cph Exp $
 
 Copyright 2006 Massachusetts Institute of Technology
 
@@ -28,7 +28,6 @@ USA.
 #include <stdio.h>
 #include <stdbool.h>
 #include "fasl.h"
-#include "const.h"
 
 static void encode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
 static bool decode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
