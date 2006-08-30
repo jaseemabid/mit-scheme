@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.7 2006/08/30 02:59:53 cph Exp $
+$Id: fasdump.c,v 9.68.2.8 2006/08/30 18:54:29 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -236,6 +236,8 @@ fasdump_loop (env_mode_t mode, prim_renumber_t * pr, bool * cc_seen_p,
   (GCTX_TABLE (ctx)) = (&fasdump_table);
   (GCTX_PTO (ctx)) = pto;
   (GCTX_PTO_END (ctx)) = pto_end;
+  (GCTX_FROM_START (ctx)) = active_heap_start;
+  (GCTX_FROM_END (ctx)) = Free;
   (CTX_PFIX (ctx)) = pfix;
   (CTX_MODE (ctx)) = mode;
   (CTX_PR (ctx)) = pr;
