@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.8 2006/08/30 19:20:53 cph Exp $
+$Id: fasload.c,v 9.96.2.9 2006/08/30 20:03:36 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -342,22 +342,17 @@ relocate_block (SCHEME_OBJECT * scan,
       initialized_p = true;
     }
 
-  (GCTX_TABLE (ctx)) = (&table);
-  (GCTX_PTO (ctx)) = 0;
-  (GCTX_PTO_END (ctx)) = 0;
-  (GCTX_FROM_START (ctx)) = 0;
-  (GCTX_FROM_END (ctx)) = 0;
-  (CTX_HEADER (ctx)) = h;
-  (CTX_BASIS (ctx)) = nb;
-  (CTX_PRIM_TABLE (ctx)) = prim_table;
-
   if (Reloc_Debug)
     outf_error ("\nblock = %#lx, length = %#lx, end = %#lx.\n",
 		((unsigned long) scan),
 		((unsigned long) ((end - scan) - 1)),
 		((unsigned long) end));
 
-  run_gc_loop (scan, (&end), ctx);
+  (GCTX_TABLE (ctx)) = (&table);
+  (CTX_HEADER (ctx)) = h;
+  (CTX_BASIS (ctx)) = nb;
+  (CTX_PRIM_TABLE (ctx)) = prim_table;
+  std_gc_scan (scan, end, ctx);
 }
 
 static
@@ -487,16 +482,11 @@ intern_block (SCHEME_OBJECT * scan, SCHEME_OBJECT * end)
       initialized_p = true;
     }
 
-  (GCTX_TABLE (ctx)) = (&table);
-  (GCTX_PTO (ctx)) = 0;
-  (GCTX_PTO_END (ctx)) = 0;
-  (GCTX_FROM_START (ctx)) = 0;
-  (GCTX_FROM_END (ctx)) = 0;
-
   if (Reloc_Debug)
     outf_console ("Interning a block.\n");
 
-  run_gc_loop (scan, (&end), ctx);
+  (GCTX_TABLE (ctx)) = (&table);
+  std_gc_scan (scan, end, ctx);
 
   if (Reloc_Debug)
     outf_console ("Done interning block.\n");

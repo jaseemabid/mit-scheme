@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.10 2006/08/30 19:20:16 cph Exp $
+$Id: gcloop.c,v 9.51.2.11 2006/08/30 20:03:38 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -326,6 +326,16 @@ std_gc_loop (SCHEME_OBJECT * scan, SCHEME_OBJECT ** pend,
   (GCTX_FROM_START (ctx)) = from_start;
   (GCTX_FROM_END (ctx)) = from_end;
   run_gc_loop (scan, pend, ctx);
+}
+
+void
+std_gc_scan (SCHEME_OBJECT * scan, SCHEME_OBJECT * end, gc_ctx_t * ctx)
+{
+  (GCTX_PTO (ctx)) = 0;
+  (GCTX_PTO_END (ctx)) = 0;
+  (GCTX_FROM_START (ctx)) = 0;
+  (GCTX_FROM_END (ctx)) = 0;
+  run_gc_loop (scan, (&end), ctx);
 }
 
 static gc_table_t *

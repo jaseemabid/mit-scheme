@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.5 2006/08/30 05:17:31 cph Exp $
+$Id: gccode.h,v 9.60.2.6 2006/08/30 20:03:37 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
@@ -160,6 +160,7 @@ extern void std_gc_loop
   (SCHEME_OBJECT *, SCHEME_OBJECT **,
    SCHEME_OBJECT **, SCHEME_OBJECT **,
    SCHEME_OBJECT *, SCHEME_OBJECT *);
+extern void std_gc_scan (SCHEME_OBJECT *, SCHEME_OBJECT *, gc_ctx_t *);
 
 typedef void gc_abort_handler_t (void);
 extern gc_abort_handler_t * gc_abort_handler NORETURN;

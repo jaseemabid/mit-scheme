@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purutl.c,v 9.54.2.7 2006/08/30 19:20:55 cph Exp $
+$Id: purutl.c,v 9.54.2.8 2006/08/30 20:03:39 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1996,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -180,7 +180,7 @@ object_length (SCHEME_OBJECT object)
 
 static void
 update_pointers (SCHEME_OBJECT * scan,
-		 SCHEME_OBJECT * to,
+		 SCHEME_OBJECT * end,
 		 SCHEME_OBJECT * old_start,
 		 SCHEME_OBJECT * old_end,
 		 SCHEME_OBJECT * new_start)
@@ -201,14 +201,10 @@ update_pointers (SCHEME_OBJECT * scan,
     }
 
   (GCTX_TABLE (ctx)) = (&update_table);
-  (GCTX_PTO (ctx)) = 0;
-  (GCTX_PTO_END (ctx)) = 0;
-  (GCTX_FROM_START (ctx)) = 0;
-  (GCTX_FROM_END (ctx)) = 0;
   (CTX_OLD_START (ctx)) = old_start;
   (CTX_OLD_END (ctx)) = old_end;
   (CTX_NEW_START (ctx)) = new_start;
-  run_gc_loop (scan, (&to), ctx);
+  std_gc_scan (scan, end, ctx);
 }
 
 static
