@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.9 2006/08/30 05:17:31 cph Exp $
+$Id: gcloop.c,v 9.51.2.10 2006/08/30 19:20:16 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -430,7 +430,11 @@ gc_transport_words (SCHEME_OBJECT * from,
 		    bool align_p,
 		    gc_ctx_t * ctx)
 {
-  SCHEME_OBJECT * to = (* (GCTX_PTO (ctx)));
+  SCHEME_OBJECT * to;
+
+  if ((GCTX_PTO (ctx)) == 0)
+    std_gc_death (ctx, "GC transport not allowed here");
+  to = (* (GCTX_PTO (ctx)));
   if (align_p)
     ALIGN_FLOAT (to);
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
@@ -599,7 +603,8 @@ std_gc_death (gc_ctx_t * ctx, const char * format, ...)
   if (ctx != 0)
     {
       outf_fatal ("scan = 0x%lx", ((unsigned long) (GCTX_SCAN (ctx))));
-      outf_fatal ("; to = 0x%lx", ((unsigned long) (* (GCTX_PTO (ctx)))));
+      if ((GCTX_PTO (ctx)) != 0)
+	outf_fatal ("; to = 0x%lx", ((unsigned long) (* (GCTX_PTO (ctx)))));
       outf_fatal ("\n");
     }
   va_end (ap);
