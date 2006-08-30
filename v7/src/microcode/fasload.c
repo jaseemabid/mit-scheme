@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.7 2006/08/29 19:40:28 cph Exp $
+$Id: fasload.c,v 9.96.2.8 2006/08/30 19:20:53 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -73,9 +73,6 @@ static const char * reload_band_name = 0;
 static Tptrvec reload_cleanups = 0;
 static unsigned long reload_heap_size = 0;
 static unsigned long reload_constant_size = 0;
-
-static gc_table_t fasload_table;
-static gc_table_t intern_table;
 
 static fasl_file_handle_t read_file_start
   (const char *, bool, fasl_header_t *h);
@@ -325,27 +322,31 @@ relocate_block (SCHEME_OBJECT * scan,
 		SCHEME_OBJECT * prim_table)
 {
   static bool initialized_p = false;
+  static gc_table_t table;
   fl_ctx_t ctx0;
   gc_ctx_t * ctx = ((gc_ctx_t *) (&ctx0));
 
   if (!initialized_p)
     {
-      initialize_gc_table ((&fasload_table),
+      initialize_gc_table ((&table),
 			   fasload_tuple,
 			   fasload_vector,
 			   fasload_cc_entry,
 			   fasload_weak_pair,
 			   gc_precheck_from);
-      (GCT_ENTRY ((&fasload_table), TC_PRIMITIVE)) = handle_primitive;
-      (GCT_ENTRY ((&fasload_table), TC_PCOMB0)) = handle_primitive;
-      (GCT_ENTRY ((&fasload_table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
-      (GCT_ENTRY ((&fasload_table), TC_MANIFEST_SPECIAL_NM_VECTOR))
+      (GCT_ENTRY ((&table), TC_PRIMITIVE)) = handle_primitive;
+      (GCT_ENTRY ((&table), TC_PCOMB0)) = handle_primitive;
+      (GCT_ENTRY ((&table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
+      (GCT_ENTRY ((&table), TC_MANIFEST_SPECIAL_NM_VECTOR))
 	= gc_handle_non_pointer;
       initialized_p = true;
     }
 
-  (GCTX_TABLE (ctx)) = (&fasload_table);
+  (GCTX_TABLE (ctx)) = (&table);
   (GCTX_PTO (ctx)) = 0;
+  (GCTX_PTO_END (ctx)) = 0;
+  (GCTX_FROM_START (ctx)) = 0;
+  (GCTX_FROM_END (ctx)) = 0;
   (CTX_HEADER (ctx)) = h;
   (CTX_BASIS (ctx)) = nb;
   (CTX_PRIM_TABLE (ctx)) = prim_table;
@@ -467,26 +468,30 @@ static void
 intern_block (SCHEME_OBJECT * scan, SCHEME_OBJECT * end)
 {
   static bool initialized_p = false;
+  static gc_table_t table;
   gc_ctx_t ctx0;
   gc_ctx_t * ctx = (&ctx0);
 
   if (!initialized_p)
     {
-      initialize_gc_table ((&intern_table),
+      initialize_gc_table ((&table),
 			   intern_tuple,
 			   intern_vector,
 			   intern_cc_entry,
 			   intern_weak_pair,
 			   gc_precheck_from);
-      (GCT_ENTRY ((&intern_table), TC_INTERNED_SYMBOL)) = intern_handle_symbol;
-      (GCT_ENTRY ((&intern_table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
-      (GCT_ENTRY ((&intern_table), TC_MANIFEST_SPECIAL_NM_VECTOR))
+      (GCT_ENTRY ((&table), TC_INTERNED_SYMBOL)) = intern_handle_symbol;
+      (GCT_ENTRY ((&table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
+      (GCT_ENTRY ((&table), TC_MANIFEST_SPECIAL_NM_VECTOR))
 	= gc_handle_non_pointer;
       initialized_p = true;
     }
 
-  (GCTX_TABLE (ctx)) = (&intern_table);
+  (GCTX_TABLE (ctx)) = (&table);
   (GCTX_PTO (ctx)) = 0;
+  (GCTX_PTO_END (ctx)) = 0;
+  (GCTX_FROM_START (ctx)) = 0;
+  (GCTX_FROM_END (ctx)) = 0;
 
   if (Reloc_Debug)
     outf_console ("Interning a block.\n");

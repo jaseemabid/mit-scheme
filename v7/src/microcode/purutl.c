@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purutl.c,v 9.54.2.6 2006/08/30 05:17:31 cph Exp $
+$Id: purutl.c,v 9.54.2.7 2006/08/30 19:20:55 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1996,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -201,7 +201,10 @@ update_pointers (SCHEME_OBJECT * scan,
     }
 
   (GCTX_TABLE (ctx)) = (&update_table);
-  (GCTX_PTO (ctx)) = (&to);
+  (GCTX_PTO (ctx)) = 0;
+  (GCTX_PTO_END (ctx)) = 0;
+  (GCTX_FROM_START (ctx)) = 0;
+  (GCTX_FROM_END (ctx)) = 0;
   (CTX_OLD_START (ctx)) = old_start;
   (CTX_OLD_END (ctx)) = old_end;
   (CTX_NEW_START (ctx)) = new_start;
