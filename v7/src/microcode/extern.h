@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: extern.h,v 9.65.2.3 2006/08/30 02:59:48 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
-Copyright 2001,2002,2005 Massachusetts Institute of Technology
+Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -272,8 +272,8 @@ extern void execute_reload_cleanups (void);
 
 /* Memory management utilities */
 extern bool pure_test (SCHEME_OBJECT *);
-extern unsigned long gc_counter;
 extern void stack_death (const char *) NORETURN;
+extern void garbage_collect (SCHEME_OBJECT *, SCHEME_OBJECT *);
 extern bool update_allocator_parameters (unsigned long);
 extern void reset_allocator_parameters (void);
 extern SCHEME_OBJECT * find_constant_space_block (SCHEME_OBJECT *);

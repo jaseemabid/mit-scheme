@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.7 2006/08/29 04:44:32 cph Exp $
+$Id: gcloop.c,v 9.51.2.8 2006/08/30 03:00:03 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -29,17 +29,6 @@ USA.
 #include "scheme.h"
 #include "gccode.h"
 
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-#  ifndef GC_SCAN_HISTORY_SIZE
-#    define GC_SCAN_HISTORY_SIZE 1024
-#  endif
-#  define INITIALIZE_GC_HISTORY initialize_gc_history
-#  define HANDLE_GC_TRAP handle_gc_trap
-#else
-#  define INITIALIZE_GC_HISTORY() do {} while (0)
-#  define HANDLE_GC_TRAP(scan, pto, object) do {} while (0)
-#endif
-
 #ifndef READ_REFERENCE_OBJECT
 #  define READ_REFERENCE_OBJECT(addr)					\
      (MAKE_POINTER_OBJECT (TC_HUNK3, (* ((SCHEME_OBJECT **) (addr)))))
@@ -47,11 +36,48 @@ USA.
      ((* ((SCHEME_OBJECT **) (addr))) = (OBJECT_ADDRESS (ref)))
 #endif
 
-static gc_table_t gc_table;
 static gc_tuple_handler_t gc_tuple;
 static gc_vector_handler_t gc_vector;
 static gc_object_handler_t gc_cc_entry;
 static gc_object_handler_t gc_weak_pair;
+
+static SCHEME_OBJECT * weak_chain;
+
+static gc_table_t * gc_table (void);
+
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+#  ifndef GC_SCAN_HISTORY_SIZE
+#    define GC_SCAN_HISTORY_SIZE 1024
+#  endif
+#  define INITIALIZE_GC_HISTORY initialize_gc_history
+#  define HANDLE_GC_TRAP handle_gc_trap
+#  define DEBUG_TRANSPORT_ONE_WORD debug_transport_one_word
+
+   static unsigned int gc_scan_history_index;
+   static SCHEME_OBJECT * gc_scan_history [GC_SCAN_HISTORY_SIZE];
+   static SCHEME_OBJECT * gc_to_history [GC_SCAN_HISTORY_SIZE];
+
+   static SCHEME_OBJECT gc_trap
+     = (MAKE_OBJECT (TC_REFERENCE_TRAP, TRAP_MAX_IMMEDIATE));
+   static SCHEME_OBJECT * gc_scan_trap = 0;
+   static SCHEME_OBJECT * gc_free_trap = 0;
+
+   static SCHEME_OBJECT gc_object_referenced = SHARP_F;
+   static SCHEME_OBJECT gc_objects_referencing = SHARP_F;
+   static unsigned long gc_objects_referencing_count;
+   static SCHEME_OBJECT * gc_objects_referencing_scan;
+   static SCHEME_OBJECT * gc_objects_referencing_end;
+
+   static void initialize_gc_history (void);
+   static void handle_gc_trap
+     (SCHEME_OBJECT *, SCHEME_OBJECT **, SCHEME_OBJECT);
+   static void debug_transport_one_word (SCHEME_OBJECT, SCHEME_OBJECT *);
+   static void update_gc_objects_referencing (void);
+#else
+#  define INITIALIZE_GC_HISTORY() do {} while (0)
+#  define HANDLE_GC_TRAP(scan, pto, object) do {} while (0)
+#  define DEBUG_TRANSPORT_ONE_WORD(object, from) do {} while (0)
+#endif
 
 #define SIMPLE_HANDLER(name)						\
   (GCT_ENTRY (table, i)) = name;					\
@@ -244,8 +270,7 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
     }
   return (scan);
 #else
-  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	    "No native-code support.");
+  gc_no_cc_support (ctx);
   return (scan);
 #endif
 }
@@ -277,8 +302,7 @@ DEFINE_GC_HANDLER (gc_handle_manifest_closure)
   return (compiled_closure_objects (scan + 1));
 #endif
 #else
-  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	    "No native-code support.");
+  gc_no_cc_support (ctx);
   return (scan);
 #endif
 }
@@ -290,22 +314,45 @@ DEFINE_GC_HANDLER (gc_handle_undefined)
 }
 
 void
-gc_loop (SCHEME_OBJECT * scan, SCHEME_OBJECT ** pend, SCHEME_OBJECT ** pto)
+std_gc_loop (SCHEME_OBJECT * scan, SCHEME_OBJECT ** pend,
+	     SCHEME_OBJECT ** pto, SCHEME_OBJECT ** pto_end,
+	     SCHEME_OBJECT * from_start, SCHEME_OBJECT * from_end)
 {
-  static bool initialized_p = false;
   gc_ctx_t ctx0;
   gc_ctx_t * ctx = (&ctx0);
 
+  (GCTX_TABLE (ctx)) = (gc_table ());
+  (GCTX_PTO (ctx)) = pto;
+  (GCTX_PTO_END (ctx)) = pto_end;
+  (GCTX_FROM_START (ctx)) = from_start;
+  (GCTX_FROM_END (ctx)) = from_end;
+  run_gc_loop (scan, pend, ctx);
+}
+
+static gc_table_t *
+gc_table (void)
+{
+  static gc_table_t table;
+  static bool initialized_p = false;
   if (!initialized_p)
     {
-      initialize_gc_table
-	((&gc_table),
-	 gc_tuple, gc_vector, gc_cc_entry, gc_weak_pair, gc_precheck_from);
+      initialize_gc_table ((&table),
+			   gc_tuple,
+			   gc_vector,
+			   gc_cc_entry,
+			   gc_weak_pair,
+			   gc_precheck_from);
       initialized_p = true;
     }
-  (GCTX_TABLE (ctx)) = (&gc_table);
-  (GCTX_PTO (ctx)) = pto;
-  run_gc_loop (scan, pend, ctx);
+  return (&table);
+}
+
+bool
+address_in_from_space_p (void * addr, gc_ctx_t * ctx)
+{
+  return
+    ((addr >= ((void *) (GCTX_FROM_START (ctx))))
+     && (addr < ((void *) (GCTX_FROM_END (ctx)))));
 }
 
 static
@@ -348,8 +395,7 @@ DEFINE_GC_OBJECT_HANDLER (gc_cc_entry)
 			      (OBJECT_ADDRESS (new_block)),
 			      (OBJECT_ADDRESS (old_block))));
 #else
-  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	    "No native-code support.");
+  gc_no_cc_support (ctx);
   return (object);
 #endif
 }
@@ -373,7 +419,7 @@ gc_precheck_from (SCHEME_OBJECT * from, gc_ctx_t * ctx)
 	      "out of range pointer: %#lx", ((unsigned long) from));
 #endif
   return
-    ((!ADDRESS_IN_OLD_SPACE_P (from))
+    ((!address_in_from_space_p (from, ctx))
      ? from
      : (BROKEN_HEART_P (*from))
      ? (OBJECT_ADDRESS (*from))
@@ -390,15 +436,14 @@ gc_transport_words (SCHEME_OBJECT * from,
   if (align_p)
     ALIGN_FLOAT (to);
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
+  if (to >= (* (GCTX_PTO_END (ctx))))
+    gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
+	      "target space completely filled");
   {
     SCHEME_OBJECT * end = (to + n_words);
-    if (((ADDRESS_IN_ACTIVE_HEAP_P (to))
-	 && (!ADDRESS_IN_ACTIVE_HEAP_P (end)))
-	|| ((ADDRESS_IN_INACTIVE_HEAP_P (to))
-	    && (!ADDRESS_IN_INACTIVE_HEAP_P (end))))
+    if (end > (* (GCTX_PTO_END (ctx))))
       gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-		"block overflows target space: %#lx %#lx",
-		((unsigned long) to),
+		"block overflows target space: %#lx",
 		((unsigned long) end));
   }
   if (n_words > 0x10000)
@@ -421,12 +466,285 @@ gc_transport_words (SCHEME_OBJECT * from,
   (*from) = (MAKE_BROKEN_HEART (to));
   return (to);
 }
+
+/* Weak pairs are supported by adding an extra pass to the GC.  During
+   the normal pass, a weak pair is transported to new space, but the
+   car of the pair is marked as a non-pointer so that won't be traced.
+   Then the original weak pair in old space is chained into a list.
+   This work is performed by 'note_weak_pair'.
+
+   At the end of this pass, we have a list of all of the old weak
+   pairs.  Since each weak pair in old space has a broken-heart
+   pointer to the corresponding weak pair in new space, we also have a
+   list of all of the new weak pairs.
+
+   The extra pass then traverses this list, restoring the original
+   type of the object in the car of each pair.  Then, if the car is a
+   pointer that hasn't been copied to new space, it is replaced by #F.
+   This work is performed by 'update_weak_pointers'.
+
+   Here is a diagram showing the layout of a weak pair immediately
+   after it is transported to new space.  After the normal pass is
+   complete, the only thing that will have changed is that the "old
+   CDR object" will have been updated to point to new space, if it is
+   a pointer object.
+
+
+   weak_chain       old space           |         new space
+       |      _______________________   |   _______________________
+       |      |broken |     new     |   |   |      |              |
+       +=====>|heart  |  location ======|==>| NULL | old CAR data |
+	      |_______|_____________|   |   |______|______________|
+	      |old car|   next in   |   |   |                     |
+	      | type  |    chain    |   |   |   old CDR object    |
+	      |_______|_____________|   |   |_____________________|
+
+ */
 
 SCHEME_OBJECT
 gc_transport_weak_pair (SCHEME_OBJECT pair, gc_ctx_t * ctx)
 {
   SCHEME_OBJECT * old_addr = (OBJECT_ADDRESS (pair));
   SCHEME_OBJECT * new_addr = (gc_transport_words (old_addr, 2, false, ctx));
-  note_weak_pair (pair, new_addr);
+  SCHEME_OBJECT old_car = (new_addr[0]);
+  SCHEME_OBJECT * caddr;
+
+  /* Don't add pair to chain unless old_car is a pointer into old
+     space.  */
+
+  switch (gc_ptr_type (old_car))
+    {
+    case GC_POINTER_NORMAL:
+      caddr = (OBJECT_ADDRESS (old_car));
+      break;
+
+    case GC_POINTER_COMPILED:
+#ifdef CC_SUPPORT_P
+      caddr = (cc_entry_address_to_block_address (CC_ENTRY_ADDRESS (old_car)));
+      break;
+#endif
+
+    default:
+      caddr = 0;
+      break;
+    }
+  if ((caddr != 0) && (address_in_from_space_p (caddr, ctx)))
+    {
+      (old_addr[1])
+	= (MAKE_POINTER_OBJECT ((OBJECT_TYPE (old_car)), weak_chain));
+      (new_addr[0]) = (OBJECT_NEW_TYPE (TC_NULL, old_car));
+      weak_chain = old_addr;
+    }
+
   return (OBJECT_NEW_ADDRESS (pair, new_addr));
 }
+
+void
+initialize_weak_chain (void)
+{
+  weak_chain = 0;
+}
+
+void
+update_weak_pointers (void)
+{
+  while (weak_chain != 0)
+    {
+      SCHEME_OBJECT * new_addr = (OBJECT_ADDRESS (weak_chain[0]));
+      SCHEME_OBJECT old_car
+	= (OBJECT_NEW_TYPE ((OBJECT_TYPE (weak_chain[1])), (new_addr[0])));
+
+      switch (gc_ptr_type (old_car))
+	{
+	case GC_POINTER_NORMAL:
+	  {
+	    SCHEME_OBJECT * addr = (OBJECT_ADDRESS (old_car));
+	    (*new_addr)
+	      = ((BROKEN_HEART_P (*addr))
+		 ? (MAKE_OBJECT_FROM_OBJECTS (old_car, (*addr)))
+		 : SHARP_F);
+	  }
+	  break;
+
+	case GC_POINTER_COMPILED:
+#ifdef CC_SUPPORT_P
+	  {
+	    SCHEME_OBJECT * addr
+	      = (cc_entry_address_to_block_address
+		 (CC_ENTRY_ADDRESS (old_car)));
+	    (*new_addr)
+	      = ((BROKEN_HEART_P (*addr))
+		 ? (CC_ENTRY_NEW_BLOCK (old_car,
+					(OBJECT_ADDRESS (*addr)),
+					addr))
+		 : SHARP_F);
+	  }
+	  break;
+#endif
+
+	case GC_POINTER_NOT:
+	  /* Shouldn't happen -- filtered out in 'note_weak_pair'.  */
+	  (*new_addr) = old_car;
+	  break;
+	}
+      weak_chain = (OBJECT_ADDRESS (weak_chain[1]));
+    }
+}
+
+void
+gc_death (long code, SCHEME_OBJECT * scan, SCHEME_OBJECT ** pfree,
+	  const char * format, ...)
+{
+  va_list ap;
+
+  outf_fatal ("\n");
+  va_start (ap, format);
+  voutf_fatal (format, ap);
+  va_end (ap);
+  outf_fatal ("\n");
+  if (scan != 0)
+    {
+      outf_fatal ("scan = 0x%lx", ((unsigned long) scan));
+      if (pfree != 0)
+	outf_fatal ("; free = 0x%lx", ((unsigned long) (*pfree)));
+      outf_fatal ("\n");
+    }
+  Microcode_Termination (code);
+  /*NOTREACHED*/
+}
+
+void
+gc_no_cc_support (gc_ctx_t * ctx)
+{
+  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
+	    "No compiled-code support.");
+}
+
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+
+void
+initialize_gc_history (void)
+{
+  gc_scan_history_index = 0;
+  memset (gc_scan_history, 0, (sizeof (gc_scan_history)));
+  memset (gc_to_history, 0, (sizeof (gc_to_history)));
+}
+
+void
+handle_gc_trap (SCHEME_OBJECT * scan,
+		SCHEME_OBJECT ** pto,
+		SCHEME_OBJECT object)
+{
+  (gc_scan_history[gc_scan_history_index]) = scan;
+  (gc_to_history[gc_scan_history_index]) = ((pto == 0) ? 0 : (*pto));
+  gc_scan_history_index += 1;
+  if (gc_scan_history_index == GC_SCAN_HISTORY_SIZE)
+    gc_scan_history_index = 0;
+  if ((object == gc_trap)
+      || ((gc_scan_trap != 0) && (scan >= gc_scan_trap))
+      || ((gc_free_trap != 0) && (pto != 0) && ((*pto) >= gc_free_trap)))
+    {
+      outf_error ("\nstd_gc_loop: trap.\n");
+      abort ();
+    }
+}
+
+void
+collect_gc_objects_referencing (SCHEME_OBJECT object, SCHEME_OBJECT collector)
+{
+  gc_object_referenced = object;
+  gc_objects_referencing = collector;
+}
+
+static void
+debug_transport_one_word (SCHEME_OBJECT object, SCHEME_OBJECT * from)
+{
+  if ((gc_object_referenced == (*from))
+      && (gc_objects_referencing != SHARP_F))
+    {
+      gc_objects_referencing_count += 1;
+      if (gc_objects_referencing_scan != gc_objects_referencing_end)
+	{
+	  update_gc_objects_referencing ();
+	  (*gc_objects_referencing_scan++) = object;
+	}
+    }
+}
+
+void
+initialize_gc_objects_referencing (void)
+{
+  if (gc_objects_referencing != SHARP_F)
+    {
+      /* Temporarily change to non-marked vector.  */
+      MEMORY_SET
+	(gc_objects_referencing, 0,
+	 (MAKE_OBJECT
+	  (TC_MANIFEST_NM_VECTOR,
+	   (OBJECT_DATUM (MEMORY_REF (gc_objects_referencing, 0))))));
+      /* Wipe the table.  */
+      {
+	SCHEME_OBJECT * scan = (VECTOR_LOC (gc_objects_referencing, 0));
+	SCHEME_OBJECT * end
+	  = (VECTOR_LOC (gc_objects_referencing,
+			 (VECTOR_LENGTH (gc_objects_referencing))));
+	while (scan < end)
+	  (*scan++) = SHARP_F;
+      }
+      gc_objects_referencing_count = 0;
+      gc_objects_referencing_scan = (VECTOR_LOC (gc_objects_referencing, 1));
+      gc_objects_referencing_end
+	= (VECTOR_LOC (gc_objects_referencing,
+		       (VECTOR_LENGTH (gc_objects_referencing))));
+      (*Free++) = gc_objects_referencing;
+    }
+}
+
+void
+scan_gc_objects_referencing (SCHEME_OBJECT * from_start,
+			     SCHEME_OBJECT * from_end)
+{
+  if (gc_objects_referencing != SHARP_F)
+    {
+      update_gc_objects_referencing ();
+      /* Change back to marked vector.  */
+      MEMORY_SET
+	(gc_objects_referencing, 0,
+	 (MAKE_OBJECT
+	  (TC_MANIFEST_VECTOR,
+	   (OBJECT_DATUM (MEMORY_REF (gc_objects_referencing, 0))))));
+      /* Store the count in the table.  */
+      VECTOR_SET (gc_objects_referencing, 0,
+		  (ULONG_TO_FIXNUM (gc_objects_referencing_count)));
+      {
+	SCHEME_OBJECT * end = gc_objects_referencing_scan;
+	std_gc_loop ((VECTOR_LOC (gc_objects_referencing, 1)), (&end),
+		     (&end), (&end),
+		     from_start, from_end);
+	if (end != gc_objects_referencing_scan)
+	  gc_death (TERM_BROKEN_HEART, 0, 0,
+		    "scan of gc_objects_referencing performed transport");
+      }
+      gc_objects_referencing = SHARP_F;
+      gc_object_referenced = SHARP_F;
+    }
+}
+
+static void
+update_gc_objects_referencing (void)
+{
+  SCHEME_OBJECT header = (MEMORY_REF (gc_objects_referencing, 0));
+  if (BROKEN_HEART_P (header))
+    {
+      SCHEME_OBJECT new
+	= (MAKE_OBJECT_FROM_OBJECTS (gc_objects_referencing, header));
+      gc_objects_referencing_scan =
+	(VECTOR_LOC (new,
+		     (gc_objects_referencing_scan
+		      - (VECTOR_LOC (gc_objects_referencing, 0)))));
+      gc_objects_referencing_end = (VECTOR_LOC (new, (VECTOR_LENGTH (new))));
+      gc_objects_referencing = new;
+    }
+}
+
+#endif /* ENABLE_GC_DEBUGGING_TOOLS */

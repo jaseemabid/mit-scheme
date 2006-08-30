@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.3 2006/08/16 19:15:46 cph Exp $
+$Id: gccode.h,v 9.60.2.4 2006/08/30 02:59:58 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -45,13 +45,19 @@ typedef struct gc_table_s gc_table_t;
 typedef struct
 {
   gc_table_t * table;		/* gc dispatch table */
-  SCHEME_OBJECT ** pto;		/* pointer to 'to' */
+  SCHEME_OBJECT * from_start;	/* start of 'from' space */
+  SCHEME_OBJECT * from_end;	/* end of 'from' space */
+  SCHEME_OBJECT ** pto;		/* pointer to 'to' ptr */
+  SCHEME_OBJECT ** pto_end;	/* ptr to end of 'to' space ptr */
   SCHEME_OBJECT * scan;		/* scan value where object found */
   SCHEME_OBJECT object;		/* original object being processed */
 } gc_ctx_t;
 
 #define GCTX_TABLE(ctx) ((ctx)->table)
+#define GCTX_FROM_START(ctx) ((ctx)->from_start)
+#define GCTX_FROM_END(ctx) ((ctx)->from_end)
 #define GCTX_PTO(ctx) ((ctx)->pto)
+#define GCTX_PTO_END(ctx) ((ctx)->pto_end)
 #define GCTX_SCAN(ctx) ((ctx)->scan)
 #define GCTX_OBJECT(ctx) ((ctx)->object)
 
@@ -134,63 +140,41 @@ extern void initialize_gc_table
   (gc_table_t *, gc_tuple_handler_t *, gc_vector_handler_t *,
    gc_object_handler_t *, gc_object_handler_t *, gc_precheck_from_t *);
 
+extern void initialize_weak_chain (void);
+extern void update_weak_pointers (void);
+
+extern void collect_gc_objects_referencing (SCHEME_OBJECT, SCHEME_OBJECT);
+extern void initialize_gc_objects_referencing (void);
+extern void scan_gc_objects_referencing (SCHEME_OBJECT *, SCHEME_OBJECT *);
+
 extern void run_gc_loop (SCHEME_OBJECT *, SCHEME_OBJECT **, gc_ctx_t *);
+extern bool address_in_from_space_p (void * addr, gc_ctx_t * ctx);
 
 extern SCHEME_OBJECT * gc_transport_words
   (SCHEME_OBJECT *, unsigned long, bool, gc_ctx_t *);
 
 extern SCHEME_OBJECT gc_transport_weak_pair (SCHEME_OBJECT, gc_ctx_t *);
 
-
-#ifndef BAD_TYPES_INNOCUOUS
-
-#define GC_BAD_TYPE(object, scan, pto)					\
-  (gc_death								\
-   (TERM_INVALID_TYPE_CODE, (scan), (pto),				\
-    "bad type code: %#02lx %#lx", (OBJECT_TYPE (object)), (object)))
-
-#else
-
-#define GC_BAD_TYPE(object, scan, pto)					\
-  (outf_error								\
-   ("\nbad type code: %#02lx %#lx -- treating as non-pointer.\n",	\
-    (OBJECT_TYPE (object)), (object)))
-
-#endif
-
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-   extern void debug_transport_one_word (SCHEME_OBJECT, SCHEME_OBJECT *);
-#  define DEBUG_TRANSPORT_ONE_WORD debug_transport_one_word
-#else
-#  define DEBUG_TRANSPORT_ONE_WORD(object, from) do {} while (0)
-#endif
-
-#define PRESERVE_OLD_SPACE_LIMITS() do					\
-{									\
-  old_space_start = active_heap_start;					\
-  old_space_end = active_heap_end;					\
-} while (0)
-
-#define ADDRESS_IN_OLD_SPACE_P(address)					\
-  (((address) >= old_space_start) && ((address) < old_space_end))
-
-extern SCHEME_OBJECT * old_space_start;
-extern SCHEME_OBJECT * old_space_end;
-
-extern void garbage_collect (void);
-extern void gc_loop (SCHEME_OBJECT *, SCHEME_OBJECT **, SCHEME_OBJECT **);
-
-extern void initialize_weak_chain (void);
-extern void note_weak_pair (SCHEME_OBJECT, SCHEME_OBJECT *);
-extern void update_weak_pointers (void);
-
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-extern void initialize_gc_history (void);
-extern void handle_gc_trap (SCHEME_OBJECT *, SCHEME_OBJECT **, SCHEME_OBJECT);
-#endif
+extern void std_gc_loop
+  (SCHEME_OBJECT *, SCHEME_OBJECT **,
+   SCHEME_OBJECT **, SCHEME_OBJECT **,
+   SCHEME_OBJECT *, SCHEME_OBJECT *);
 
 extern void gc_death
   (long, SCHEME_OBJECT *, SCHEME_OBJECT **, const char *, ...)
   ATTRIBUTE ((__noreturn__, __format__ (__printf__, 4, 5)));
+extern void gc_no_cc_support (gc_ctx_t * ctx) NORETURN;
+
+#ifndef BAD_TYPES_INNOCUOUS
+#  define GC_BAD_TYPE(object, scan, pto)				\
+    (gc_death								\
+     (TERM_INVALID_TYPE_CODE, (scan), (pto),				\
+      "bad type code: %#02lx %#lx", (OBJECT_TYPE (object)), (object)))
+#else
+#  define GC_BAD_TYPE(object, scan, pto)				\
+    (outf_error								\
+     ("\nbad type code: %#02lx %#lx -- treating as non-pointer.\n",	\
+      (OBJECT_TYPE (object)), (object)))
+#endif
 
 #endif /* not SCM_GCCODE_H */

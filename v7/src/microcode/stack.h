@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: stack.h,v 9.44.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: stack.h,v 9.44.2.3 2006/08/30 03:00:23 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
-Copyright 1993,1995,2002,2005 Massachusetts Institute of Technology
+Copyright 1993,1995,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -54,11 +54,16 @@ USA.
 {									\
   if (!CAN_PUSH_P (n))							\
     {									\
-      if (STACK_OVERFLOWED_P ())					\
-	stack_death ("STACK_CHECK");					\
+      STACK_CHECK_FATAL ("STACK_CHECK");				\
       REQUEST_INTERRUPT (INT_Stack_Overflow);				\
     }									\
 } while (0)
+
+#define STACK_CHECK_FATAL(s) do						\
+{									\
+  if (STACK_OVERFLOWED_P ())						\
+    stack_death (s);							\
+} while (false)
 
 #define CAN_PUSH_P(n) (SP_OK_P (STACK_LOC (- (n))))
 #define SP_OK_P(sp) ((sp) >= stack_guard)

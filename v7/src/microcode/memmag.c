@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: memmag.c,v 9.71.2.3 2006/08/29 04:44:32 cph Exp $
+$Id: memmag.c,v 9.71.2.4 2006/08/30 03:00:08 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -34,14 +34,6 @@ USA.
 #include "gccode.h"
 #include "osscheme.h"
 
-/* These are the values of active_heap_start and active_heap_end just
-   prior to switching the heaps for GC.  This is needed because the
-   heap might be resized when switching, in which case
-   ADDRESS_IN_INACTIVE_HEAP_P won't do the right thing.  Instead, use
-   ADDRESS_IN_OLD_SPACE_P, which refers to these variables.  */
-SCHEME_OBJECT * old_space_start;
-SCHEME_OBJECT * old_space_end;
-
 #ifndef DEFAULT_ACTIVE_HEAP_RESERVED
 #  define DEFAULT_ACTIVE_HEAP_RESERVED 4500
 #endif
@@ -54,33 +46,6 @@ SCHEME_OBJECT * old_space_end;
 static unsigned long saved_heap_size;
 static unsigned long saved_constant_size;
 static unsigned long saved_stack_size;
-static SCHEME_OBJECT * weak_chain;
-
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-
-#  ifndef GC_SCAN_HISTORY_SIZE
-#    define GC_SCAN_HISTORY_SIZE 1024
-#  endif
-
-   static unsigned int gc_scan_history_index;
-   static SCHEME_OBJECT * gc_scan_history [GC_SCAN_HISTORY_SIZE];
-   static SCHEME_OBJECT * gc_to_history [GC_SCAN_HISTORY_SIZE];
-
-   static SCHEME_OBJECT gc_trap
-     = (MAKE_OBJECT (TC_REFERENCE_TRAP, TRAP_MAX_IMMEDIATE));
-   static SCHEME_OBJECT * gc_scan_trap = 0;
-   static SCHEME_OBJECT * gc_free_trap = 0;
-
-   static SCHEME_OBJECT gc_object_referenced = SHARP_F;
-   static SCHEME_OBJECT gc_objects_referencing = SHARP_F;
-   static unsigned long gc_objects_referencing_count;
-   static SCHEME_OBJECT * gc_objects_referencing_scan;
-   static SCHEME_OBJECT * gc_objects_referencing_end;
-
-   static void initialize_gc_objects_referencing (void);
-   static void update_gc_objects_referencing (void);
-   static void scan_gc_objects_referencing (void);
-#endif
 
 #ifdef __WIN32__
    static bool win32_flush_old_halfspace_p = false;
@@ -222,10 +187,11 @@ SAFETY-MARGIN, which must be a non-negative integer.  Finally, runs\n\
 the primitive GC daemons before returning.")
 {
   PRIMITIVE_HEADER (1);
+  SCHEME_OBJECT * from_start;
+  SCHEME_OBJECT * from_end;
   canonicalize_primitive_context ();
 
-  if (STACK_OVERFLOWED_P ())
-    stack_death ("GC");
+  STACK_CHECK_FATAL ("GC");
   if (Free > active_heap_end)
     {
       outf_fatal ("\nGC has been delayed too long!\n");
@@ -241,9 +207,9 @@ the primitive GC daemons before returning.")
   POP_PRIMITIVE_FRAME (1);
 
   ENTER_CRITICAL_SECTION ("garbage collector");
-  gc_counter += 1;
 
-  PRESERVE_OLD_SPACE_LIMITS ();
+  from_start = active_heap_start;
+  from_end = Free;
   if (((constant_end - constant_alloc_next) < CONSTANT_SPACE_FUDGE)
       && (inactive_heap_start < active_heap_start)
       && (update_allocator_parameters (0)))
@@ -261,7 +227,7 @@ the primitive GC daemons before returning.")
     }
   initialize_weak_chain ();
 
-  garbage_collect ();
+  garbage_collect (from_start, from_end);
 
   Will_Push (CONTINUATION_SIZE);
   SET_RC (RC_NORMAL_GC_DONE);
@@ -286,7 +252,7 @@ the primitive GC daemons before returning.")
 }
 
 void
-garbage_collect (void)
+garbage_collect (SCHEME_OBJECT * from_start, SCHEME_OBJECT * from_end)
 {
   SCHEME_OBJECT * saved_values = Free;
 
@@ -298,12 +264,18 @@ garbage_collect (void)
   initialize_gc_objects_referencing ();
 #endif
 
-  gc_loop (stack_pointer, (&stack_end), (&Free));
-  gc_loop (constant_start, (&constant_alloc_next), (&Free));
-  gc_loop (saved_values, (&Free), (&Free));
+  std_gc_loop (stack_pointer, (&stack_end),
+	       (&Free), (&active_heap_end),
+	       from_start, from_end);
+  std_gc_loop (constant_start, (&constant_alloc_next),
+	       (&Free), (&active_heap_end),
+	       from_start, from_end);
+  std_gc_loop (saved_values, (&Free),
+	       (&Free), (&active_heap_end),
+	       from_start, from_end);
 
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
-  scan_gc_objects_referencing ();
+  scan_gc_objects_referencing (from_start, from_end);
 #endif
 
   update_weak_pointers ();
@@ -319,126 +291,34 @@ garbage_collect (void)
 
   CLEAR_INTERRUPT (INT_GC);
 }
-
-/* Weak pairs are supported by adding an extra pass to the GC.  During
-   the normal pass, a weak pair is transported to new space, but the
-   car of the pair is marked as a non-pointer so that won't be traced.
-   Then the original weak pair in old space is chained into a list.
-   This work is performed by 'note_weak_pair'.
-
-   At the end of this pass, we have a list of all of the old weak
-   pairs.  Since each weak pair in old space has a broken-heart
-   pointer to the corresponding weak pair in new space, we also have a
-   list of all of the new weak pairs.
-
-   The extra pass then traverses this list, restoring the original
-   type of the object in the car of each pair.  Then, if the car is a
-   pointer that hasn't been copied to new space, it is replaced by #F.
-   This work is performed by 'update_weak_pointers'.
-
-   Here is a diagram showing the layout of a weak pair immediately
-   after it is transported to new space.  After the normal pass is
-   complete, the only thing that will have changed is that the "old
-   CDR object" will have been updated to point to new space, if it is
-   a pointer object.
-
-
-   weak_chain       old space           |         new space
-       |      _______________________   |   _______________________
-       |      |broken |     new     |   |   |      |              |
-       +=====>|heart  |  location ======|==>| NULL | old CAR data |
-	      |_______|_____________|   |   |______|______________|
-	      |old car|   next in   |   |   |                     |
-	      | type  |    chain    |   |   |   old CDR object    |
-	      |_______|_____________|   |   |_____________________|
-
- */
 
 void
-initialize_weak_chain (void)
+stack_death (const char * name)
 {
-  weak_chain = 0;
+  outf_fatal
+    ("\n%s: The stack has overflowed and overwritten adjacent memory.\n",
+     name);
+  outf_fatal ("This was probably caused by a runaway recursion.\n");
+  Microcode_Termination (TERM_STACK_OVERFLOW);
+  /*NOTREACHED*/
 }
 
-void
-note_weak_pair (SCHEME_OBJECT pair, SCHEME_OBJECT * new_addr)
+DEFINE_PRIMITIVE ("GC-TRACE-REFERENCES", Prim_gc_trace_references, 2, 2, 0)
 {
-  SCHEME_OBJECT * old_addr = (OBJECT_ADDRESS (pair));
-  SCHEME_OBJECT old_car = (new_addr[0]);
-  SCHEME_OBJECT * caddr;
-
-  /* Don't add pair to chain unless old_car is a pointer into old
-     space.  */
-
-  switch (gc_ptr_type (old_car))
-    {
-    case GC_POINTER_NORMAL:
-      caddr = (OBJECT_ADDRESS (old_car));
-      break;
-
-    case GC_POINTER_COMPILED:
-#ifdef CC_SUPPORT_P
-      caddr = (cc_entry_address_to_block_address (CC_ENTRY_ADDRESS (old_car)));
-      break;
+  PRIMITIVE_HEADER (2);
+  {
+    SCHEME_OBJECT collector = (ARG_REF (2));
+    if (! ((collector == SHARP_F)
+	   || ((VECTOR_P (collector))
+	       && ((VECTOR_LENGTH (collector)) >= 1))))
+      error_wrong_type_arg (2);
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+    collect_gc_objects_referencing ((ARG_REF (1)), collector);
+#else
+    error_external_return ();
 #endif
-
-    default:
-      caddr = 0;
-      break;
-    }
-  if ((caddr != 0) && (ADDRESS_IN_OLD_SPACE_P (caddr)))
-    {
-      (old_addr[1])
-	= (MAKE_POINTER_OBJECT ((OBJECT_TYPE (old_car)), weak_chain));
-      (new_addr[0]) = (OBJECT_NEW_TYPE (TC_NULL, old_car));
-      weak_chain = old_addr;
-    }
-}
-
-void
-update_weak_pointers (void)
-{
-  while (weak_chain != 0)
-    {
-      SCHEME_OBJECT * new_addr = (OBJECT_ADDRESS (weak_chain[0]));
-      SCHEME_OBJECT old_car
-	= (OBJECT_NEW_TYPE ((OBJECT_TYPE (weak_chain[1])), (new_addr[0])));
-
-      switch (gc_ptr_type (old_car))
-	{
-	case GC_POINTER_NORMAL:
-	  {
-	    SCHEME_OBJECT * addr = (OBJECT_ADDRESS (old_car));
-	    (*new_addr)
-	      = ((BROKEN_HEART_P (*addr))
-		 ? (MAKE_OBJECT_FROM_OBJECTS (old_car, (*addr)))
-		 : SHARP_F);
-	  }
-	  break;
-
-	case GC_POINTER_COMPILED:
-#ifdef CC_SUPPORT_P
-	  {
-	    SCHEME_OBJECT * addr
-	      = (cc_entry_address_to_block_address
-		 (CC_ENTRY_ADDRESS (old_car)));
-	    (*new_addr)
-	      = ((BROKEN_HEART_P (*addr))
-		 ? (CC_ENTRY_NEW_BLOCK (old_car,
-					(OBJECT_ADDRESS (*addr)),
-					addr))
-		 : SHARP_F);
-	  }
-	  break;
-#endif
-
-	case GC_POINTER_NOT:
-	  /* Shouldn't happen -- filtered out in 'note_weak_pair'.  */
-	  (*new_addr) = old_car;
-	  break;
-	}
-      weak_chain = (OBJECT_ADDRESS (weak_chain[1]));
-    }
+  }
+  PRIMITIVE_RETURN (UNSPECIFIC);
 }
 
 DEFINE_PRIMITIVE ("WIN32-FLUSH-OLD-HALFSPACE-AFTER-GC?!",
@@ -510,142 +390,3 @@ win32_flush_old_halfspace (void)
 }
 
 #endif /* __WIN32__ */
-
-DEFINE_PRIMITIVE ("GC-TRACE-REFERENCES", Prim_gc_trace_references, 2, 2, 0)
-{
-  PRIMITIVE_HEADER (2);
-  {
-    SCHEME_OBJECT objects_referencing = (ARG_REF (2));
-    if (! ((objects_referencing == SHARP_F)
-	   || ((VECTOR_P (objects_referencing))
-	       && ((VECTOR_LENGTH (objects_referencing)) >= 1))))
-      error_wrong_type_arg (2);
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-    gc_object_referenced = (ARG_REF (1));
-    gc_objects_referencing = objects_referencing;
-#else
-    error_external_return ();
-#endif
-  }
-  PRIMITIVE_RETURN (UNSPECIFIC);
-}
-
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-
-void
-initialize_gc_history (void)
-{
-  gc_scan_history_index = 0;
-  memset (gc_scan_history, 0, (sizeof (gc_scan_history)));
-  memset (gc_to_history, 0, (sizeof (gc_to_history)));
-}
-
-void
-handle_gc_trap (SCHEME_OBJECT * scan,
-		SCHEME_OBJECT ** pto,
-		SCHEME_OBJECT object)
-{
-  (gc_scan_history[gc_scan_history_index]) = scan;
-  (gc_to_history[gc_scan_history_index]) = ((pto == 0) ? 0 : (*pto));
-  gc_scan_history_index += 1;
-  if (gc_scan_history_index == GC_SCAN_HISTORY_SIZE)
-    gc_scan_history_index = 0;
-  if ((object == gc_trap)
-      || ((gc_scan_trap != 0) && (scan >= gc_scan_trap))
-      || ((gc_free_trap != 0) && (pto != 0) && ((*pto) >= gc_free_trap)))
-    {
-      outf_error ("\ngc_loop: trap.\n");
-      abort ();
-    }
-}
-
-void
-debug_transport_one_word (SCHEME_OBJECT object, SCHEME_OBJECT * from)
-{
-  if ((gc_object_referenced == (*from))
-      && (gc_objects_referencing != SHARP_F))
-    {
-      gc_objects_referencing_count += 1;
-      if (gc_objects_referencing_scan != gc_objects_referencing_end)
-	{
-	  update_gc_objects_referencing ();
-	  (*gc_objects_referencing_scan++) = object;
-	}
-    }
-}
-
-static void
-initialize_gc_objects_referencing (void)
-{
-  if (gc_objects_referencing != SHARP_F)
-    {
-      /* Temporarily change to non-marked vector.  */
-      MEMORY_SET
-	(gc_objects_referencing, 0,
-	 (MAKE_OBJECT
-	  (TC_MANIFEST_NM_VECTOR,
-	   (OBJECT_DATUM (MEMORY_REF (gc_objects_referencing, 0))))));
-      /* Wipe the table.  */
-      {
-	SCHEME_OBJECT * scan = (VECTOR_LOC (gc_objects_referencing, 0));
-	SCHEME_OBJECT * end
-	  = (VECTOR_LOC (gc_objects_referencing,
-			 (VECTOR_LENGTH (gc_objects_referencing))));
-	while (scan < end)
-	  (*scan++) = SHARP_F;
-      }
-      gc_objects_referencing_count = 0;
-      gc_objects_referencing_scan = (VECTOR_LOC (gc_objects_referencing, 1));
-      gc_objects_referencing_end
-	= (VECTOR_LOC (gc_objects_referencing,
-		       (VECTOR_LENGTH (gc_objects_referencing))));
-      (*Free++) = gc_objects_referencing;
-    }
-}
-
-static void
-scan_gc_objects_referencing (void)
-{
-  if (gc_objects_referencing != SHARP_F)
-    {
-      update_gc_objects_referencing ();
-      /* Change back to marked vector.  */
-      MEMORY_SET
-	(gc_objects_referencing, 0,
-	 (MAKE_OBJECT
-	  (TC_MANIFEST_VECTOR,
-	   (OBJECT_DATUM (MEMORY_REF (gc_objects_referencing, 0))))));
-      /* Store the count in the table.  */
-      VECTOR_SET (gc_objects_referencing, 0,
-		  (ULONG_TO_FIXNUM (gc_objects_referencing_count)));
-
-      {
-	SCHEME_OBJECT * end = gc_objects_referencing_scan;
-	gc_loop ((VECTOR_LOC (gc_objects_referencing, 1)), (&end), (&end));
-	if (end != gc_objects_referencing_scan)
-	  gc_death (TERM_BROKEN_HEART, 0, 0,
-		    "scan of gc_objects_referencing performed transport");
-      }
-      gc_objects_referencing = SHARP_F;
-      gc_object_referenced = SHARP_F;
-    }
-}
-
-static void
-update_gc_objects_referencing (void)
-{
-  SCHEME_OBJECT header = (MEMORY_REF (gc_objects_referencing, 0));
-  if (BROKEN_HEART_P (header))
-    {
-      SCHEME_OBJECT new
-	= (MAKE_OBJECT_FROM_OBJECTS (gc_objects_referencing, header));
-      gc_objects_referencing_scan =
-	(VECTOR_LOC (new,
-		     (gc_objects_referencing_scan
-		      - (VECTOR_LOC (gc_objects_referencing, 0)))));
-      gc_objects_referencing_end = (VECTOR_LOC (new, (VECTOR_LENGTH (new))));
-      gc_objects_referencing = new;
-    }
-}
-
-#endif /* ENABLE_GC_DEBUGGING_TOOLS */

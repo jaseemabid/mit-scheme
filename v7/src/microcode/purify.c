@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.65.2.6 2006/08/29 04:44:32 cph Exp $
+$Id: purify.c,v 9.65.2.7 2006/08/30 03:00:13 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1997,2000,2001 Massachusetts Institute of Technology
@@ -39,10 +39,12 @@ typedef struct
 
 #define CTX_PURE_P(ctx) (((pl_ctx_t *) (ctx))->pure_p)
 
-static gc_table_t purify_table;
-
 static void purify (SCHEME_OBJECT, bool);
-static void purify_loop (SCHEME_OBJECT *, SCHEME_OBJECT **, bool);
+static void purify_loop
+  (SCHEME_OBJECT *, bool,
+   SCHEME_OBJECT **, SCHEME_OBJECT **,
+   SCHEME_OBJECT *, SCHEME_OBJECT *);
+static gc_table_t * purify_table (void);
 static gc_handler_t handle_linkage_section;
 static gc_handler_t handle_manifest_closure;
 static gc_handler_t handle_reference_trap;
@@ -125,8 +127,7 @@ system.")
 
   canonicalize_primitive_context ();
 
-  if (STACK_OVERFLOWED_P ())
-    stack_death ("PURIFY");
+  STACK_CHECK_FATAL ("PURIFY");
 
   /* Purify only works from the high heap.  If in the low heap, tell
      the runtime system.  */
@@ -166,15 +167,19 @@ system.")
 static void
 purify (SCHEME_OBJECT object, bool pure_p)
 {
+  SCHEME_OBJECT * from_start;
+  SCHEME_OBJECT * from_end;
   SCHEME_OBJECT * start_copy;
   SCHEME_OBJECT * start_pure;
   unsigned long pure_length;
   unsigned long total_length;
 
-  if (STACK_OVERFLOWED_P ())
-    stack_death ("PURIFY");
+  STACK_CHECK_FATAL ("PURIFY");
 
   constant_end = constant_alloc_next;
+
+  from_start = active_heap_start;
+  from_end = Free;
 
   start_copy = constant_alloc_next;
   (*constant_alloc_next++) = SHARP_F;
@@ -183,7 +188,9 @@ purify (SCHEME_OBJECT object, bool pure_p)
   (*constant_alloc_next++) = object;
 
   if (pure_p)
-    purify_loop (start_pure, (&constant_alloc_next), true);
+    purify_loop (start_pure, true,
+		 (&constant_alloc_next), (&active_heap_start),
+		 from_start, from_end);
 
   pure_length = ((constant_alloc_next + 2) - start_pure);
   (*start_copy) = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, pure_length));
@@ -193,11 +200,15 @@ purify (SCHEME_OBJECT object, bool pure_p)
   constant_end = constant_alloc_next;
 
   if (pure_p)
-    purify_loop (start_pure, (&constant_alloc_next), false);
+    purify_loop (start_pure, false,
+		 (&constant_alloc_next), (&active_heap_start),
+		 from_start, from_end);
   else
     {
       initialize_weak_chain ();
-      gc_loop (start_copy, (&constant_alloc_next), (&constant_alloc_next));
+      std_gc_loop (start_copy, (&constant_alloc_next),
+		   (&constant_alloc_next), (&active_heap_start),
+		   from_start, from_end);
       update_weak_pointers ();
     }
 
@@ -206,47 +217,58 @@ purify (SCHEME_OBJECT object, bool pure_p)
   (*constant_alloc_next++) = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1));
   (*constant_alloc_next++) = (MAKE_OBJECT (END_OF_BLOCK, total_length));
 
-  PRESERVE_OLD_SPACE_LIMITS ();
   if (!update_allocator_parameters (0))
     gc_death (TERM_NO_SPACE, 0, 0, "object too large");
 
   RESET_HEAP_ALLOC_LIMIT ();
-  garbage_collect ();
+  garbage_collect (from_start, from_end);
 }
 
 static void
-purify_loop (SCHEME_OBJECT * scan, SCHEME_OBJECT ** pto, bool pure_p)
+purify_loop (SCHEME_OBJECT * scan, bool pure_p,
+	     SCHEME_OBJECT ** pto, SCHEME_OBJECT ** pto_end,
+	     SCHEME_OBJECT * from_start, SCHEME_OBJECT * from_end)
 {
-  static bool initialized_p = false;
   pl_ctx_t ctx0;
   gc_ctx_t * ctx = ((gc_ctx_t *) (&ctx0));
 
+  (GCTX_TABLE (ctx)) = (purify_table ());
+  (GCTX_PTO (ctx)) = pto;
+  (GCTX_PTO_END (ctx)) = pto_end;
+  (GCTX_FROM_START (ctx)) = from_start;
+  (GCTX_FROM_END (ctx)) = from_end;
+  (CTX_PURE_P (ctx)) = pure_p;
+  run_gc_loop (scan, pto, ctx);
+}
+
+static gc_table_t *
+purify_table (void)
+{
+  static gc_table_t table;
+  static bool initialized_p = false;
+
   if (!initialized_p)
     {
-      initialize_gc_table ((&purify_table),
+      initialize_gc_table ((&table),
 			   purify_tuple,
 			   purify_vector,
 			   purify_cc_entry,
 			   purify_weak_pair,
 			   precheck_from);
 
-      (GCT_ENTRY ((&purify_table), TC_LINKAGE_SECTION))
+      (GCT_ENTRY ((&table), TC_LINKAGE_SECTION))
 	= handle_linkage_section;
-      (GCT_ENTRY ((&purify_table), TC_MANIFEST_CLOSURE))
+      (GCT_ENTRY ((&table), TC_MANIFEST_CLOSURE))
 	= handle_manifest_closure;
-      (GCT_ENTRY ((&purify_table), TC_REFERENCE_TRAP)) = handle_reference_trap;
-      (GCT_ENTRY ((&purify_table), TC_INTERNED_SYMBOL)) = handle_symbol;
-      (GCT_ENTRY ((&purify_table), TC_UNINTERNED_SYMBOL)) = handle_symbol;
-      (GCT_ENTRY ((&purify_table), TC_COMPILED_ENTRY)) = handle_cc_entry;
-      (GCT_ENTRY ((&purify_table), TC_COMPILED_CODE_BLOCK)) = handle_cc_block;
-      (GCT_ENTRY ((&purify_table), TC_ENVIRONMENT)) = handle_environment;
+      (GCT_ENTRY ((&table), TC_REFERENCE_TRAP)) = handle_reference_trap;
+      (GCT_ENTRY ((&table), TC_INTERNED_SYMBOL)) = handle_symbol;
+      (GCT_ENTRY ((&table), TC_UNINTERNED_SYMBOL)) = handle_symbol;
+      (GCT_ENTRY ((&table), TC_COMPILED_ENTRY)) = handle_cc_entry;
+      (GCT_ENTRY ((&table), TC_COMPILED_CODE_BLOCK)) = handle_cc_block;
+      (GCT_ENTRY ((&table), TC_ENVIRONMENT)) = handle_environment;
       initialized_p = true;
     }
-
-  (GCTX_TABLE (ctx)) = (&purify_table);
-  (GCTX_PTO (ctx)) = pto;
-  (CTX_PURE_P (ctx)) = pure_p;
-  run_gc_loop (scan, pto, ctx);
+  return (&table);
 }
 
 static
@@ -356,8 +378,7 @@ DEFINE_GC_OBJECT_HANDLER (purify_cc_entry)
       (OBJECT_ADDRESS (purify_vector (old_block, true, ctx))),
       (OBJECT_ADDRESS (old_block))));
 #else
-  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	    "No native-code support.");
+  gc_no_cc_support (ctx);
   return (object);
 #endif
 }

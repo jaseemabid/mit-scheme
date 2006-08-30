@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.6 2006/08/29 19:40:25 cph Exp $
+$Id: fasdump.c,v 9.68.2.7 2006/08/30 02:59:53 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -69,7 +69,7 @@ static gc_handler_t handle_variable;
 static gc_handler_t handle_environment;
 
 static long fasdump_loop
-  (env_mode_t, prim_renumber_t *, bool *,
+  (env_mode_t, prim_renumber_t *, bool *, SCHEME_OBJECT **,
    SCHEME_OBJECT **, SCHEME_OBJECT **, SCHEME_OBJECT *);
 
 static gc_tuple_handler_t fasdump_tuple;
@@ -145,6 +145,7 @@ at by compiled code are ignored (and discarded).")
 			(&cc_seen_p),
 			(&to),
 			(&fix),
+			(&fix),
 			(FASLHDR_ROOT_POINTER (&h))));
   if (code != PRIM_DONE)
     {
@@ -196,15 +197,15 @@ at by compiled code are ignored (and discarded).")
     }
 }
 
-/* Copy of gc_loop, except (a) copies out of constant space into the
+/* Copy of std_gc_loop, except (a) copies out of constant space into the
    object to be dumped; (b) changes symbols and variables as
    described; (c) keeps track of broken hearts and their original
    contents.  */
 
 static long
 fasdump_loop (env_mode_t mode, prim_renumber_t * pr, bool * cc_seen_p,
-	      SCHEME_OBJECT ** pto, SCHEME_OBJECT ** pfix,
-	      SCHEME_OBJECT * scan)
+	      SCHEME_OBJECT ** pto, SCHEME_OBJECT ** pto_end,
+	      SCHEME_OBJECT ** pfix, SCHEME_OBJECT * scan)
 {
   static bool initialized_p = false;
   fd_ctx_t ctx0;
@@ -234,6 +235,7 @@ fasdump_loop (env_mode_t mode, prim_renumber_t * pr, bool * cc_seen_p,
 
   (GCTX_TABLE (ctx)) = (&fasdump_table);
   (GCTX_PTO (ctx)) = pto;
+  (GCTX_PTO_END (ctx)) = pto_end;
   (CTX_PFIX (ctx)) = pfix;
   (CTX_MODE (ctx)) = mode;
   (CTX_PR (ctx)) = pr;

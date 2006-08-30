@@ -1,10 +1,11 @@
 /* -*-C-*-
 
-$Id: boot.c,v 9.118.2.2 2005/08/23 02:55:00 cph Exp $
+$Id: boot.c,v 9.118.2.3 2006/08/30 02:59:43 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
 Copyright 2000,2001,2002,2003,2004,2005 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -28,7 +29,6 @@ USA.
 /* This file contains `main' and associated startup code. */
 
 #include "scheme.h"
-#include "gccode.h"
 #include "prims.h"
 #include "option.h"
 #include "ostop.h"
@@ -365,48 +365,6 @@ Re_Enter_Interpreter (void)
 {
   Interpret ();
   return (GET_VAL);
-}
-
-/* Garbage collection debugging utilities. */
-
-SCHEME_OBJECT * deadly_free;
-SCHEME_OBJECT * deadly_scan;
-unsigned long gc_counter = 0;
-
-void
-gc_death (long code, SCHEME_OBJECT * scan, SCHEME_OBJECT ** pfree,
-	  const char * format, ...)
-{
-  va_list ap;
-
-  outf_fatal ("\n");
-  va_start (ap, format);
-  voutf_fatal (format, ap);
-  va_end (ap);
-  outf_fatal ("\n");
-  if (scan != 0)
-    {
-      outf_fatal ("scan = 0x%lx", ((unsigned long) scan));
-      if (pfree != 0)
-	outf_fatal ("; free = 0x%lx", ((unsigned long) (*pfree)));
-      outf_fatal ("\n");
-    }
-
-  deadly_scan = scan;
-  deadly_free = ((pfree == 0) ? 0 : (*pfree));
-  Microcode_Termination (code);
-  /*NOTREACHED*/
-}
-
-void
-stack_death (const char * name)
-{
-  outf_fatal
-    ("\n%s: The stack has overflowed and overwritten adjacent memory.\n",
-     name);
-  outf_fatal ("This was probably caused by a runaway recursion.\n");
-  Microcode_Termination (TERM_STACK_OVERFLOW);
-  /*NOTREACHED*/
 }
 
 /* Utility primitives. */

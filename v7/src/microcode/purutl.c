@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purutl.c,v 9.54.2.4 2006/08/29 04:44:32 cph Exp $
+$Id: purutl.c,v 9.54.2.5 2006/08/30 03:00:18 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1996,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -239,8 +239,7 @@ DEFINE_GC_OBJECT_HANDLER (update_cc_entry)
 			    (CTX_OLD_START (ctx))))
      : object);
 #else
-  gc_death (TERM_EXIT, (GCTX_SCAN (ctx)), (GCTX_PTO (ctx)),
-	    "No native-code support.");
+  gc_no_cc_support (ctx);
   return (object);
 #endif
 }
