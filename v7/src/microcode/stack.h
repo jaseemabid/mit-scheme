@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: stack.h,v 9.44.2.3 2006/08/30 03:00:23 cph Exp $
+$Id: stack.h,v 9.44.2.4 2006/09/03 00:56:08 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,2002,2005,2006 Massachusetts Institute of Technology
@@ -73,6 +73,7 @@ USA.
 #define STACK_LOCATIVE_OFFSET(locative, offset) ((locative) + (offset))
 #define STACK_LOCATIVE_REFERENCE(locative, offset) ((locative) [(offset)])
 #define STACK_LOCATIVE_DIFFERENCE(newer, older) ((older) - (newer))
+#define STACK_LOCATIVE_LESS_P(loc1, loc2) ((loc1) < (loc2))
 
 #define ADDRESS_IN_STACK_REGION_P(address, lower_limit, upper_limit)	\
   (((address) >= (lower_limit)) && ((address) < (upper_limit)))

@@ -1,9 +1,10 @@
 /* -*-C-*-
 
-$Id: interp.h,v 9.50.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: interp.h,v 9.50.2.3 2006/09/03 00:56:02 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,2000,2002,2005 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -83,7 +84,7 @@ USA.
   Will_Push_Limit = (STACK_LOC (- (N)))
 
 #define Pushed()							\
-  if (stack_pointer < Will_Push_Limit)					\
+  if (STACK_LOCATIVE_LESS_P (stack_pointer, Will_Push_Limit))		\
     {									\
       Stack_Death ();							\
     }									\
