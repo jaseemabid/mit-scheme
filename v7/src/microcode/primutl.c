@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: primutl.c,v 9.80.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: primutl.c,v 9.80.2.3 2006/09/05 03:09:52 cph Exp $
 
 Copyright 1993,2000,2001,2004,2005 Massachusetts Institute of Technology
 
@@ -472,15 +472,10 @@ make_table_entry (unsigned long code, SCHEME_OBJECT * start)
   unsigned long n_words = (STRING_LENGTH_TO_GC_LENGTH (n_chars));
 
   (*start++) = (LONG_TO_FIXNUM (Primitive_Arity_Table[code]));
-  {
-    SCHEME_OBJECT target = (allocate_vector (TC_CHARACTER_STRING,
-					     TC_MANIFEST_NM_VECTOR,
-					     n_words,
-					     (&start)));
-    SET_STRING_LENGTH (target, n_chars);
-    memcpy ((STRING_POINTER (target)), source, n_chars);
-  }
-  return (start);
+  (*start++) = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, n_words));
+  (*start) = (MAKE_OBJECT (0, n_chars));
+  memcpy ((start + 1), source, (n_chars + 1));
+  return (start + n_words);
 }
 
 static unsigned long
