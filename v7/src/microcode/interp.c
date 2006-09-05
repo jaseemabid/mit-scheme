@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: interp.c,v 9.102.2.5 2006/08/29 04:44:32 cph Exp $
+$Id: interp.c,v 9.102.2.6 2006/09/05 19:17:21 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,2000,2001,2002,2003,2004 Massachusetts Institute of Technology
@@ -512,7 +512,6 @@ Interpret (void)
       break;
 
     case TC_MANIFEST_NM_VECTOR:
-    case TC_MANIFEST_SPECIAL_NM_VECTOR:
       EVAL_ERROR (ERR_EXECUTE_MANIFEST_VECTOR);
 
     case TC_PCOMB0:

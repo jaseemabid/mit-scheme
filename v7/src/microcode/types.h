@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: types.h,v 9.40.2.4 2006/08/30 05:17:31 cph Exp $
+$Id: types.h,v 9.40.2.5 2006/09/05 19:17:23 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1997,2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -69,7 +69,7 @@ USA.
 #define TC_COMPILED_ENTRY		0x28
 #define TC_LEXPR			0x29
 #define TC_PCOMB3  			0x2A
-#define TC_MANIFEST_SPECIAL_NM_VECTOR	0x2B
+/* #define TC_UNUSED			0x2B */
 #define TC_VARIABLE			0x2C
 #define TC_THE_ENVIRONMENT		0x2D
 /* #define TC_UNUSED			0x2E */
@@ -147,7 +147,7 @@ USA.
   /* 0x28 */			"COMPILED-ENTRY",			\
   /* 0x29 */			"LEXPR",				\
   /* 0x2A */  			"PCOMB3",				\
-  /* 0x2B */			"MANIFEST-SPECIAL-NM-VECTOR",		\
+  /* 0x2B */			0,					\
   /* 0x2C */			"VARIABLE",				\
   /* 0x2D */			"THE-ENVIRONMENT",			\
   /* 0x2E */			0,					\

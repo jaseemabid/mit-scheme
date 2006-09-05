@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.11 2006/09/05 19:10:17 cph Exp $
+$Id: fasload.c,v 9.96.2.12 2006/09/05 19:17:17 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -482,8 +482,6 @@ relocate_block_table (void)
       (GCT_ENTRY ((&table), TC_PRIMITIVE)) = handle_primitive;
       (GCT_ENTRY ((&table), TC_PCOMB0)) = handle_primitive;
       (GCT_ENTRY ((&table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
-      (GCT_ENTRY ((&table), TC_MANIFEST_SPECIAL_NM_VECTOR))
-	= gc_handle_non_pointer;
 
       initialized_p = true;
     }
@@ -602,8 +600,6 @@ intern_block_table (void)
 
       (GCT_ENTRY ((&table), TC_INTERNED_SYMBOL)) = intern_handle_symbol;
       (GCT_ENTRY ((&table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
-      (GCT_ENTRY ((&table), TC_MANIFEST_SPECIAL_NM_VECTOR))
-	= gc_handle_non_pointer;
 
       initialized_p = true;
     }

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.12 2006/09/05 03:14:57 cph Exp $
+$Id: gcloop.c,v 9.51.2.13 2006/09/05 19:17:19 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -327,7 +327,6 @@ initialize_gc_table (gc_table_t * table, bool transport_p)
 	    SIMPLE_HANDLER (gc_handle_manifest_closure);
 
 	  case TC_MANIFEST_NM_VECTOR:
-	  case TC_MANIFEST_SPECIAL_NM_VECTOR:
 	    SIMPLE_HANDLER (gc_handle_nmv);
 
 	  default:
@@ -1019,7 +1018,7 @@ gc_type_t gc_type_map [N_TYPE_CODES] =
   GC_COMPILED,			/* TC_COMPILED_ENTRY */
   GC_PAIR,			/* TC_LEXPR */
   GC_VECTOR,			/* TC_PCOMB3 */
-  GC_SPECIAL,			/* TC_MANIFEST_SPECIAL_NM_VECTOR */
+  GC_UNDEFINED,			/* 0x2B */
   GC_TRIPLE,			/* TC_VARIABLE */
   GC_NON_POINTER,		/* TC_THE_ENVIRONMENT */
   GC_UNDEFINED,			/* 0x2E */

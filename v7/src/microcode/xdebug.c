@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: xdebug.c,v 9.37.2.3 2006/09/05 03:16:28 cph Exp $
+$Id: xdebug.c,v 9.37.2.4 2006/09/05 19:17:27 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
-Copyright 1993,2000,2002,2005 Massachusetts Institute of Technology
+Copyright 1993,2000,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -205,15 +205,6 @@ Print_Memory (SCHEME_OBJECT * Where, long How_Many)
 }
 
 /* Primitives to give scheme a handle on utilities from DEBUG.C */
-
-DEFINE_PRIMITIVE ("DEBUG-SHOW-PURE", Prim_debug_show_pure, 0, 0, 0)
-{
-  PRIMITIVE_HEADER (0);
-
-  outf_console ("\n*** Constant & Pure Space: ***\n");
-  Show_Pure ();
-  PRIMITIVE_RETURN (UNSPECIFIC);
-}
 
 DEFINE_PRIMITIVE ("DEBUG-SHOW-ENV", Prim_debug_show_env, 1, 1, 0)
 {

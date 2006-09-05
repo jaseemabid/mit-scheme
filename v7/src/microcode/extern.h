@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.5 2006/09/05 19:10:15 cph Exp $
+$Id: extern.h,v 9.65.2.6 2006/09/05 19:17:15 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -331,7 +331,6 @@ extern void Back_Trace (outf_channel);
 extern void Debug_Stack_Trace (void);
 extern void Debug_Print (SCHEME_OBJECT, bool);
 extern void Show_Env (SCHEME_OBJECT);
-extern void Show_Pure (void);
 extern void Print_Return (char *);
 extern void Print_Expression (SCHEME_OBJECT, char *);
 extern void Print_Primitive (SCHEME_OBJECT);

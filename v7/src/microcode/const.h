@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: const.h,v 9.52.2.3 2006/08/30 05:17:31 cph Exp $
+$Id: const.h,v 9.52.2.4 2006/09/05 19:17:11 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1997,2000,2002,2004 Massachusetts Institute of Technology
@@ -56,11 +56,6 @@ USA.
 #define MAX_LIST_PRINT 10
 
 #define ILLEGAL_PRIMITIVE -1
-
-/* For headers in pure / constant area */
-#define END_OF_BLOCK	TC_FIXNUM
-#define CONSTANT_PART	TC_CONSTANT
-#define PURE_PART	TC_FALSE
 
 /* Primitive flow control codes: directs computation after processing
    a primitive application.  */

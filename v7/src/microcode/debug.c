@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: debug.c,v 9.58.2.4 2006/08/29 04:44:31 cph Exp $
+$Id: debug.c,v 9.58.2.5 2006/09/05 19:17:13 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -36,8 +36,6 @@ USA.
    static SCHEME_OBJECT compiled_entry_debug_filename (SCHEME_OBJECT);
    static SCHEME_OBJECT compiled_block_debug_filename (SCHEME_OBJECT);
 #endif
-
-static SCHEME_OBJECT * check_for_block_start (SCHEME_OBJECT *);
 
 static void do_printing (outf_channel, SCHEME_OBJECT, bool);
 static bool print_primitive_name (outf_channel, SCHEME_OBJECT);
@@ -85,80 +83,6 @@ compiled_block_debug_filename (SCHEME_OBJECT block)
 }
 
 #endif /* CC_SUPPORT_P */
-
-void
-Show_Pure (void)
-{
-  SCHEME_OBJECT *Obj_Address;
-  long Pure_Size, Total_Size;
-
-  Obj_Address = constant_start;
-  while (true)
-  {
-    if (Obj_Address > constant_alloc_next)
-    {
-      outf_error ("Past end of area.\n");
-      return;
-    }
-    if (Obj_Address == constant_alloc_next)
-    {
-      outf_error ("Done.\n");
-      return;
-    }
-    Pure_Size = OBJECT_DATUM (*Obj_Address);
-    Total_Size = OBJECT_DATUM (Obj_Address[1]);
-    outf_error ("0x%lx: pure=0x%lx, total=0x%lx\n",
-		((long) Obj_Address), ((long) Pure_Size), ((long) Total_Size));
-    if (OBJECT_TYPE (*Obj_Address) != TC_MANIFEST_SPECIAL_NM_VECTOR)
-    {
-      outf_error ("Missing initial SNMV.\n");
-      return;
-    }
-    if (OBJECT_TYPE (Obj_Address[1]) != PURE_PART)
-    {
-      outf_error ("Missing subsequent pure header.\n");
-    }
-    if (OBJECT_TYPE (Obj_Address[Pure_Size-1]) !=
-        TC_MANIFEST_SPECIAL_NM_VECTOR)
-    {
-      outf_error ("Missing internal SNMV.\n");
-      return;
-    }
-    if (OBJECT_TYPE (Obj_Address[Pure_Size]) != CONSTANT_PART)
-    {
-      outf_error ("Missing constant header.\n");
-      return;
-    }
-    if (((long) (OBJECT_DATUM (Obj_Address[Pure_Size]))) != Pure_Size)
-    {
-      outf_error ("Pure size mismatch 0x%lx.\n",
-	      ((long) (OBJECT_DATUM (Obj_Address[Pure_Size]))));
-    }
-    if (OBJECT_TYPE (Obj_Address[Total_Size-1]) !=
-        TC_MANIFEST_SPECIAL_NM_VECTOR)
-    {
-      outf_error ("Missing ending SNMV.\n");
-      return;
-    }
-    if (OBJECT_TYPE (Obj_Address[Total_Size]) != END_OF_BLOCK)
-    {
-      outf_error ("Missing ending header.\n");
-      return;
-    }
-    if (((long) (OBJECT_DATUM (Obj_Address[Total_Size]))) != Total_Size)
-    {
-      outf_error ("Total size mismatch 0x%lx.\n",
-	      ((long) (OBJECT_DATUM (Obj_Address[Total_Size]))));
-    }
-    Obj_Address += Total_Size+1;
-#ifdef FLOATING_ALIGNMENT
-    while (*Obj_Address == MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, 0))
-    {
-      Obj_Address += 1;
-    }
-#endif
-  }
-}
 
 void
 Show_Env (SCHEME_OBJECT The_Env)
@@ -796,67 +720,6 @@ extern void
 Debug_Stack_Trace(void)
 {
   print_stack(STACK_LOC(0));
-}
-
-void
-print_constant_structure (void)
-{
-  SCHEME_OBJECT * scan = constant_start;
-  bool synchronized = true;
-  while (scan < constant_alloc_next)
-    {
-      SCHEME_OBJECT * end = (check_for_block_start (scan));
-      if (end != 0)
-	{
-	  outf_error ("Block: start=%#08lx end=%#08lx len=%#08x\n",
-		      ((unsigned long) scan),
-		      ((unsigned long) end),
-		      (end - scan));
-	  scan = end;
-	  synchronized = true;
-	}
-      else
-	{
-	  if (synchronized)
-	    {
-	      outf_error ("Invalid block: start=%#lx\n",
-			  ((unsigned long) scan));
-	      synchronized = false;
-	    }
-	  scan += 1;
-	}
-    }
-  outf_error ("Done: scan=%#08lx\n", ((unsigned long) scan));
-  outf_flush_error ();
-}
-
-static SCHEME_OBJECT *
-check_for_block_start (SCHEME_OBJECT * scan)
-{
-  if (! (((scan + 5) <= constant_alloc_next)
-	 && ((OBJECT_TYPE (scan[0])) == TC_MANIFEST_SPECIAL_NM_VECTOR)
-	 && ((OBJECT_DATUM (scan[0])) != 2)
-	 && ((OBJECT_TYPE (scan[1])) == TC_NULL)))
-    return (0);
-
-  {
-    unsigned long n = (OBJECT_DATUM (scan[0]));
-    unsigned long m = (OBJECT_DATUM (scan[1]));
-    return
-      (((m >= ((n == 1) ? 5 : (n + 2)))
-	&& ((scan + 1 + m) <= constant_alloc_next)
-	&& ((n == 1)
-	    || (((OBJECT_TYPE (scan[n - 1])) == TC_MANIFEST_SPECIAL_NM_VECTOR)
-		&& ((OBJECT_DATUM (scan[n - 1])) == 1)
-		&& ((OBJECT_TYPE (scan[n])) == TC_CONSTANT)
-		&& ((OBJECT_DATUM (scan[n])) == n)))
-	&& ((OBJECT_TYPE (scan[m - 1])) == TC_MANIFEST_SPECIAL_NM_VECTOR)
-	&& ((OBJECT_DATUM (scan[m - 1])) == 1)
-	&& ((OBJECT_TYPE (scan[m])) == TC_FIXNUM)
-	&& ((OBJECT_DATUM (scan[m])) == m))
-       ? (scan + 1 + m)
-       : 0);
-  }
 }
 
 static bool
