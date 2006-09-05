@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.10 2006/09/05 03:14:44 cph Exp $
+$Id: fasload.c,v 9.96.2.11 2006/09/05 19:10:17 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -110,7 +110,7 @@ that was dumped.")
   transaction_begin ();
 
   init_fasl_file ((STRING_ARG (1)), false, (&handle));
-  if ((constant_alloc_next + (FASLHDR_CONSTANT_SIZE (fh))) > constant_end)
+  if ((FASLHDR_CONSTANT_SIZE (fh)) > 0)
     signal_error_from_primitive (ERR_FASL_FILE_TOO_BIG);
 
   heap_length = (REQUIRED_HEAP (fh));

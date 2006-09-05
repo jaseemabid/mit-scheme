@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: vector.c,v 9.42.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: vector.c,v 9.42.2.3 2006/09/05 19:10:37 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
-Copyright 1996,1997,2004,2005 Massachusetts Institute of Technology
+Copyright 1996,1997,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -198,7 +198,6 @@ DEFINE_PRIMITIVE ("SYSTEM-VECTOR-REF", Prim_sys_vector_ref, 2, 2, 0)
   vector = (arg_type (1));						\
   {									\
     SCHEME_OBJECT new_value = (ARG_REF (3));				\
-    SIDE_EFFECT_IMPURIFY (vector, new_value);				\
     VECTOR_SET (vector, (ARG_VECTOR_INDEX (2, vector)), new_value);	\
   }									\
   PRIMITIVE_RETURN (UNSPECIFIC);					\
@@ -322,9 +321,7 @@ DEFINE_PRIMITIVE ("SYSTEM-LIST-TO-VECTOR", Prim_sys_list_to_vector, 2, 2, 0)
   length = (end1 - start1);						\
   end2 = (start2 + length);						\
   if (end2 > ((long) (VECTOR_LENGTH (vector2))))			\
-    error_bad_range_arg (5);						\
-  if (PURE_ADDRESS_P (OBJECT_ADDRESS (vector2)))			\
-    signal_error_from_primitive (ERR_WRITE_INTO_PURE_SPACE)
+    error_bad_range_arg (5);
 
 DEFINE_PRIMITIVE ("SUBVECTOR-MOVE-RIGHT!", Prim_subvector_move_right, 5, 5, 0)
 {
@@ -363,7 +360,6 @@ DEFINE_PRIMITIVE ("SUBVECTOR-FILL!", Prim_vector_fill, 4, 4, 0)
   if (start > end)
     error_bad_range_arg (2);
   length = (end - start);
-  SIDE_EFFECT_IMPURIFY (vector, fill_value);
   scan = (VECTOR_LOC (vector, start));
   while ((length--) > 0)
     (*scan++) = fill_value;

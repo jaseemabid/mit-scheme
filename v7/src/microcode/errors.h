@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: errors.h,v 9.46.2.4 2006/09/05 03:14:14 cph Exp $
+$Id: errors.h,v 9.46.2.5 2006/09/05 19:10:13 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1993,2001,2005,2006 Massachusetts Institute of Technology
@@ -59,7 +59,7 @@ USA.
 #define ERR_FASL_FILE_TOO_BIG			0x17
 #define ERR_FASL_FILE_BAD_DATA			0x18
 /* #define ERR_IMPURIFY_OUT_OF_SPACE		0x19 */
-#define ERR_WRITE_INTO_PURE_SPACE		0x1A
+/* #define ERR_WRITE_INTO_PURE_SPACE		0x1A */
 /* #define ERR_LOSING_SPARE_HEAP		0x1B */
 /* #define ERR_NO_HASH_TABLE			0x1C */
 #define ERR_BAD_SET                             0x1D

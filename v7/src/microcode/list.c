@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: list.c,v 9.35.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: list.c,v 9.35.2.3 2006/09/05 19:10:21 cph Exp $
 
 Copyright 1986,1987,1988,1989,1992,1993 Massachusetts Institute of Technology
-Copyright 2004,2005 Massachusetts Institute of Technology
+Copyright 2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -94,7 +94,6 @@ DEFINE_PRIMITIVE ("SET-CAR!", Prim_set_car, 2, 2,
   {
     SCHEME_OBJECT pair = (ARG_REF (1));
     SCHEME_OBJECT car = (ARG_REF (2));
-    SIDE_EFFECT_IMPURIFY (pair, car);
     SET_PAIR_CAR (pair, car);
   }
   PRIMITIVE_RETURN (UNSPECIFIC);
@@ -111,7 +110,6 @@ DEFINE_PRIMITIVE ("SET-CDR!", Prim_set_cdr, 2, 2,
   {
     SCHEME_OBJECT pair = (ARG_REF (1));
     SCHEME_OBJECT cdr = (ARG_REF (2));
-    SIDE_EFFECT_IMPURIFY (pair, cdr);
     SET_PAIR_CDR (pair, cdr);
   }
   PRIMITIVE_RETURN (UNSPECIFIC);
@@ -332,7 +330,6 @@ DEFINE_PRIMITIVE ("SYSTEM-PAIR-SET-CAR!", Prim_sys_set_car, 2, 2, 0)
   {
     SCHEME_OBJECT pair = (ARG_REF (1));
     SCHEME_OBJECT car = (ARG_REF (2));
-    SIDE_EFFECT_IMPURIFY (pair, car);
     SET_PAIR_CAR (pair, car);
   }
   PRIMITIVE_RETURN (UNSPECIFIC);
@@ -345,7 +342,6 @@ DEFINE_PRIMITIVE ("SYSTEM-PAIR-SET-CDR!", Prim_sys_set_cdr, 2, 2, 0)
   {
     SCHEME_OBJECT pair = (ARG_REF (1));
     SCHEME_OBJECT cdr = (ARG_REF (2));
-    SIDE_EFFECT_IMPURIFY (pair, cdr);
     SET_PAIR_CDR (pair, cdr);
   }
   PRIMITIVE_RETURN (UNSPECIFIC);

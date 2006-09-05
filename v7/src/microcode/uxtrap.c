@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtrap.c,v 1.41.2.4 2006/09/05 03:16:22 cph Exp $
+$Id: uxtrap.c,v 1.41.2.5 2006/09/05 19:10:35 cph Exp $
 
 Copyright 1990,1991,1992,1993,1995,1997 Massachusetts Institute of Technology
 Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
@@ -97,6 +97,7 @@ static void continue_from_trap
    static SCHEME_OBJECT * find_heap_address (unsigned long);
    static SCHEME_OBJECT * find_constant_address (unsigned long);
 #  ifdef ENABLE_TRAP_RECOVERY
+     static SCHEME_OBJECT * find_block_address (unsigned long, SCHEME_OBJECT *);
      static SCHEME_OBJECT * find_block_address_in_area
        (SCHEME_OBJECT *, SCHEME_OBJECT *);
 #  endif
@@ -441,8 +442,20 @@ continue_from_trap (int signo, SIGINFO_T info, SIGCONTEXT_T * scp)
 static SCHEME_OBJECT *
 find_heap_address (unsigned long pc)
 {
+  return (find_block_address (pc, heap_start));
+}
+
+static SCHEME_OBJECT *
+find_constant_address (unsigned long pc)
+{
+  return (find_block_address (pc, constant_start));
+}
+
+static SCHEME_OBJECT *
+find_block_address (unsigned long pc, SCHEME_OBJECT * area_start)
+{
   SCHEME_OBJECT * pcp = ((SCHEME_OBJECT *) (pc &~ SCHEME_ALIGNMENT_MASK));
-  unsigned long maximum_distance = (pcp - heap_start);
+  unsigned long maximum_distance = (pcp - area_start);
   unsigned long distance = maximum_distance;
 
   while ((distance / 2) > MINIMUM_SCAN_RANGE)
@@ -455,17 +468,6 @@ find_heap_address (unsigned long pc)
       if ((block != 0) || (distance >= maximum_distance))
 	return (block);
     }
-}
-
-static SCHEME_OBJECT *
-find_constant_address (unsigned long pc)
-{
-  SCHEME_OBJECT * pcp = ((SCHEME_OBJECT *) (pc &~ SCHEME_ALIGNMENT_MASK));
-  SCHEME_OBJECT * constant_block = (find_constant_space_block (pcp));
-  return
-    ((constant_block != 0)
-     ? (find_block_address_in_area (pcp, constant_block))
-     : 0);
 }
 
 /* Find the compiled code block in area that contains `pc_value',

@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: os2xcpt.c,v 1.15.2.3 2006/09/05 03:15:33 cph Exp $
+$Id: os2xcpt.c,v 1.15.2.4 2006/09/05 19:10:27 cph Exp $
 
 Copyright 1994,1995,2000,2001,2002,2005 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -604,34 +605,21 @@ interpreter_free (int force_gc)
 static SCHEME_OBJECT *
 find_block_address (char * pc_value, SCHEME_OBJECT * area_start)
 {
-  if (area_start == constant_start)
-    {
-      SCHEME_OBJECT * constant_block =
-	(find_constant_space_block
-	 ((SCHEME_OBJECT *)
-	  (((unsigned long) pc_value) &~ SCHEME_ALIGNMENT_MASK)));
-      return
-	((constant_block == 0)
-	 ? 0
-	 : (find_block_address_in_area (pc_value, constant_block)));
-    }
-  {
-    SCHEME_OBJECT * nearest_word =
-      ((SCHEME_OBJECT *)
+  SCHEME_OBJECT * nearest_word
+    = ((SCHEME_OBJECT *)
        (((unsigned long) pc_value) &~ SCHEME_ALIGNMENT_MASK));
-    long maximum_distance = (nearest_word - area_start);
-    long distance = maximum_distance;
-    while ((distance / 2) > MINIMUM_SCAN_RANGE)
-      distance = (distance / 2);
-    while ((distance * 2) < maximum_distance)
-      {
-	SCHEME_OBJECT * block =
-	  (find_block_address_in_area (pc_value, (nearest_word - distance)));
-	if (block != 0)
-	  return (block);
-	distance *= 2;
-      }
-  }
+  long maximum_distance = (nearest_word - area_start);
+  long distance = maximum_distance;
+  while ((distance / 2) > MINIMUM_SCAN_RANGE)
+    distance = (distance / 2);
+  while ((distance * 2) < maximum_distance)
+    {
+      SCHEME_OBJECT * block
+	= (find_block_address_in_area (pc_value, (nearest_word - distance)));
+      if (block != 0)
+	return (block);
+      distance *= 2;
+    }
   return (find_block_address_in_area (pc_value, area_start));
 }
 

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.4 2006/09/05 03:14:20 cph Exp $
+$Id: extern.h,v 9.65.2.5 2006/09/05 19:10:15 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -270,13 +270,6 @@ extern void execute_reload_cleanups (void);
 
 /* Memory management utilities */
 extern bool object_in_constant_space_p (SCHEME_OBJECT);
-extern bool object_pure_p (SCHEME_OBJECT);
-extern bool pure_test (SCHEME_OBJECT *);
-extern SCHEME_OBJECT * find_constant_space_block (SCHEME_OBJECT *);
-extern SCHEME_OBJECT * constant_space_block_pure_start (SCHEME_OBJECT *);
-extern SCHEME_OBJECT * constant_space_block_pure_end (SCHEME_OBJECT *);
-extern SCHEME_OBJECT * constant_space_block_constant_start (SCHEME_OBJECT *);
-extern SCHEME_OBJECT * constant_space_block_constant_end (SCHEME_OBJECT *);
 extern SCHEME_OBJECT * copy_to_constant_space (SCHEME_OBJECT *, unsigned long);
 
 extern void setup_memory (unsigned long, unsigned long, unsigned long);

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: object.h,v 9.59.2.6 2006/09/05 03:15:27 cph Exp $
+$Id: object.h,v 9.59.2.7 2006/09/05 19:10:25 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
@@ -470,18 +470,8 @@ extern SCHEME_OBJECT * memory_base;
 #define BYTES_TO_WORDS(nbytes)						\
   (((nbytes) + ((sizeof (SCHEME_OBJECT)) - 1)) / (sizeof (SCHEME_OBJECT)))
 
-#define PURE_ADDRESS_P(address)						\
-  ((ADDRESS_IN_CONSTANT_P (address)) && (pure_test (address)))
-
 #define HEAP_ADDRESS_P(address)						\
   (((address) >= heap_start) && ((address) < Free))
-
-#define SIDE_EFFECT_IMPURIFY(container, contained) do			\
-{									\
-  if ((object_pure_p (container))					\
-      && (object_in_heap_p (contained)))				\
-    signal_error_from_primitive (ERR_WRITE_INTO_PURE_SPACE);		\
-} while (0)
 
 #ifndef FLOATING_ALIGNMENT
 #  define FLOATING_ALIGNMENT 0

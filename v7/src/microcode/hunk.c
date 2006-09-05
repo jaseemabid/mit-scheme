@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: hunk.c,v 9.31.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: hunk.c,v 9.31.2.3 2006/09/05 19:10:19 cph Exp $
 
 Copyright 1986,1987,1988,1989,1992,1993 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -62,7 +62,6 @@ DEFINE_PRIMITIVE ("HUNK3-SET-CXR!", Prim_hunk3_set_cxr, 3, 3, 0)
     SCHEME_OBJECT hunk3 = (ARG_REF (1));
     long index = (arg_index_integer (2, 3));
     SCHEME_OBJECT object = (ARG_REF (3));
-    SIDE_EFFECT_IMPURIFY (hunk3, object);
     MEMORY_SET (hunk3, index, object);
   }
   PRIMITIVE_RETURN (UNSPECIFIC);
@@ -97,7 +96,6 @@ DEFINE_PRIMITIVE ("SYSTEM-HUNK3-SET-CXR0!", Prim_sh3_set_0, 2, 2, 0)
   {
     SCHEME_OBJECT hunk3 = (ARG_GC_TRIPLE (1));
     SCHEME_OBJECT object = (ARG_REF (2));
-    SIDE_EFFECT_IMPURIFY (hunk3, object);
     MEMORY_SET (hunk3, 0, object);
   }
   PRIMITIVE_RETURN (UNSPECIFIC);
@@ -109,7 +107,6 @@ DEFINE_PRIMITIVE ("SYSTEM-HUNK3-SET-CXR1!", Prim_sh3_set_1, 2, 2, 0)
   {
     SCHEME_OBJECT hunk3 = (ARG_GC_TRIPLE (1));
     SCHEME_OBJECT object = (ARG_REF (2));
-    SIDE_EFFECT_IMPURIFY (hunk3, object);
     MEMORY_SET (hunk3, 1, object);
   }
   PRIMITIVE_RETURN (UNSPECIFIC);
@@ -121,7 +118,6 @@ DEFINE_PRIMITIVE ("SYSTEM-HUNK3-SET-CXR2!", Prim_sh3_set_2, 2, 2, 0)
   {
     SCHEME_OBJECT hunk3 = (ARG_GC_TRIPLE (1));
     SCHEME_OBJECT object = (ARG_REF (2));
-    SIDE_EFFECT_IMPURIFY (hunk3, object);
     MEMORY_SET (hunk3, 2, object);
   }
   PRIMITIVE_RETURN (UNSPECIFIC);

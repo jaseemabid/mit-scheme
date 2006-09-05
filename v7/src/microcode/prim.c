@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: prim.c,v 9.45.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: prim.c,v 9.45.2.3 2006/09/05 19:10:29 cph Exp $
 
 Copyright 1986,1987,1988,1989,1992,1993 Massachusetts Institute of Technology
-Copyright 1996,2004,2005 Massachusetts Institute of Technology
+Copyright 1996,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -290,7 +290,6 @@ DEFINE_PRIMITIVE ("SET-CELL-CONTENTS!", Prim_set_cell_contents, 2, 2, 0)
   PRIMITIVE_HEADER (2);
   cell = (CELL_ARG (1));
   object = (ARG_REF (2));
-  SIDE_EFFECT_IMPURIFY (cell, object);
   MEMORY_SET (cell, CELL_CONTENTS, object);
   PRIMITIVE_RETURN (UNSPECIFIC);
 }
