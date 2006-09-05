@@ -1,6 +1,6 @@
 /* -*- C -*-
 
-$Id: alpha.h,v 1.7.2.1 2005/08/22 18:06:01 cph Exp $
+$Id: alpha.h,v 1.7.2.2 2006/09/05 03:16:34 cph Exp $
 
 Copyright 1992,1993 Digital Equipment Corporation (D.E.C.)
 Copyright 2001,2002,2005 Massachusetts Institute of Technology
@@ -593,7 +593,7 @@ allocate_closure (long size, char *this_block)
     }
     else
     { if (GC_NEEDED_P (size))
-      { if ((active_heap_end - Free) < size)
+      { if ((heap_end - Free) < size)
 	{ /* No way to back out -- die. */
 	  fprintf (stderr, "\nC_allocate_closure (%d): No space.\n", size);
 	  Microcode_Termination (TERM_NO_SPACE);

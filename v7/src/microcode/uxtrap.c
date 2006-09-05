@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtrap.c,v 1.41.2.3 2006/08/29 04:44:32 cph Exp $
+$Id: uxtrap.c,v 1.41.2.4 2006/09/05 03:16:22 cph Exp $
 
 Copyright 1990,1991,1992,1993,1995,1997 Massachusetts Institute of Technology
 Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
@@ -165,7 +165,7 @@ soft_reset (void)
       (trinfo . pc_info_2) = SHARP_F;
       (trinfo . extra_trap_info) = SHARP_F;
     }
-  if (!ADDRESS_IN_ACTIVE_HEAP_P (Free))
+  if (!ADDRESS_IN_HEAP_P (Free))
     Free = heap_alloc_limit;	/* Let's hope this works. */
   setup_trap_frame (0, 0, 0, (&trinfo), new_stack_pointer);
 }
@@ -398,7 +398,7 @@ continue_from_trap (int signo, SIGINFO_T info, SIGCONTEXT_T * scp)
 
   /* Sanity-check Free.  */
   if ((new_sp != 0)
-      && (ADDRESS_IN_ACTIVE_HEAP_P (Free))
+      && (ADDRESS_IN_HEAP_P (Free))
       && (ALIGNED_P (Free)))
     {
       if (FREE_OK_P (Free))
@@ -442,7 +442,7 @@ static SCHEME_OBJECT *
 find_heap_address (unsigned long pc)
 {
   SCHEME_OBJECT * pcp = ((SCHEME_OBJECT *) (pc &~ SCHEME_ALIGNMENT_MASK));
-  unsigned long maximum_distance = (pcp - active_heap_start);
+  unsigned long maximum_distance = (pcp - heap_start);
   unsigned long distance = maximum_distance;
 
   while ((distance / 2) > MINIMUM_SCAN_RANGE)

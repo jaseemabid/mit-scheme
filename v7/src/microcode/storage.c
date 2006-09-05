@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: storage.c,v 9.60.2.4 2006/08/30 05:17:31 cph Exp $
+$Id: storage.c,v 9.60.2.5 2006/09/05 03:15:51 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,2000,2002,2005,2006 Massachusetts Institute of Technology
@@ -39,12 +39,8 @@ SCHEME_OBJECT * Free;
 SCHEME_OBJECT * heap_alloc_limit;
 
 /* limits of active heap */
-SCHEME_OBJECT * active_heap_start;
-SCHEME_OBJECT * active_heap_end;
-
-/* limits of inactive heap */
-SCHEME_OBJECT * inactive_heap_start;
-SCHEME_OBJECT * inactive_heap_end;
+SCHEME_OBJECT * heap_start;
+SCHEME_OBJECT * heap_end;
 
 /* pointer to most-recently pushed item */
 SCHEME_OBJECT * stack_pointer;
@@ -80,7 +76,7 @@ unsigned long n_stack_blocks;
 SCHEME_OBJECT * memory_block_start;
 SCHEME_OBJECT * memory_block_end;
 
-unsigned long active_heap_reserved;
+unsigned long heap_reserved;
 
 /* Amount of space needed when GC requested */
 unsigned long gc_space_needed;

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: mc68k.h,v 1.38.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: mc68k.h,v 1.38.2.3 2006/09/05 03:16:40 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,2005 Massachusetts Institute of Technology
 
@@ -643,7 +643,7 @@ allocate_closure (long size)
     {
       if (GC_NEEDED_P (size))
       {
-	if ((active_heap_end - Free) < size)
+	if ((heap_end - Free) < size)
 	{
 	  /* No way to back out -- die. */
 

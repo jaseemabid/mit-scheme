@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: object.h,v 9.59.2.5 2006/08/30 05:17:31 cph Exp $
+$Id: object.h,v 9.59.2.6 2006/09/05 03:15:27 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
@@ -474,12 +474,12 @@ extern SCHEME_OBJECT * memory_base;
   ((ADDRESS_IN_CONSTANT_P (address)) && (pure_test (address)))
 
 #define HEAP_ADDRESS_P(address)						\
-  (((address) >= active_heap_start) && ((address) < Free))
+  (((address) >= heap_start) && ((address) < Free))
 
 #define SIDE_EFFECT_IMPURIFY(container, contained) do			\
 {									\
   if ((object_pure_p (container))					\
-      && (object_in_active_heap_p (contained)))				\
+      && (object_in_heap_p (contained)))				\
     signal_error_from_primitive (ERR_WRITE_INTO_PURE_SPACE);		\
 } while (0)
 

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: memmag.c,v 9.71.2.5 2006/08/30 05:17:31 cph Exp $
+$Id: memmag.c,v 9.71.2.6 2006/09/05 03:15:09 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -63,27 +63,16 @@ USA.
 #  define DEALLOCATE_REGISTERS() do { } while (0)
 #endif
 
-#ifndef DEFAULT_ACTIVE_HEAP_RESERVED
-#  define DEFAULT_ACTIVE_HEAP_RESERVED 4500
-#endif
-
-/* buffer for impurify, etc. */
-#ifndef CONSTANT_SPACE_FUDGE
-#  define CONSTANT_SPACE_FUDGE 128
+#ifndef DEFAULT_HEAP_RESERVED
+#  define DEFAULT_HEAP_RESERVED 4500
 #endif
 
 static unsigned long saved_heap_size;
 static unsigned long saved_constant_size;
 static unsigned long saved_stack_size;
 
-static void abort_gc (void) NORETURN;
-
-#ifdef __WIN32__
-   static bool win32_flush_old_halfspace_p = false;
-   static void win32_advise_end_GC (void);
-   static void win32_flush_old_halfspace (void);
-#  define ADVISE_END_GC win32_advise_end_GC
-#endif
+static gc_tospace_allocator_t allocate_tospace;
+static gc_abort_handler_t abort_gc NORETURN;
 
 /* Memory Allocation, sequential processor:
 
@@ -126,9 +115,7 @@ setup_memory (unsigned long heap_size,
     }
 
   /* Allocate */
-  ALLOCATE_HEAP_SPACE ((stack_size
-			+ (2 * heap_size)
-			+ constant_size),
+  ALLOCATE_HEAP_SPACE ((stack_size + heap_size + constant_size),
 		       memory_block_start,
 		       memory_block_end);
 
@@ -150,17 +137,11 @@ setup_memory (unsigned long heap_size,
       exit (1);
     }
 
-  saved_heap_size = heap_size;
-  saved_constant_size = constant_size;
   saved_stack_size = stack_size;
-  reset_allocator_parameters ();
-  gc_abort_handler = abort_gc;
-}
-
-static void
-abort_gc (void)
-{
-  Microcode_Termination (TERM_EXIT);
+  saved_constant_size = constant_size;
+  saved_heap_size = heap_size;
+  reset_allocator_parameters (0);
+  initialize_gc (heap_size, (&heap_start), (&Free), allocate_tospace, abort_gc);
 }
 
 void
@@ -169,51 +150,74 @@ reset_memory (void)
   HEAP_FREE (memory_block_start);
   DEALLOCATE_REGISTERS ();
 }
-
-void
-reset_allocator_parameters (void)
+
+bool
+allocations_ok_p (unsigned long n_constant, unsigned long n_heap)
 {
-  active_heap_reserved = DEFAULT_ACTIVE_HEAP_RESERVED;
+  return
+    ((memory_block_start
+      + saved_stack_size
+      + n_constant + CONSTANT_SPACE_FUDGE
+      + n_heap + DEFAULT_HEAP_RESERVED)
+     < memory_block_end);
+}
+
+void
+reset_allocator_parameters (unsigned long n_constant)
+{
+  heap_reserved = DEFAULT_HEAP_RESERVED;
   gc_space_needed = 0;
   SET_STACK_LIMITS (memory_block_start, saved_stack_size);
   constant_start = (memory_block_start + saved_stack_size);
   constant_alloc_next = constant_start;
-  update_allocator_parameters (0);
+  constant_end = (constant_alloc_next + n_constant + CONSTANT_SPACE_FUDGE);
+  heap_start = constant_end;
+  Free = heap_start;
+  heap_end = memory_block_end;
+  
+  RESET_HEAP_ALLOC_LIMIT ();
   INITIALIZE_STACK ();
   STACK_RESET ();
 }
 
-bool
-update_allocator_parameters (unsigned long n_reserved)
+static void
+allocate_tospace (unsigned long n_words,
+		  SCHEME_OBJECT ** start_r, SCHEME_OBJECT ** end_r)
 {
-  SCHEME_OBJECT * nctop
-    = (constant_alloc_next + n_reserved + CONSTANT_SPACE_FUDGE);
+  if (n_words > 0)
+    {
+      SCHEME_OBJECT * p
+	= (((*start_r) == 0)
+	   ? (malloc (n_words * SIZEOF_SCHEME_OBJECT))
+	   : (realloc ((*start_r), (n_words * SIZEOF_SCHEME_OBJECT))));
+      if (p == 0)
+	{
+	  outf_fatal ("Unable to allocate temporary heap for GC.\n");
+	  outf_flush_fatal ();
+	  exit (1);
+	}
+      (*start_r) = p;
+      (*end_r) = (p + n_words);
+    }
+  else if ((*start_r) != 0)
+    {
+      free (*start_r);
+      (*start_r) = 0;
+      (*end_r) = 0;
+    }
+}
 
-  if (nctop >= memory_block_end)
-    return (false);
-
-  constant_end = nctop;
-  if (((memory_block_end - constant_end) % 2) == 1)
-    /* Guarantee that both heaps are exactly the same size.  */
-    constant_end += 1;
-
-  active_heap_start = constant_end;
-  active_heap_end
-    = (active_heap_start + ((memory_block_end - constant_end) / 2));
-  inactive_heap_start = active_heap_end;
-  inactive_heap_end = memory_block_end;
-
-  Free = active_heap_start;
-  RESET_HEAP_ALLOC_LIMIT ();
-
-  return (true);
+static void
+abort_gc (void)
+{
+  Microcode_Termination (TERM_EXIT);
 }
 
 bool
-object_in_active_heap_p (SCHEME_OBJECT object)
+object_in_heap_p (SCHEME_OBJECT object)
 {
   SCHEME_OBJECT * address = (get_object_address (object));
-  return ((address != 0) && (ADDRESS_IN_ACTIVE_HEAP_P (address)));
+  return ((address != 0) && (ADDRESS_IN_HEAP_P (address)));
 }
 
 DEFINE_PRIMITIVE ("GARBAGE-COLLECT", Prim_garbage_collect, 1, 1,
@@ -225,47 +229,30 @@ SAFETY-MARGIN, which must be a non-negative integer.  Finally, runs\n\
 the primitive GC daemons before returning.")
 {
   PRIMITIVE_HEADER (1);
-  SCHEME_OBJECT * from_start;
-  SCHEME_OBJECT * from_end;
   canonicalize_primitive_context ();
 
   STACK_CHECK_FATAL ("GC");
-  if (Free > active_heap_end)
+  if (Free > heap_end)
     {
       outf_fatal ("\nGC has been delayed too long!\n");
       outf_fatal
-	("Free = %#lx; heap_alloc_limit = %#lx; active_heap_end = %#lx\n",
+	("Free = %#lx; heap_alloc_limit = %#lx; heap_end = %#lx\n",
 	 ((unsigned long) Free),
 	 ((unsigned long) heap_alloc_limit),
-	 ((unsigned long) active_heap_end));
+	 ((unsigned long) heap_end));
       Microcode_Termination (TERM_NO_SPACE);
     }
 
-  active_heap_reserved = (ARG_HEAP_RESERVED (1));
+  heap_reserved = (ARG_HEAP_RESERVED (1));
   POP_PRIMITIVE_FRAME (1);
 
   ENTER_CRITICAL_SECTION ("garbage collector");
 
-  from_start = active_heap_start;
-  from_end = Free;
-  if (((constant_end - constant_alloc_next) < CONSTANT_SPACE_FUDGE)
-      && (inactive_heap_start < active_heap_start)
-      && (update_allocator_parameters (0)))
-    ;
-  else
-    {
-      SCHEME_OBJECT * new_start = inactive_heap_start;
-      SCHEME_OBJECT * new_end = inactive_heap_end;
-      inactive_heap_start = active_heap_start;
-      inactive_heap_end = active_heap_end;
-      active_heap_start = new_start;
-      active_heap_end = new_end;
-      Free = active_heap_start;
-      RESET_HEAP_ALLOC_LIMIT ();
-    }
+  open_tospace (heap_start);
   initialize_weak_chain ();
 
-  garbage_collect (from_start, from_end);
+  std_gc_pt1 ();
+  std_gc_pt2 ();
 
   Will_Push (CONTINUATION_SIZE);
   SET_RC (RC_NORMAL_GC_DONE);
@@ -289,44 +276,43 @@ the primitive GC daemons before returning.")
   PRIMITIVE_RETURN (UNSPECIFIC);
 }
 
-void
-garbage_collect (SCHEME_OBJECT * from_start, SCHEME_OBJECT * from_end)
-{
-  SCHEME_OBJECT * saved_values = Free;
+static SCHEME_OBJECT * saved_to;
 
-  (*Free++) = fixed_objects;
-  (*Free++) = (MAKE_POINTER_OBJECT (UNMARKED_HISTORY_TYPE, history_register));
-  (*Free++) = current_state_point;
+void
+std_gc_pt1 (void)
+{
+  saved_to = (get_newspace_ptr ());
+  add_to_tospace (fixed_objects);
+  add_to_tospace
+    (MAKE_POINTER_OBJECT (UNMARKED_HISTORY_TYPE, history_register));
+  add_to_tospace (current_state_point);
 
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
-  initialize_gc_objects_referencing ();
+  initialize_gc_objects_referring ();
 #endif
 
-  std_gc_loop (stack_pointer, (&stack_end),
-	       (&Free), (&active_heap_end),
-	       from_start, from_end);
-  std_gc_loop (constant_start, (&constant_alloc_next),
-	       (&Free), (&active_heap_end),
-	       from_start, from_end);
-  std_gc_loop (saved_values, (&Free),
-	       (&Free), (&active_heap_end),
-	       from_start, from_end);
+  current_gc_table = (std_gc_table ());
+  gc_scan_oldspace (stack_pointer, stack_end);
+  gc_scan_oldspace (constant_start, constant_alloc_next);
+  gc_scan_tospace (saved_to, 0);
+}
 
+void
+std_gc_pt2 (void)
+{
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
-  scan_gc_objects_referencing (from_start, from_end);
+  finalize_gc_objects_referring ();
 #endif
 
   update_weak_pointers ();
+  Free = (save_tospace_to_newspace ());
 
-  fixed_objects = (*saved_values++);
-  history_register = (OBJECT_ADDRESS (*saved_values++));
-  current_state_point = (*saved_values++);
+  fixed_objects = (*saved_to++);
+  history_register = (OBJECT_ADDRESS (*saved_to++));
+  current_state_point = (*saved_to++);
+  saved_to = 0;
 
   CC_TRANSPORT_END ();
-#ifdef ADVISE_END_GC
-  ADVISE_END_GC ();
-#endif
-
   CLEAR_INTERRUPT (INT_GC);
 }
 
@@ -351,80 +337,10 @@ DEFINE_PRIMITIVE ("GC-TRACE-REFERENCES", Prim_gc_trace_references, 2, 2, 0)
 	       && ((VECTOR_LENGTH (collector)) >= 1))))
       error_wrong_type_arg (2);
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
-    collect_gc_objects_referencing ((ARG_REF (1)), collector);
+    collect_gc_objects_referring ((ARG_REF (1)), collector);
 #else
     error_external_return ();
 #endif
   }
   PRIMITIVE_RETURN (UNSPECIFIC);
 }
-
-DEFINE_PRIMITIVE ("WIN32-FLUSH-OLD-HALFSPACE-AFTER-GC?!",
-		  Prim_win32_flush_old_halfspace_after_gc, 1, 1,
-		  "(BOOLEAN)")
-{
-  PRIMITIVE_HEADER (1);
-#ifdef __WIN32__
-  {
-    bool old = win32_flush_old_halfspace_p;
-    win32_flush_old_halfspace_p = (OBJECT_TO_BOOLEAN (ARG_REF (1)));
-    PRIMITIVE_RETURN (old ? SHARP_T : SHARP_F);
-  }
-#else
-  error_unimplemented_primitive ();
-  PRIMITIVE_RETURN (UNSPECIFIC);
-#endif
-}
-
-DEFINE_PRIMITIVE ("WIN32-FLUSH-OLD-HALFSPACE!",
-		  Prim_win32_flush_old_halfspace, 0, 0, "()")
-{
-  PRIMITIVE_HEADER (0);
-#ifdef __WIN32__
-  win32_flush_old_halfspace ();
-#else
-  error_unimplemented_primitive ();
-#endif
-  PRIMITIVE_RETURN (UNSPECIFIC);
-}
-
-#ifdef __WIN32__
-
-static void
-win32_advise_end_GC (void)
-{
-  if (win32_flush_old_halfspace_p)
-    win32_flush_old_halfspace ();
-}
-
-static void
-win32_flush_old_halfspace (void)
-{
-  /* Since we allocated the heap with VirtualAlloc, we can decommit
-     the old half-space to tell the VM system that it contains trash.
-     Immediately recommitting the region allows the old half-space to
-     be used for temporary storage (e.g. by fasdump).  Note that this
-     is only a win when it prevents paging.  When no paging would have
-     happened, we incur the cost of zero-filling the recommitted
-     pages.  This can be significant - up to 50% of the time taken to
-     GC, but usually somewhat less.
-
-     We are careful to play with pages that are strictly within the old
-     half-space, hence the `pagesize' arithmetic.  */
-
-  unsigned long pagesize = 4096;
-  /* round up to page boundary */
-  char * start
-    = ((char *)
-       ((((unsigned long) inactive_heap_start)
-	 &~ (pagesize - 1))
-	+ pagesize));
-  /* round down to page boundary */
-  char * end
-    = ((char *)
-       (((unsigned long) inactive_heap_end) &~ (pagesize - 1)));
-  VirtualFree (start, (end - start), MEM_DECOMMIT);
-  VirtualAlloc (start, (end - start), MEM_COMMIT, PAGE_READWRITE);
-}
-
-#endif /* __WIN32__ */

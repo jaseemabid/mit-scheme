@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purutl.c,v 9.54.2.8 2006/08/30 20:03:39 cph Exp $
+$Id: purutl.c,v 9.54.2.9 2006/09/05 03:15:44 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1996,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -35,28 +35,17 @@ USA.
    && ((addr) >= (constant_space_block_pure_start (block)))		\
    && ((addr) < (constant_space_block_pure_end (block))))
 
-typedef struct
-{
-  gc_ctx_t gc_ctx;
-  SCHEME_OBJECT * old_start;
-  SCHEME_OBJECT * old_end;
-  SCHEME_OBJECT * new_start;
-} ud_ctx_t;
+static SCHEME_OBJECT * current_old_start;
+static SCHEME_OBJECT * current_old_end;
+static SCHEME_OBJECT * current_new_start;
 
-#define CTX_OLD_START(ctx) (((ud_ctx_t *) (ctx))->old_start)
-#define CTX_OLD_END(ctx) (((ud_ctx_t *) (ctx))->old_end)
-#define CTX_NEW_START(ctx) (((ud_ctx_t *) (ctx))->new_start)
-
-static gc_table_t update_table;
 static gc_tuple_handler_t update_tuple;
 static gc_vector_handler_t update_vector;
 static gc_object_handler_t update_cc_entry;
 static gc_object_handler_t update_weak_pair;
 
 static unsigned long object_length (SCHEME_OBJECT);
-static void update_pointers
-  (SCHEME_OBJECT *, SCHEME_OBJECT *, SCHEME_OBJECT *, SCHEME_OBJECT *,
-   SCHEME_OBJECT *);
+static gc_table_t * update_pointers_table (void);
 
 DEFINE_PRIMITIVE ("PRIMITIVE-IMPURIFY", Prim_impurify, 1, 1,
 		  "(OBJECT)\n\
@@ -66,12 +55,9 @@ Remove OBJECT from pure space, allowing it to be modified.")
   {
     SCHEME_OBJECT object = (ARG_REF (1));
     SCHEME_OBJECT normalized;
-    SCHEME_OBJECT * old_start;
     SCHEME_OBJECT * old_block;
     unsigned long n_words;
-    SCHEME_OBJECT * old_end;
     SCHEME_OBJECT * new_block;
-    SCHEME_OBJECT * new_start;
 
     switch (gc_ptr_type (object))
       {
@@ -88,18 +74,19 @@ Remove OBJECT from pure space, allowing it to be modified.")
       default:
 	PRIMITIVE_RETURN (object);
       }
-    old_start = (OBJECT_ADDRESS (normalized));
-    old_block = (find_constant_space_block (old_start));
-    if (!ADDRESS_IN_BLOCK_PURE_P (old_start, old_block))
+    current_old_start = (OBJECT_ADDRESS (normalized));
+    old_block = (find_constant_space_block (current_old_start));
+    if (! ((old_block != 0)
+	   && (ADDRESS_IN_BLOCK_PURE_P (current_old_start, old_block))))
       PRIMITIVE_RETURN (object);
 
     n_words = (object_length (normalized));
-    old_end = (old_start + n_words);
+    current_old_end = (current_old_start + n_words);
 
     /* If there's nothing else in the block's pure area, or if there's
        no room to copy the object, make the entire block impure.  */
-    if (((old_start == (constant_space_block_pure_start (old_block)))
-	 && (old_end == (constant_space_block_pure_end (old_block))))
+    if (((current_old_start == (constant_space_block_pure_start (old_block)))
+	 && (current_old_end == (constant_space_block_pure_end (old_block))))
 	|| ((constant_alloc_next + n_words) > constant_end))
       {
 	(*old_block) = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1));
@@ -109,34 +96,35 @@ Remove OBJECT from pure space, allowing it to be modified.")
     /* Append a copy of the object to the last constant block.  */
     new_block = (constant_alloc_next - 1);
     new_block -= (OBJECT_DATUM (*new_block));
-    new_start = (constant_space_block_constant_end (new_block));
+    current_new_start = (constant_space_block_constant_end (new_block));
     {
-      SCHEME_OBJECT * new_scan = new_start;
-      SCHEME_OBJECT * old_scan = old_start;
+      SCHEME_OBJECT * new_scan = current_new_start;
+      SCHEME_OBJECT * old_scan = current_old_start;
       unsigned long m = ((OBJECT_DATUM (new_block[1])) + n_words);
-      while (old_scan < old_end)
+      while (old_scan < current_old_end)
 	(*new_scan++) = (*old_scan++);
       (new_block[1]) = (MAKE_OBJECT (PURE_PART, m));
       (*new_scan++) = (MAKE_OBJECT (TC_MANIFEST_SPECIAL_NM_VECTOR, 1));
       (*new_scan++) = (MAKE_OBJECT (END_OF_BLOCK, m));
       constant_alloc_next = new_scan;
     }
-    (*old_start) = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, (n_words - 1)));
+    (*current_old_start) = (MAKE_OBJECT (TC_MANIFEST_NM_VECTOR, (n_words - 1)));
 
     /* Relocate all pointers to the object.  */
     ENTER_CRITICAL_SECTION ("impurify");
-    update_pointers (active_heap_start, Free, old_start, old_end, new_start);
-    update_pointers (stack_pointer, stack_end, old_start, old_end, new_start);
-    update_pointers
-      (constant_start, constant_alloc_next, old_start, old_end, new_start);
+    current_gc_table = (update_pointers_table ());
+    gc_scan_oldspace (heap_start, Free);
+    gc_scan_oldspace (stack_pointer, stack_end);
+    gc_scan_oldspace (constant_start, constant_alloc_next);
     EXIT_CRITICAL_SECTION ({});
 
 #ifdef CC_SUPPORT_P
     if (normalized != object)
-      PRIMITIVE_RETURN (CC_ENTRY_NEW_BLOCK (object, new_start, old_start));
+      PRIMITIVE_RETURN
+	(CC_ENTRY_NEW_BLOCK (object, current_new_start, current_old_start));
 #endif
 
-    PRIMITIVE_RETURN (OBJECT_NEW_ADDRESS (object, new_start));
+    PRIMITIVE_RETURN (OBJECT_NEW_ADDRESS (object, current_new_start));
   }
 }
 
@@ -171,48 +159,38 @@ object_length (SCHEME_OBJECT object)
 	}
 
     default:
-      gc_bad_type (object, 0);
+      gc_bad_type (object);
       error_wrong_type_arg (1);
       /*NOTREACHED*/
       return (0);
     }
 }
 
-static void
-update_pointers (SCHEME_OBJECT * scan,
-		 SCHEME_OBJECT * end,
-		 SCHEME_OBJECT * old_start,
-		 SCHEME_OBJECT * old_end,
-		 SCHEME_OBJECT * new_start)
+static gc_table_t *
+update_pointers_table (void)
 {
   static bool initialized_p = false;
-  ud_ctx_t ctx0;
-  gc_ctx_t * ctx = ((gc_ctx_t *) (&ctx0));
+  static gc_table_t table;
 
   if (!initialized_p)
     {
-      initialize_gc_table ((&update_table),
-			   update_tuple,
-			   update_vector,
-			   update_cc_entry,
-			   update_weak_pair,
-			   gc_precheck_from);
+      initialize_gc_table ((&table), false);
+      (GCT_TUPLE (&table)) = update_tuple;
+      (GCT_VECTOR (&table)) = update_vector;
+      (GCT_CC_ENTRY (&table)) = update_cc_entry;
+      (GCT_WEAK_PAIR (&table)) = update_weak_pair;
       initialized_p = true;
     }
 
-  (GCTX_TABLE (ctx)) = (&update_table);
-  (CTX_OLD_START (ctx)) = old_start;
-  (CTX_OLD_END (ctx)) = old_end;
-  (CTX_NEW_START (ctx)) = new_start;
-  std_gc_scan (scan, end, ctx);
+  return (&table);
 }
 
 static
 DEFINE_GC_TUPLE_HANDLER (update_tuple)
 {
   return
-    (((OBJECT_ADDRESS (tuple)) == (CTX_OLD_START (ctx)))
-     ? (OBJECT_NEW_ADDRESS (tuple, (CTX_NEW_START (ctx))))
+    (((OBJECT_ADDRESS (tuple)) == current_old_start)
+     ? (OBJECT_NEW_ADDRESS (tuple, current_new_start))
      : tuple);
 }
 
@@ -220,8 +198,8 @@ static
 DEFINE_GC_VECTOR_HANDLER (update_vector)
 {
   return
-    (((OBJECT_ADDRESS (vector)) == (CTX_OLD_START (ctx)))
-     ? (OBJECT_NEW_ADDRESS (vector, (CTX_NEW_START (ctx))))
+    (((OBJECT_ADDRESS (vector)) == current_old_start)
+     ? (OBJECT_NEW_ADDRESS (vector, current_new_start))
      : vector);
 }
 
@@ -231,14 +209,12 @@ DEFINE_GC_OBJECT_HANDLER (update_cc_entry)
 #ifdef CC_SUPPORT_P
   insn_t * addr = (CC_ENTRY_ADDRESS (object));
   return
-    (((addr >= ((insn_t *) (CTX_OLD_START (ctx))))
-      && (addr < ((insn_t *) (CTX_OLD_END (ctx)))))
-     ? (CC_ENTRY_NEW_BLOCK (object,
-			    (CTX_NEW_START (ctx)),
-			    (CTX_OLD_START (ctx))))
+    (((addr >= ((insn_t *) current_old_start))
+      && (addr < ((insn_t *) current_old_end)))
+     ? (CC_ENTRY_NEW_BLOCK (object, current_new_start, current_old_start))
      : object);
 #else
-  gc_no_cc_support (ctx);
+  gc_no_cc_support ();
   return (object);
 #endif
 }
@@ -246,7 +222,7 @@ DEFINE_GC_OBJECT_HANDLER (update_cc_entry)
 static
 DEFINE_GC_OBJECT_HANDLER (update_weak_pair)
 {
-  return (update_tuple (object, 2, ctx));
+  return (update_tuple (object, 2));
 }
 
 DEFINE_PRIMITIVE ("CONSTANT?", Prim_constant_p, 1, 1, "(OBJECT)\n\

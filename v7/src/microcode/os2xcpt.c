@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: os2xcpt.c,v 1.15.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: os2xcpt.c,v 1.15.2.3 2006/09/05 03:15:33 cph Exp $
 
 Copyright 1994,1995,2000,2001,2002,2005 Massachusetts Institute of Technology
 
@@ -416,10 +416,10 @@ continue_from_trap (PEXCEPTIONREPORTRECORD report, PCONTEXTRECORD context)
       else
 	pc_location = pc_in_c;
     }
-  else if ((((ULONG) active_heap_start) <= pc) && (pc < ((ULONG) active_heap_end)))
+  else if ((((ULONG) heap_start) <= pc) && (pc < ((ULONG) heap_end)))
     {
       pc_location = pc_in_heap;
-      block_address = (find_block_address (((void *) pc), active_heap_start));
+      block_address = (find_block_address (((void *) pc), heap_start));
     }
   else if ((((ULONG) constant_start) <= pc) && (pc < ((ULONG) constant_end)))
     {
@@ -572,8 +572,8 @@ compiled_code_free (PCONTEXTRECORD context)
     {
       ULONG edi = (context -> ctx_RegEdi);
       if (((edi & SCHEME_ALIGNMENT_MASK) == 0)
-	  && (((ULONG) active_heap_start) <= edi)
-	  && (edi < ((ULONG) active_heap_end)))
+	  && (((ULONG) heap_start) <= edi)
+	  && (edi < ((ULONG) heap_end)))
 	return (((SCHEME_OBJECT *) edi) + FREE_PARANOIA_MARGIN);
     }
   return (interpreter_free (1));
@@ -583,8 +583,8 @@ static SCHEME_OBJECT *
 interpreter_free (int force_gc)
 {
   return
-    ((((force_gc ? heap_alloc_limit : active_heap_start) <= Free)
-      && (Free < active_heap_end)
+    ((((force_gc ? heap_alloc_limit : heap_start) <= Free)
+      && (Free < heap_end)
       && ((((ULONG) Free) & SCHEME_ALIGNMENT_MASK) == 0))
      ? (((Free + FREE_PARANOIA_MARGIN) < heap_alloc_limit)
 	? (Free + FREE_PARANOIA_MARGIN)

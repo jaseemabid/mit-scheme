@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.c,v 1.1.2.2 2006/08/30 05:17:31 cph Exp $
+$Id: fasl.c,v 1.1.2.3 2006/09/05 03:14:32 cph Exp $
 
 Copyright 2006 Massachusetts Institute of Technology
 
@@ -55,11 +55,11 @@ write_fasl_header (fasl_header_t * h, fasl_file_handle_t handle)
   SCHEME_OBJECT raw [FASL_HEADER_LENGTH];
 
   encode_fasl_header (raw, h);
-  return (write_fasl_section (raw, FASL_HEADER_LENGTH, handle));
+  return (write_to_fasl_file (raw, FASL_HEADER_LENGTH, handle));
 }
 
 bool
-write_fasl_section (const void * start, size_t n_words,
+write_to_fasl_file (const void * start, size_t n_words,
 		    fasl_file_handle_t handle)
 {
   return ((fwrite (start, SIZEOF_SCHEME_OBJECT, n_words, handle)) == n_words);
@@ -86,12 +86,12 @@ read_fasl_header (fasl_header_t * h, fasl_file_handle_t handle)
 {
   SCHEME_OBJECT raw [FASL_HEADER_LENGTH];
   return
-    ((read_fasl_section (raw, FASL_HEADER_LENGTH, handle))
+    ((read_from_fasl_file (raw, FASL_HEADER_LENGTH, handle))
      && (decode_fasl_header (raw, h)));
 }
 
 bool
-read_fasl_section (void * start, size_t n_words, fasl_file_handle_t handle)
+read_from_fasl_file (void * start, size_t n_words, fasl_file_handle_t handle)
 {
   return ((fread (start, SIZEOF_SCHEME_OBJECT, n_words, handle)) == n_words);
 }

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.87.2.6 2006/08/30 05:17:31 cph Exp $
+$Id: utils.c,v 9.87.2.7 2006/09/05 03:16:16 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -750,7 +750,7 @@ copy_history (SCHEME_OBJECT hist_obj)
   vert_type = (OBJECT_TYPE (hist_obj));
   orig_hist = (OBJECT_ADDRESS (hist_obj));
   hist_ptr = orig_hist;
-  last_hunk = (active_heap_end - 3);
+  last_hunk = (heap_end - 3);
 
   do
     {
@@ -801,7 +801,7 @@ copy_history (SCHEME_OBJECT hist_obj)
     }
   while (hist_ptr != orig_hist);
 
-  new_hunk = (active_heap_end [HIST_NEXT_SUBPROBLEM - 3]);
+  new_hunk = (heap_end [HIST_NEXT_SUBPROBLEM - 3]);
   (last_hunk[HIST_NEXT_SUBPROBLEM]) = (OBJECT_NEW_TYPE (vert_type, new_hunk));
   MEMORY_SET (new_hunk, HIST_PREV_SUBPROBLEM,
 	      (MAKE_POINTER_OBJECT

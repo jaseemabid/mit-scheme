@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40.2.5 2006/08/30 05:17:31 cph Exp $
+$Id: fasl.h,v 9.40.2.6 2006/09/05 03:14:38 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
 Copyright 1994,1997,2002,2005,2006 Massachusetts Institute of Technology
@@ -61,7 +61,7 @@ USA.
 
 #define FASL_OFFSET_MEM_BASE	15	/* Saved value of memory_base */
 #define FASL_OFFSET_STACK_SIZE	16	/* # of words in stack area */
-#define FASL_OFFSET_HEAP_RSVD   17	/* value of active_heap_reserved */
+#define FASL_OFFSET_HEAP_RSVD   17	/* value of heap_reserved */
 
 /* Version information encoding */
 
@@ -179,11 +179,11 @@ typedef FILE * fasl_file_handle_t;
 extern bool open_fasl_output_file (const char *, fasl_file_handle_t *);
 extern bool close_fasl_output_file (fasl_file_handle_t);
 extern bool write_fasl_header (fasl_header_t *, fasl_file_handle_t);
-extern bool write_fasl_section (const void *, size_t, fasl_file_handle_t);
+extern bool write_to_fasl_file (const void *, size_t, fasl_file_handle_t);
 extern bool open_fasl_input_file (const char *, fasl_file_handle_t *);
 extern bool close_fasl_input_file (fasl_file_handle_t);
 extern bool read_fasl_header (fasl_header_t *, fasl_file_handle_t);
-extern bool read_fasl_section (void *, size_t, fasl_file_handle_t);
+extern bool read_from_fasl_file (void *, size_t, fasl_file_handle_t);
 extern SCHEME_OBJECT * faslhdr_utilities_end (fasl_header_t *);
 
 #endif /* not SCM_FASL_H */

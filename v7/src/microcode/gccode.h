@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.6 2006/08/30 20:03:37 cph Exp $
+$Id: gccode.h,v 9.60.2.7 2006/09/05 03:14:50 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
@@ -34,6 +34,7 @@ USA.
 
 #include "gc.h"
 #include "cmpgc.h"
+#include "fasl.h"
 
 #ifdef ENABLE_DEBUGGING_TOOLS
 #  ifndef ENABLE_GC_DEBUGGING_TOOLS
@@ -41,58 +42,54 @@ USA.
 #  endif
 #endif
 
-typedef struct gc_table_s gc_table_t;
-
-typedef struct
-{
-  gc_table_t * table;		/* gc dispatch table */
-  SCHEME_OBJECT * from_start;	/* start of 'from' space */
-  SCHEME_OBJECT * from_end;	/* end of 'from' space */
-  SCHEME_OBJECT ** pto;		/* pointer to 'to' ptr */
-  SCHEME_OBJECT ** pto_end;	/* ptr to end of 'to' space ptr */
-  SCHEME_OBJECT * scan;		/* scan value where object found */
-  SCHEME_OBJECT object;		/* original object being processed */
-} gc_ctx_t;
-
-#define GCTX_TABLE(ctx) ((ctx)->table)
-#define GCTX_FROM_START(ctx) ((ctx)->from_start)
-#define GCTX_FROM_END(ctx) ((ctx)->from_end)
-#define GCTX_PTO(ctx) ((ctx)->pto)
-#define GCTX_PTO_END(ctx) ((ctx)->pto_end)
-#define GCTX_SCAN(ctx) ((ctx)->scan)
-#define GCTX_OBJECT(ctx) ((ctx)->object)
-
 typedef SCHEME_OBJECT * gc_handler_t
-  (SCHEME_OBJECT *, SCHEME_OBJECT, gc_ctx_t *);
+  (SCHEME_OBJECT *, SCHEME_OBJECT);
 
 #define DEFINE_GC_HANDLER(handler_name)					\
 SCHEME_OBJECT *								\
-handler_name (SCHEME_OBJECT * scan, SCHEME_OBJECT object, gc_ctx_t * ctx)
+handler_name (SCHEME_OBJECT * scan, SCHEME_OBJECT object)
 
 typedef SCHEME_OBJECT gc_tuple_handler_t
-  (SCHEME_OBJECT, unsigned int, gc_ctx_t *);
+  (SCHEME_OBJECT, unsigned int);
 
 #define DEFINE_GC_TUPLE_HANDLER(handler_name)				\
 SCHEME_OBJECT								\
-handler_name (SCHEME_OBJECT tuple, unsigned int n_words, gc_ctx_t * ctx)
+handler_name (SCHEME_OBJECT tuple, unsigned int n_words)
 
 typedef SCHEME_OBJECT gc_vector_handler_t
-  (SCHEME_OBJECT, bool, gc_ctx_t *);
+  (SCHEME_OBJECT, bool);
 
 #define DEFINE_GC_VECTOR_HANDLER(handler_name)				\
 SCHEME_OBJECT								\
-handler_name (SCHEME_OBJECT vector, bool align_p, gc_ctx_t * ctx)
+handler_name (SCHEME_OBJECT vector, bool align_p)
 
 typedef SCHEME_OBJECT gc_object_handler_t
-  (SCHEME_OBJECT, gc_ctx_t *);
+  (SCHEME_OBJECT);
 
 #define DEFINE_GC_OBJECT_HANDLER(handler_name)				\
 SCHEME_OBJECT								\
-handler_name (SCHEME_OBJECT object, gc_ctx_t * ctx)
+handler_name (SCHEME_OBJECT object)
 
-typedef SCHEME_OBJECT * gc_precheck_from_t (SCHEME_OBJECT *, gc_ctx_t *);
+typedef SCHEME_OBJECT * gc_precheck_from_t (SCHEME_OBJECT *);
+
+#define DEFINE_GC_PRECHECK_FROM(handler_name)				\
+SCHEME_OBJECT *								\
+handler_name (SCHEME_OBJECT * from)
+
+typedef SCHEME_OBJECT * gc_transport_words_t
+  (SCHEME_OBJECT *, unsigned long, bool);
+
+#define DEFINE_GC_TRANSPORT_WORDS(handler_name)				\
+SCHEME_OBJECT *								\
+handler_name (SCHEME_OBJECT * from, unsigned long n_words, bool align_p)
+
+typedef bool gc_ignore_object_p_t (SCHEME_OBJECT);
+
+#define DEFINE_GC_IGNORE_OBJECT_P(handler_name)				\
+bool									\
+handler_name (SCHEME_OBJECT object)
 
-struct gc_table_s
+typedef struct
 {
   gc_handler_t * handlers [N_TYPE_CODES];
   gc_tuple_handler_t * tuple_handler;
@@ -100,7 +97,9 @@ struct gc_table_s
   gc_object_handler_t * cc_entry_handler;
   gc_object_handler_t * weak_pair_handler;
   gc_precheck_from_t * precheck_from;
-};
+  gc_transport_words_t * transport_words;
+  gc_ignore_object_p_t * ignore_object_p;
+} gc_table_t;
 
 #define GCT_ENTRY(table, type) (((table)->handlers) [(type)])
 #define GCT_TUPLE(table) ((table)->tuple_handler)
@@ -108,18 +107,25 @@ struct gc_table_s
 #define GCT_CC_ENTRY(table) ((table)->cc_entry_handler)
 #define GCT_WEAK_PAIR(table) ((table)->weak_pair_handler)
 #define GCT_PRECHECK_FROM(table) ((table)->precheck_from)
+#define GCT_TRANSPORT_WORDS(table) ((table)->transport_words)
+#define GCT_IGNORE_OBJECT_P(table) ((table)->ignore_object_p)
 
-#define GC_HANDLE_TUPLE(object, n_words, ctx)				\
-  ((* (GCT_TUPLE ((ctx)->table))) ((object), (n_words), (ctx)))
+#define GC_HANDLE_TUPLE(object, n_words)				\
+  ((* (GCT_TUPLE (current_gc_table))) ((object), (n_words)))
 
-#define GC_HANDLE_VECTOR(object, align_p, ctx)				\
-  ((* (GCT_VECTOR ((ctx)->table))) ((object), (align_p), (ctx)))
+#define GC_HANDLE_VECTOR(object, align_p)				\
+  ((* (GCT_VECTOR (current_gc_table))) ((object), (align_p)))
 
-#define GC_HANDLE_CC_ENTRY(object, ctx)					\
-  ((* (GCT_CC_ENTRY ((ctx)->table))) ((object), (ctx)))
+#define GC_HANDLE_CC_ENTRY(object)					\
+  ((* (GCT_CC_ENTRY (current_gc_table))) ((object)))
 
-#define GC_PRECHECK_FROM(from, ctx)					\
-  ((* (GCT_PRECHECK_FROM ((ctx)->table))) ((from), (ctx)))
+#define GC_PRECHECK_FROM(from)						\
+  ((* (GCT_PRECHECK_FROM (current_gc_table))) ((from)))
+
+#define GC_TRANSPORT_WORDS(from, n_words, align_p)			\
+  ((* (GCT_TRANSPORT_WORDS (current_gc_table))) ((from), (n_words), (align_p)))
+
+extern gc_table_t * current_gc_table;
 
 extern gc_handler_t gc_handle_non_pointer;
 extern gc_handler_t gc_handle_cell;
@@ -135,39 +141,57 @@ extern gc_handler_t gc_handle_reference_trap;
 extern gc_handler_t gc_handle_linkage_section;
 extern gc_handler_t gc_handle_manifest_closure;
 extern gc_handler_t gc_handle_undefined;
-extern gc_precheck_from_t gc_precheck_from;
 
-extern void initialize_gc_table
-  (gc_table_t *, gc_tuple_handler_t *, gc_vector_handler_t *,
-   gc_object_handler_t *, gc_object_handler_t *, gc_precheck_from_t *);
+extern gc_tuple_handler_t gc_tuple;
+extern gc_vector_handler_t gc_vector;
+extern gc_object_handler_t gc_cc_entry;
+extern gc_object_handler_t gc_weak_pair;
+extern gc_precheck_from_t gc_precheck_from;
+extern gc_precheck_from_t gc_precheck_from_no_transport;
+extern gc_transport_words_t gc_transport_words;
+extern gc_transport_words_t gc_no_transport_words;
+
+extern void initialize_gc_table (gc_table_t *, bool);
+
+typedef void gc_tospace_allocator_t
+  (unsigned long, SCHEME_OBJECT **, SCHEME_OBJECT **);
+typedef void gc_abort_handler_t (void);
+
+extern void initialize_gc
+  (unsigned long, SCHEME_OBJECT **, SCHEME_OBJECT **,
+   gc_tospace_allocator_t *, gc_abort_handler_t * NORETURN);
+
+extern void resize_tospace (unsigned long);
+extern void open_tospace (SCHEME_OBJECT *);
+extern bool tospace_available_p (unsigned long);
+extern void add_to_tospace (SCHEME_OBJECT);
+extern SCHEME_OBJECT read_tospace (SCHEME_OBJECT *);
+extern void write_tospace (SCHEME_OBJECT *, SCHEME_OBJECT);
+extern void increment_tospace_ptr (unsigned long);
+extern SCHEME_OBJECT * get_newspace_ptr (void);
+extern void * tospace_to_newspace (void *);
+extern void * newspace_to_tospace (void *);
+extern SCHEME_OBJECT * save_tospace_to_newspace (void);
+extern bool save_tospace_to_fasl_file (fasl_file_handle_t);
 
 extern void initialize_weak_chain (void);
 extern void update_weak_pointers (void);
 
-extern void collect_gc_objects_referencing (SCHEME_OBJECT, SCHEME_OBJECT);
-extern void initialize_gc_objects_referencing (void);
-extern void scan_gc_objects_referencing (SCHEME_OBJECT *, SCHEME_OBJECT *);
+extern gc_table_t * std_gc_table (void);
+extern void gc_scan_oldspace (SCHEME_OBJECT *, SCHEME_OBJECT *);
+extern void gc_scan_tospace (SCHEME_OBJECT *, SCHEME_OBJECT *);
 
-extern void run_gc_loop (SCHEME_OBJECT *, SCHEME_OBJECT **, gc_ctx_t *);
-extern bool address_in_from_space_p (void * addr, gc_ctx_t * ctx);
+extern SCHEME_OBJECT gc_transport_weak_pair (SCHEME_OBJECT);
 
-extern SCHEME_OBJECT * gc_transport_words
-  (SCHEME_OBJECT *, unsigned long, bool, gc_ctx_t *);
+extern void std_gc_death (const char *, ...)
+  ATTRIBUTE ((__noreturn__, __format__ (__printf__, 1, 2)));
+extern void gc_no_cc_support (void) NORETURN;
+extern void gc_bad_type (SCHEME_OBJECT) NORETURN;
 
-extern SCHEME_OBJECT gc_transport_weak_pair (SCHEME_OBJECT, gc_ctx_t *);
-
-extern void std_gc_loop
-  (SCHEME_OBJECT *, SCHEME_OBJECT **,
-   SCHEME_OBJECT **, SCHEME_OBJECT **,
-   SCHEME_OBJECT *, SCHEME_OBJECT *);
-extern void std_gc_scan (SCHEME_OBJECT *, SCHEME_OBJECT *, gc_ctx_t *);
-
-typedef void gc_abort_handler_t (void);
-extern gc_abort_handler_t * gc_abort_handler NORETURN;
-
-extern void std_gc_death (gc_ctx_t * ctx, const char *, ...)
-  ATTRIBUTE ((__noreturn__, __format__ (__printf__, 2, 3)));
-extern void gc_no_cc_support (gc_ctx_t * ctx) NORETURN;
-extern void gc_bad_type (SCHEME_OBJECT, gc_ctx_t * ctx) NORETURN;
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+   extern void collect_gc_objects_referring (SCHEME_OBJECT, SCHEME_OBJECT);
+   extern void initialize_gc_objects_referring (void);
+   extern void finalize_gc_objects_referring (void);
+#endif
 
 #endif /* not SCM_GCCODE_H */

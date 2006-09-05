@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: xdebug.c,v 9.37.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: xdebug.c,v 9.37.2.3 2006/09/05 03:16:28 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,2000,2002,2005 Massachusetts Institute of Technology
@@ -160,7 +160,7 @@ Find_Who_Points (SCHEME_OBJECT Obj, int Find_Mode, int Collect_Mode)
 		    constant_start, constant_alloc_next, Obj,
 		    Find_Mode, print_p, store_p);
   n += Find_In_Area("the Heap",
-		    active_heap_start, Saved_Free, Obj,
+		    heap_start, Saved_Free, Obj,
 		    Find_Mode, print_p, store_p);
   n += Find_In_Area("the Stack",
 		    stack_pointer, stack_end, Obj,

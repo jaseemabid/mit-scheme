@@ -1,9 +1,9 @@
 #| -*-Scheme-*-
 
-$Id: utabmd.scm,v 9.88.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: utabmd.scm,v 9.88.2.3 2006/09/05 03:16:10 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
-Copyright 1993,1994,2001,2002,2005 Massachusetts Institute of Technology
+Copyright 1993,1994,2001,2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -499,12 +499,12 @@ USA.
 	       BAD-RANGE-ARGUMENT-1			;11
 	       BAD-RANGE-ARGUMENT-2			;12
 	       MACRO-BINDING				;13
-	       #F					;14
+	       FASDUMP-OBJECT-TOO-LARGE			;14
 	       BAD-INTERRUPT-CODE			;15
 	       #F					;16
 	       FASL-FILE-TOO-BIG			;17
 	       FASL-FILE-BAD-DATA			;18
-	       IMPURIFY-OBJECT-TOO-LARGE		;19
+	       #F					;19
 	       WRITE-INTO-PURE-SPACE                    ;1A
 	       #F		                        ;1B
 	       #F					;1C
@@ -611,4 +611,4 @@ USA.
 
 ;;; This identification string is saved by the system.
 
-"$Id: utabmd.scm,v 9.88.2.2 2005/08/23 02:55:13 cph Exp $"
+"$Id: utabmd.scm,v 9.88.2.3 2006/09/05 03:16:10 cph Exp $"

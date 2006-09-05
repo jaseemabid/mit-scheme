@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: boot.c,v 9.118.2.3 2006/08/30 02:59:43 cph Exp $
+$Id: boot.c,v 9.118.2.4 2006/09/05 03:14:00 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -320,8 +320,7 @@ start_scheme (int Start_Prim, const char * File_Name)
   }
 
   /* Setup registers */
-  INITIALIZE_INTERRUPTS ();
-  SET_INTERRUPT_MASK (0);
+  INITIALIZE_INTERRUPTS (0);
   SET_ENV (THE_GLOBAL_ENV);
   trapping = false;
 

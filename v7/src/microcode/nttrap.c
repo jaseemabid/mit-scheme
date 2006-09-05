@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: nttrap.c,v 1.26.2.3 2006/03/11 03:01:41 cph Exp $
+$Id: nttrap.c,v 1.26.2.4 2006/09/05 03:15:20 cph Exp $
 
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
 Copyright 2002,2005,2006 Massachusetts Institute of Technology
@@ -580,7 +580,7 @@ static SCHEME_OBJECT * find_block_address
 #define IA32_NREGS 12
 
 /* For now */
-#define GET_ETEXT() (active_heap_start)
+#define GET_ETEXT() (heap_start)
 
 static void
 continue_from_trap (DWORD code, PCONTEXT context)
@@ -658,7 +658,7 @@ pc_in_hyperspace:
     pc_in_utility = (utility_index != -1);
     pc_in_C = ((the_pc <= ((long) (GET_ETEXT ()))) && (! pc_in_builtin));
     pc_in_heap =
-      ((the_pc < ((long) active_heap_end)) && (the_pc >= ((long) active_heap_start)));
+      ((the_pc < ((long) heap_end)) && (the_pc >= ((long) heap_start)));
     pc_in_constant_space =
       ((the_pc < ((long) constant_end)) &&
        (the_pc >= ((long) constant_start)));
@@ -692,7 +692,7 @@ pc_in_hyperspace:
     (trinfo . pc_info_1) = SHARP_F;
     (trinfo . pc_info_2) = SHARP_F;
     new_stack_pointer = 0;
-    if (! ((ADDRESS_IN_ACTIVE_HEAP_P (Free)) && (ALIGNED_P (Free))))
+    if (! ((ADDRESS_IN_HEAP_P (Free)) && (ALIGNED_P (Free))))
       Free = heap_alloc_limit;
   }
   else if (pc_in_scheme)
@@ -705,7 +705,7 @@ pc_in_hyperspace:
        ? ((SCHEME_OBJECT *) NULL)
        : (find_block_address (((void *) the_pc),
 			      (pc_in_heap
-			       ? active_heap_start
+			       ? heap_start
 			       : constant_start))));
 
     if (block_addr != ((SCHEME_OBJECT *) NULL))
@@ -730,7 +730,7 @@ pc_in_hyperspace:
 
     if ((block_addr == 0) && (!pc_in_builtin))
     {
-      if (! ((ADDRESS_IN_ACTIVE_HEAP_P (Free))
+      if (! ((ADDRESS_IN_HEAP_P (Free))
 	     && (ALIGNED_P (Free))
 	     && (!FREE_OK_P (Free))))
 	Free = heap_alloc_limit;
@@ -738,10 +738,10 @@ pc_in_hyperspace:
     else
     {
       maybe_free = ((SCHEME_OBJECT *) context->Edi);
-      if ((ADDRESS_IN_ACTIVE_HEAP_P (maybe_free)) && (ALIGNED_P (maybe_free)))
+      if ((ADDRESS_IN_HEAP_P (maybe_free)) && (ALIGNED_P (maybe_free)))
 	Free = (maybe_free + FREE_PARANOIA_MARGIN);
       else
-	if (! ((ADDRESS_IN_ACTIVE_HEAP_P (Free))
+	if (! ((ADDRESS_IN_HEAP_P (Free))
 	       && (ALIGNED_P (Free))
 	       && (!FREE_OK_P (Free))))
 	  Free = heap_alloc_limit;
@@ -774,7 +774,7 @@ pc_in_hyperspace:
       (trinfo . pc_info_2) = (ULONG_TO_FIXNUM (GET_LEXPR_ACTUALS));
     }
     if ((new_stack_pointer != 0)
-	&& (ADDRESS_IN_ACTIVE_HEAP_P (Free))
+	&& (ADDRESS_IN_HEAP_P (Free))
 	&& (ALIGNED_P (Free)))
       {
 	if (FREE_OK_P (Free))

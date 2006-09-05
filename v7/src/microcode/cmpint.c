@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.6 2006/03/12 02:08:26 cph Exp $
+$Id: cmpint.c,v 1.103.2.7 2006/09/05 03:14:08 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -37,6 +37,8 @@ USA.
 #include "trap.h"
 #include "history.h"
 #include "cmpgc.h"
+
+extern void * tospace_to_newspace (void *);
 
 #if (COMPILER_PROCESSOR_TYPE == COMPILER_SVM_TYPE)
    extern void initialize_svm1 (void);
@@ -2317,22 +2319,27 @@ start_closure_relocation (SCHEME_OBJECT * scan, reloc_ref_t * ref)
 {
   (ref->old_addr) = (CC_ENTRY_ADDRESS (* ((CC_BLOCK_ADDR_END (scan)) - 1)));
   (ref->new_addr)
-    = (compiled_closure_entry (compiled_closure_start (scan + 1)));
+    = (tospace_to_newspace
+       (compiled_closure_entry (compiled_closure_start (scan + 1))));
 }
 
 SCHEME_OBJECT
 read_compiled_closure_target (insn_t * start, reloc_ref_t * ref)
 {
   insn_t * addr = (start + CC_ENTRY_HEADER_SIZE + 1);
-  return (MAKE_CC_ENTRY ((((addr + 4) - (ref->new_addr)) + (ref->old_addr))
-			 + (* ((long *) addr))));
+  return
+    (MAKE_CC_ENTRY (((((insn_t *) (tospace_to_newspace (addr + 4)))
+		      - (ref->new_addr))
+		     + (ref->old_addr))
+		    + (* ((long *) addr))));
 }
 
 void
 write_compiled_closure_target (SCHEME_OBJECT target, insn_t * start)
 {
   insn_t * addr = (start + CC_ENTRY_HEADER_SIZE + 1);
-  (* ((long *) addr)) = ((CC_ENTRY_ADDRESS (target)) - (addr + 4));
+  (* ((long *) addr)) = ((CC_ENTRY_ADDRESS (target))
+			 - ((insn_t *) (tospace_to_newspace (addr + 4))));
 }
 
 #define SINGLE_CLOSURE_OFFSET						\
@@ -2406,27 +2413,28 @@ read_uuo_frame_size (SCHEME_OBJECT * saddr)
 void
 start_operator_relocation (SCHEME_OBJECT * saddr, reloc_ref_t * ref)
 {
+  insn_t * nsaddr = (tospace_to_newspace (saddr));
   (ref->old_addr) = (* ((insn_t **) saddr));
-  (ref->new_addr) = ((insn_t *) saddr);
-  (* ((insn_t **) saddr)) = ((insn_t *) saddr);
+  (ref->new_addr) = nsaddr;
+  (* ((insn_t **) saddr)) = nsaddr;
 }
 
 SCHEME_OBJECT
 read_uuo_target (SCHEME_OBJECT * saddr, reloc_ref_t * ref)
 {
   insn_t * addr = (((insn_t *) saddr) + 4);
+  insn_t * base = (tospace_to_newspace (addr + 4));
   return
     (MAKE_CC_ENTRY (((ref == 0)
-		     ? (addr + 4)
-		     : (((addr + 4) - (ref->new_addr)) + (ref->old_addr)))
+		     ? base
+		     : ((base - (ref->new_addr)) + (ref->old_addr)))
 		    + (* ((long *) addr))));
 }
 
 static SCHEME_OBJECT
 read_uuo_target_no_reloc (SCHEME_OBJECT * saddr)
 {
-  insn_t * addr = (((insn_t *) saddr) + 4);
-  return (MAKE_CC_ENTRY ((addr + 4) + (* ((long *) addr))));
+  return (read_uuo_target (saddr, 0));
 }
 
 void
@@ -2434,7 +2442,8 @@ write_uuo_target (SCHEME_OBJECT target, SCHEME_OBJECT * saddr)
 {
   insn_t * addr = (((insn_t *) saddr) + 3);
   (*addr++) = 0xE9;		/* JMP rel32 */
-  (* ((long *) addr)) = ((CC_ENTRY_ADDRESS (target)) - (addr + 4));
+  (* ((long *) addr)) = ((CC_ENTRY_ADDRESS (target))
+			 - ((insn_t *) (tospace_to_newspace (addr + 4))));
 }
 
 #define TRAMPOLINE_ENTRY_SIZE 3

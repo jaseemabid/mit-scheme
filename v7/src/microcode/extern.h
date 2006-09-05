@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.3 2006/08/30 02:59:48 cph Exp $
+$Id: extern.h,v 9.65.2.4 2006/09/05 03:14:20 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -133,10 +133,8 @@ extern void set_ulong_register (unsigned int, unsigned long);
 
 extern SCHEME_OBJECT * Free;
 extern SCHEME_OBJECT * heap_alloc_limit;
-extern SCHEME_OBJECT * active_heap_start;
-extern SCHEME_OBJECT * active_heap_end;
-extern SCHEME_OBJECT * inactive_heap_start;
-extern SCHEME_OBJECT * inactive_heap_end;
+extern SCHEME_OBJECT * heap_start;
+extern SCHEME_OBJECT * heap_end;
 
 extern SCHEME_OBJECT * stack_pointer;
 extern SCHEME_OBJECT * stack_guard;
@@ -182,7 +180,7 @@ extern unsigned long n_stack_blocks;
 extern SCHEME_OBJECT * memory_block_start;
 extern SCHEME_OBJECT * memory_block_end;
 
-extern unsigned long active_heap_reserved;
+extern unsigned long heap_reserved;
 
 /* Amount of space needed when GC requested */
 extern unsigned long gc_space_needed;
@@ -271,11 +269,9 @@ extern void add_reload_cleanup (void (*) (void));
 extern void execute_reload_cleanups (void);
 
 /* Memory management utilities */
+extern bool object_in_constant_space_p (SCHEME_OBJECT);
+extern bool object_pure_p (SCHEME_OBJECT);
 extern bool pure_test (SCHEME_OBJECT *);
-extern void stack_death (const char *) NORETURN;
-extern void garbage_collect (SCHEME_OBJECT *, SCHEME_OBJECT *);
-extern bool update_allocator_parameters (unsigned long);
-extern void reset_allocator_parameters (void);
 extern SCHEME_OBJECT * find_constant_space_block (SCHEME_OBJECT *);
 extern SCHEME_OBJECT * constant_space_block_pure_start (SCHEME_OBJECT *);
 extern SCHEME_OBJECT * constant_space_block_pure_end (SCHEME_OBJECT *);

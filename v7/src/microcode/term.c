@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: term.c,v 1.20.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: term.c,v 1.20.2.3 2006/09/05 03:16:04 cph Exp $
 
 Copyright 1990,1991,1993,1994,1995,1996 Massachusetts Institute of Technology
 Copyright 2000,2002,2003,2005 Massachusetts Institute of Technology
@@ -236,10 +236,10 @@ termination_gc_out_of_space (void)
   termination_prefix (TERM_GC_OUT_OF_SPACE);
   outf_fatal ("You are out of space at the end of a garbage collection!\n");
   outf_fatal
-    ("Free = %#lx; heap_alloc_limit = %#lx; active_heap_end = %#lx\n",
+    ("Free = %#lx; heap_alloc_limit = %#lx; heap_end = %#lx\n",
      ((unsigned long) Free),
      ((unsigned long) heap_alloc_limit),
-     ((unsigned long) active_heap_end));
+     ((unsigned long) heap_end));
   outf_fatal ("# words needed = %lu; # words available = %lu\n",
 	      gc_space_needed, HEAP_AVAILABLE);
   termination_suffix_trace (TERM_GC_OUT_OF_SPACE);

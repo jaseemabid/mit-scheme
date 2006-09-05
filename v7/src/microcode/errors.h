@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: errors.h,v 9.46.2.3 2006/08/17 17:13:07 cph Exp $
+$Id: errors.h,v 9.46.2.4 2006/09/05 03:14:14 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1993,2001,2005,2006 Massachusetts Institute of Technology
@@ -53,12 +53,12 @@ USA.
 #define ERR_ARG_2_BAD_RANGE			0x11
 #define ERR_ARG_3_BAD_RANGE			0x12
 #define ERR_MACRO_BINDING			0x13
-/* #define ERR_FASDUMP_OVERFLOW			0x14 */
+#define ERR_FASDUMP_OBJECT_TOO_LARGE		0x14
 /* #define ERR_BAD_INTERRUPT_CODE		0x15 */
 /* #define ERR_NO_ERRORS			0x16 */
 #define ERR_FASL_FILE_TOO_BIG			0x17
 #define ERR_FASL_FILE_BAD_DATA			0x18
-#define ERR_IMPURIFY_OUT_OF_SPACE		0x19
+/* #define ERR_IMPURIFY_OUT_OF_SPACE		0x19 */
 #define ERR_WRITE_INTO_PURE_SPACE		0x1A
 /* #define ERR_LOSING_SPARE_HEAP		0x1B */
 /* #define ERR_NO_HASH_TABLE			0x1C */
@@ -124,12 +124,12 @@ USA.
 /* 0x11 */		"ARG-2-BAD-RANGE",				\
 /* 0x12 */		"ARG-3-BAD-RANGE",				\
 /* 0x13 */		"MACRO-BINDING",				\
-/* 0x14 */		0,						\
+/* 0x14 */		"FASDUMP-OBJECT-TOO-LARGE",			\
 /* 0x15 */		0,						\
 /* 0x16 */		0,						\
 /* 0x17 */		"FASL-FILE-TOO-BIG",				\
 /* 0x18 */		"FASL-FILE-BAD-DATA",				\
-/* 0x19 */		"IMPURIFY-OUT-OF-SPACE",			\
+/* 0x19 */		0,						\
 /* 0x1A */		"WRITE-INTO-PURE-SPACE",			\
 /* 0x1B */		0,						\
 /* 0x1C */		0,						\

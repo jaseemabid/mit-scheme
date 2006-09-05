@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: mips.h,v 1.25.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: mips.h,v 1.25.2.3 2006/09/05 03:16:46 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1998 Massachusetts Institute of Technology
 Copyright 2005 Massachusetts Institute of Technology
@@ -467,7 +467,7 @@ do {									\
 #define FLUSH_I_CACHE() do						\
 {									\
   FLUSH_BOTH (constant_start,						\
-	      (((unsigned long) active_heap_end)			\
+	      (((unsigned long) heap_end)				\
 	       - ((unsigned long) constant_start)));			\
 } while (0)
 
@@ -640,7 +640,7 @@ allocate_closure (long size)
     {
       if (GC_NEEDED_P (size))
       {
-	if ((active_heap_end - Free) < size)
+	if ((heap_end - Free) < size)
 	{
 	  /* No way to back out -- die. */
 	  fprintf (stderr, "\nC_allocate_closure (%d): No space.\n", size);

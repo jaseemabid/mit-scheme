@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: intrpt.h,v 1.24.2.3 2006/08/16 19:25:13 cph Exp $
+$Id: intrpt.h,v 1.24.2.4 2006/09/05 03:15:03 cph Exp $
 
 Copyright 1987,1992,1993,1994,1997,2000 Massachusetts Institute of Technology
 Copyright 2003,2005,2006 Massachusetts Institute of Technology
@@ -73,7 +73,7 @@ USA.
      ? memory_block_start						\
      : (GC_ENABLED_P ())						\
      ? heap_alloc_limit							\
-     : active_heap_end);						\
+     : heap_end);							\
   SET_STACK_GUARD							\
     ((INTERRUPT_ENABLED_P (INT_Stack_Overflow))				\
      ? stack_guard							\
@@ -109,10 +109,10 @@ USA.
   RELEASE_INTERRUPT_REGISTERS ();					\
 } while (0)
 
-#define INITIALIZE_INTERRUPTS() do					\
+#define INITIALIZE_INTERRUPTS(mask) do					\
 {									\
   GRAB_INTERRUPT_REGISTERS ();						\
-  SET_INT_MASK (INT_Mask);						\
+  SET_INT_MASK (mask);							\
   SET_INT_CODE (0);							\
   COMPILER_SETUP_INTERRUPT ();						\
   RELEASE_INTERRUPT_REGISTERS ();					\
