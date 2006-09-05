@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.13 2006/09/05 19:17:19 cph Exp $
+$Id: gcloop.c,v 9.51.2.14 2006/09/05 19:24:28 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -335,6 +335,9 @@ initialize_gc_table (gc_table_t * table, bool transport_p)
 	  }
 	break;
       }
+  /* The next is for backwards compatibility with older bands.
+     This type used to be TC_MANIFEST_SPECIAL_NM_VECTOR.  */
+  (GCT_ENTRY (table, 0x2B)) = gc_handle_non_pointer;
   (GCT_TUPLE (table)) = gc_tuple;
   (GCT_VECTOR (table)) = gc_vector;
   (GCT_CC_ENTRY (table)) = gc_cc_entry;
