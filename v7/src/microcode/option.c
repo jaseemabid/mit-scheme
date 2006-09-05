@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: option.c,v 1.61.2.3 2006/08/29 19:40:31 cph Exp $
+$Id: option.c,v 1.61.2.4 2006/09/05 03:07:16 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,1999,2000,2001 Massachusetts Institute of Technology
@@ -1199,9 +1199,9 @@ read_command_line_options (int argc, const char ** argv)
       {
 	if (OS_file_directory_p ("/var/tmp"))
 	  dir = "/var/tmp";
-	if (OS_file_directory_p ("/usr/tmp"))
+	else if (OS_file_directory_p ("/usr/tmp"))
 	  dir = "/usr/tmp";
-	if (OS_file_directory_p ("/tmp"))
+	else if (OS_file_directory_p ("/tmp"))
 	  dir = "/tmp";
       }
 #endif /* __unix__ */
