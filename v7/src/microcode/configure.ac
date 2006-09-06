@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.7 2006/08/29 04:44:31 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.8 2006/09/06 05:06:12 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -135,6 +135,7 @@ AC_ARG_WITH([db4],
 AC_ARG_WITH([libpq],
 [[  --with-libpq             Use PostgreSQL libpq library if available [yes]]])
 
+enable_debugging="${enable_debugging:-no}"
 enable_native_code="${enable_native_code:-yes}"
 enable_svm="${enable_svm:-no}"
 enable_cmpint="no"
@@ -179,7 +180,7 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 if test "${GCC}" = "yes"; then
-    if test "${enable_debugging:-no}" = "yes"; then
+    if test "${enable_debugging}" = "yes"; then
 	CFLAGS="-O0 -g -DENABLE_DEBUGGING_TOOLS"
 	LDFLAGS="${LDFLAGS} -g"
     else
@@ -675,6 +676,9 @@ if test "${scheme_cv_lib_mhash}" = "yes"; then
 	else
 	    QUASI_STATIC_LIBS="${QUASI_STATIC_LIBS} -lmhash"
 	    OPTIONAL_BASES="${OPTIONAL_BASES} prmhash"
+	fi
+	if test "${enable_debugging}" = "yes"; then
+	   LIBS="${LIBS} -lmhash"
 	fi
 	HAVE_MD5="yes"
     fi

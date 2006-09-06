@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.9 2006/09/05 03:14:26 cph Exp $
+$Id: fasdump.c,v 9.68.2.10 2006/09/06 05:06:18 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -39,6 +39,30 @@ USA.
 #include "lookup.h"
 #include "fasl.h"
 #include <setjmp.h>
+
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+#  define SAVE_GC_VARS save_gc_vars
+   static void save_gc_vars (void);
+#  define COMPARE_GC_VARS compare_gc_vars
+   static void compare_gc_vars (void);
+#  ifdef HAVE_MHASH_H
+#    include <mhash.h>
+#    define SAVE_MEMORY_CHECKSUM save_memory_checksum
+     static void save_memory_checksum (void);
+#    define COMPARE_MEMORY_CHECKSUM compare_memory_checksum
+     static void compare_memory_checksum (void);
+     static void * compute_memory_checksum (void);
+#  else
+#    define SAVE_MEMORY_CHECKSUM() do {} while (false)
+#    define CHECK_MEMORY_CHECKSUM() do {} while (false)
+#  endif
+#else
+#  define SAVE_GC_VARS() do {} while (false)
+#  define COMPARE_GC_VARS() do {} while (false)
+#endif
+
+#ifndef SAVE_MEMORY_CHECKSUM
+#endif
 
 typedef enum { FE_ERROR, FE_DUMP, FE_DROP_CC } env_mode_t;
 
@@ -105,6 +129,9 @@ at by compiled code are ignored (and discarded).")
   bool ok;
   PRIMITIVE_HEADER (3);
 
+  SAVE_GC_VARS ();
+  SAVE_MEMORY_CHECKSUM ();
+
   transaction_begin ();		/* 1 */
   (ff_info . filename) = (STRING_ARG (2));
   if (!open_fasl_output_file ((ff_info . filename), (& (ff_info . handle))))
@@ -152,6 +179,9 @@ at by compiled code are ignored (and discarded).")
 	&& (save_tospace_to_fasl_file (ff_info . handle)));
   transaction_commit ();	/* 1 */
 
+  COMPARE_GC_VARS ();
+  COMPARE_MEMORY_CHECKSUM ();
+
   PRIMITIVE_RETURN (BOOLEAN_TO_OBJECT (ok));
 }
 
@@ -162,6 +192,115 @@ close_fasl_file (void * p)
   if (!close_fasl_output_file (ff_info->handle))
     OS_file_remove (ff_info->filename);
 }
+
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+
+static SCHEME_OBJECT * fasdump_saved_Free;
+static SCHEME_OBJECT * fasdump_saved_heap_alloc_limit;
+static SCHEME_OBJECT * fasdump_saved_heap_start;
+static SCHEME_OBJECT * fasdump_saved_heap_end;
+static SCHEME_OBJECT * fasdump_saved_stack_pointer;
+static SCHEME_OBJECT * fasdump_saved_stack_guard;
+static SCHEME_OBJECT * fasdump_saved_stack_start;
+static SCHEME_OBJECT * fasdump_saved_stack_end;
+static SCHEME_OBJECT * fasdump_saved_constant_alloc_next;
+static SCHEME_OBJECT * fasdump_saved_constant_start;
+static SCHEME_OBJECT * fasdump_saved_constant_end;
+
+#define SAVE_GC_VAR(name) fasdump_saved_##name = name
+
+static void
+save_gc_vars (void)
+{
+  SAVE_GC_VAR (Free);
+  SAVE_GC_VAR (heap_alloc_limit);
+  SAVE_GC_VAR (heap_start);
+  SAVE_GC_VAR (heap_end);
+  SAVE_GC_VAR (stack_pointer);
+  SAVE_GC_VAR (stack_guard);
+  SAVE_GC_VAR (stack_start);
+  SAVE_GC_VAR (stack_end);
+  SAVE_GC_VAR (constant_alloc_next);
+  SAVE_GC_VAR (constant_start);
+  SAVE_GC_VAR (constant_end);
+}
+
+#define COMPARE_GC_VAR(name) do						\
+{									\
+  if (fasdump_saved_##name != name)					\
+    outf_error ("GC variable changed: " #name ": %p -> %p\n",		\
+		fasdump_saved_##name, name);				\
+} while (false)
+
+static void
+compare_gc_vars (void)
+{
+  COMPARE_GC_VAR (Free);
+  COMPARE_GC_VAR (heap_alloc_limit);
+  COMPARE_GC_VAR (heap_start);
+  COMPARE_GC_VAR (heap_end);
+  COMPARE_GC_VAR (stack_pointer);
+  COMPARE_GC_VAR (stack_guard);
+  COMPARE_GC_VAR (stack_start);
+  COMPARE_GC_VAR (stack_end);
+  COMPARE_GC_VAR (constant_alloc_next);
+  COMPARE_GC_VAR (constant_start);
+  COMPARE_GC_VAR (constant_end);
+}
+
+#ifdef HAVE_MHASH_H
+
+static void * fasdump_original_digest;
+
+static void
+save_memory_checksum (void)
+{
+  fasdump_original_digest = (compute_memory_checksum ());
+  if (fasdump_original_digest == 0)
+    outf_error ("Unable to compute fasdump memory checksum.");
+}
+
+static void
+compare_memory_checksum (void)
+{
+  if (fasdump_original_digest != 0)
+    {
+      void * digest = (compute_memory_checksum ());
+      if (digest == 0)
+	outf_error ("Unable to recompute fasdump memory checksum.");
+      else
+	{
+	  if ((memcmp (digest,
+		       fasdump_original_digest,
+		       (mhash_get_block_size (MHASH_MD5))))
+	      != 0)
+	    outf_error ("Memory mismatch after fasdump.");
+	  free (digest);
+	}
+      free (fasdump_original_digest);
+    }
+}
+
+static void *
+compute_memory_checksum (void)
+{
+  MHASH ctx = (mhash_init (MHASH_MD5));
+  if (ctx == MHASH_FAILED)
+    return (0);
+  (void) mhash (ctx,
+		fasdump_saved_constant_start,
+		((fasdump_saved_constant_alloc_next
+		  - fasdump_saved_constant_start)
+		 * SIZEOF_SCHEME_OBJECT));
+  (void) mhash (ctx,
+		fasdump_saved_heap_start,
+		((fasdump_saved_Free - fasdump_saved_heap_start)
+		 * SIZEOF_SCHEME_OBJECT));
+  return (mhash_end (ctx));
+}
+
+#endif /* HAVE_MHASH_H */
+#endif /* ENABLE_GC_DEBUGGING_TOOLS */
 
 static gc_table_t *
 fasdump_table (void)
