@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.7 2006/09/05 03:14:50 cph Exp $
+$Id: gccode.h,v 9.60.2.8 2006/09/07 18:27:38 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
@@ -156,6 +156,7 @@ extern void initialize_gc_table (gc_table_t *, bool);
 typedef void gc_tospace_allocator_t
   (unsigned long, SCHEME_OBJECT **, SCHEME_OBJECT **);
 typedef void gc_abort_handler_t (void);
+typedef bool gc_walk_proc_t (SCHEME_OBJECT *, SCHEME_OBJECT *, void *);
 
 extern void initialize_gc
   (unsigned long, SCHEME_OBJECT **, SCHEME_OBJECT **,
@@ -172,7 +173,7 @@ extern SCHEME_OBJECT * get_newspace_ptr (void);
 extern void * tospace_to_newspace (void *);
 extern void * newspace_to_tospace (void *);
 extern SCHEME_OBJECT * save_tospace_to_newspace (void);
-extern bool save_tospace_to_fasl_file (fasl_file_handle_t);
+extern bool walk_tospace (gc_walk_proc_t *, void *);
 
 extern void initialize_weak_chain (void);
 extern void update_weak_pointers (void);
@@ -189,9 +190,9 @@ extern void gc_no_cc_support (void) NORETURN;
 extern void gc_bad_type (SCHEME_OBJECT) NORETURN;
 
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
-   extern void collect_gc_objects_referring (SCHEME_OBJECT, SCHEME_OBJECT);
-   extern void initialize_gc_objects_referring (void);
-   extern void finalize_gc_objects_referring (void);
+   extern void collect_gc_object_references (SCHEME_OBJECT, SCHEME_OBJECT);
+   extern void initialize_gc_object_references (void);
+   extern void finalize_gc_object_references (void);
 #endif
 
 #endif /* not SCM_GCCODE_H */

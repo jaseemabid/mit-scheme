@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: memmag.c,v 9.71.2.6 2006/09/05 03:15:09 cph Exp $
+$Id: memmag.c,v 9.71.2.7 2006/09/07 18:27:41 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -281,30 +281,30 @@ static SCHEME_OBJECT * saved_to;
 void
 std_gc_pt1 (void)
 {
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+  initialize_gc_object_references ();
+#endif
+
   saved_to = (get_newspace_ptr ());
   add_to_tospace (fixed_objects);
   add_to_tospace
     (MAKE_POINTER_OBJECT (UNMARKED_HISTORY_TYPE, history_register));
   add_to_tospace (current_state_point);
 
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-  initialize_gc_objects_referring ();
-#endif
-
   current_gc_table = (std_gc_table ());
   gc_scan_oldspace (stack_pointer, stack_end);
   gc_scan_oldspace (constant_start, constant_alloc_next);
   gc_scan_tospace (saved_to, 0);
+
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+  finalize_gc_object_references ();
+#endif
+  update_weak_pointers ();
 }
 
 void
 std_gc_pt2 (void)
 {
-#ifdef ENABLE_GC_DEBUGGING_TOOLS
-  finalize_gc_objects_referring ();
-#endif
-
-  update_weak_pointers ();
   Free = (save_tospace_to_newspace ());
 
   fixed_objects = (*saved_to++);
@@ -337,7 +337,7 @@ DEFINE_PRIMITIVE ("GC-TRACE-REFERENCES", Prim_gc_trace_references, 2, 2, 0)
 	       && ((VECTOR_LENGTH (collector)) >= 1))))
       error_wrong_type_arg (2);
 #ifdef ENABLE_GC_DEBUGGING_TOOLS
-    collect_gc_objects_referring ((ARG_REF (1)), collector);
+    collect_gc_object_references ((ARG_REF (1)), collector);
 #else
     error_external_return ();
 #endif

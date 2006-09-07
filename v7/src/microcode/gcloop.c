@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.14 2006/09/05 19:24:28 cph Exp $
+$Id: gcloop.c,v 9.51.2.15 2006/09/07 18:27:40 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -141,10 +141,10 @@ static void tospace_open (void);
    static SCHEME_OBJECT * gc_to_trap = 0;
 
    static SCHEME_OBJECT gc_object_referenced = SHARP_F;
-   static SCHEME_OBJECT gc_objects_referring = SHARP_F;
-   static unsigned long gc_objects_referring_count;
-   static SCHEME_OBJECT * gc_objects_referring_scan;
-   static SCHEME_OBJECT * gc_objects_referring_end;
+   static SCHEME_OBJECT gc_object_references = SHARP_F;
+   static unsigned long gc_object_references_count;
+   static SCHEME_OBJECT * gc_object_references_scan;
+   static SCHEME_OBJECT * gc_object_references_end;
 
    static void initialize_gc_history (void);
    static void handle_gc_trap (SCHEME_OBJECT *, SCHEME_OBJECT);
@@ -207,15 +207,13 @@ save_tospace_to_newspace (void)
 }
 
 bool
-save_tospace_to_fasl_file (fasl_file_handle_t handle)
+walk_tospace (gc_walk_proc_t * proc, void * ctx)
 {
   bool ok;
 
   GUARANTEE_TOSPACE_OPEN ();
   CHECK_NEWSPACE_SYNC ();
-  ok = (write_to_fasl_file (tospace_start,
-			    (tospace_next - tospace_start),
-			    handle));
+  ok = (proc (tospace_start, tospace_next, ctx));
   CLOSE_TOSPACE ();
   return (ok);
 }
@@ -895,81 +893,81 @@ check_newspace_sync (void)
 }
 
 void
-collect_gc_objects_referring (SCHEME_OBJECT object, SCHEME_OBJECT collector)
+collect_gc_object_references (SCHEME_OBJECT object, SCHEME_OBJECT collector)
 {
   gc_object_referenced = object;
-  gc_objects_referring = collector;
+  gc_object_references = collector;
 }
 
 static void
 debug_transport_one_word (SCHEME_OBJECT object, SCHEME_OBJECT * from)
 {
-  if ((gc_objects_referring != SHARP_F)
+  if ((gc_object_references != SHARP_F)
       && (gc_object_referenced == (*from)))
     {
-      gc_objects_referring_count += 1;
-      if (gc_objects_referring_scan < gc_objects_referring_end)
-	(*gc_objects_referring_scan++) = object;
+      gc_object_references_count += 1;
+      if (gc_object_references_scan < gc_object_references_end)
+	(*gc_object_references_scan++) = object;
     }
 }
 
 void
-initialize_gc_objects_referring (void)
+initialize_gc_object_references (void)
 {
-  if (gc_objects_referring != SHARP_F)
+  if (gc_object_references != SHARP_F)
     {
       /* Temporarily change to non-marked vector.  */
       MEMORY_SET
-	(gc_objects_referring, 0,
+	(gc_object_references, 0,
 	 (MAKE_OBJECT
 	  (TC_MANIFEST_NM_VECTOR,
-	   (OBJECT_DATUM (MEMORY_REF (gc_objects_referring, 0))))));
-      gc_objects_referring_count = 0;
-      gc_objects_referring_scan = (VECTOR_LOC (gc_objects_referring, 1));
-      gc_objects_referring_end
-	= (VECTOR_LOC (gc_objects_referring,
-		       (VECTOR_LENGTH (gc_objects_referring))));
+	   (OBJECT_DATUM (MEMORY_REF (gc_object_references, 0))))));
+      gc_object_references_count = 0;
+      gc_object_references_scan = (VECTOR_LOC (gc_object_references, 1));
+      gc_object_references_end
+	= (VECTOR_LOC (gc_object_references,
+		       (VECTOR_LENGTH (gc_object_references))));
       /* Wipe the table.  */
-      VECTOR_SET (gc_objects_referring, 0, FIXNUM_ZERO);
+      VECTOR_SET (gc_object_references, 0, FIXNUM_ZERO);
       {
-	SCHEME_OBJECT * scan = gc_objects_referring_scan;
-	while (scan < gc_objects_referring_end)
+	SCHEME_OBJECT * scan = gc_object_references_scan;
+	while (scan < gc_object_references_end)
 	  (*scan++) = SHARP_F;
       }
-      (*tospace_next++) = gc_objects_referring;
+      (*tospace_next++) = gc_object_references;
       newspace_next += 1;
     }
 }
 
 void
-finalize_gc_objects_referring (void)
+finalize_gc_object_references (void)
 {
-  if (gc_objects_referring != SHARP_F)
+  if (gc_object_references != SHARP_F)
     {
-      SCHEME_OBJECT header = (MEMORY_REF (gc_objects_referring, 0));
+      SCHEME_OBJECT header = (MEMORY_REF (gc_object_references, 0));
       if (BROKEN_HEART_P (header))
 	{
 	  SCHEME_OBJECT * to_addr
 	    = (NEWSPACE_TO_TOSPACE (OBJECT_ADDRESS (header)));
 	  SCHEME_OBJECT * scan_to = to_addr;
-	  SCHEME_OBJECT * scan_from = (VECTOR_LOC (gc_objects_referring, 0));
+	  SCHEME_OBJECT * scan_from = (VECTOR_LOC (gc_object_references, 0));
 
 	  /* Change back to marked vector.  */
-	  (*scan_to++) = (MAKE_OBJECT (TC_MANIFEST_VECTOR,
-				       (OBJECT_DATUM (*to_addr))));
+	  (*scan_to++)
+	    = (MAKE_OBJECT (TC_MANIFEST_VECTOR, (OBJECT_DATUM (*to_addr))));
 
 	  /* Store the count in the table.  */
-	  VECTOR_SET (gc_objects_referring, 0,
-		      (ULONG_TO_FIXNUM (gc_objects_referring_count)));
+	  VECTOR_SET (gc_object_references, 0,
+		      (ULONG_TO_FIXNUM (gc_object_references_count)));
 
 	  /* Make sure tospace copy is up to date.  */
-	  while (scan_from < gc_objects_referring_scan)
+	  while (scan_from < gc_object_references_scan)
 	    (*scan_to++) = (*scan_from++);
 
 	  /* No need to scan the vector's contents, since anything
 	     here has already been transported.  */
 	}
-      gc_objects_referring = SHARP_F;
+      gc_object_references = SHARP_F;
       gc_object_referenced = SHARP_F;
     }
 }
