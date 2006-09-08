@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: purify.c,v 9.65.2.10 2006/09/05 19:10:31 cph Exp $
+$Id: purify.c,v 9.65.2.11 2006/09/08 03:33:59 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1997,2000,2001 Massachusetts Institute of Technology
@@ -98,8 +98,6 @@ purify (SCHEME_OBJECT object)
 
   current_gc_table = (std_gc_table ());
   gc_scan_tospace (start_copy, 0);
-
-  update_weak_pointers ();
 
   new_constant_alloc_next = (get_newspace_ptr ());
   increment_tospace_ptr (CONSTANT_SPACE_FUDGE);
