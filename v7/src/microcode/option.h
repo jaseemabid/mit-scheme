@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: option.h,v 1.16.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: option.h,v 1.16.2.3 2006/09/08 17:02:45 cph Exp $
 
 Copyright 1990,1991,1992,1993,1995,2003 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -40,26 +40,17 @@ extern bool option_force_interactive;
 extern bool option_disable_core_dump;
 extern bool option_batch_mode;
 extern bool option_band_specified;
-extern bool option_gc_keep;
 
 /* String options */
 extern const char ** option_library_path;
 extern const char * option_band_file;
 extern const char * option_fasl_file;
 extern const char * option_utabmd_file;
-extern const char * option_gc_directory;
-extern const char * option_gc_drone;
-extern const char * option_gc_file;
 
 /* Numeric options */
 extern unsigned long option_heap_size;
 extern unsigned long option_constant_size;
 extern unsigned long option_stack_size;
-extern unsigned long option_gc_read_overlap;
-extern unsigned long option_gc_window_size;
-extern unsigned long option_gc_write_overlap;
-extern unsigned long option_gc_start_position;
-extern unsigned long option_gc_end_position;
 
 extern void read_command_line_options (int argc, const char ** argv);
 
