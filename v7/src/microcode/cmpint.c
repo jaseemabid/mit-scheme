@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.8 2006/09/08 06:07:47 cph Exp $
+$Id: cmpint.c,v 1.103.2.9 2006/09/08 17:02:14 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -1030,6 +1030,12 @@ link_section (link_cc_state_t * s)
 
   if (execute_p)
     {
+      /* Hair: START_OPERATOR_RELOCATION requires scan to be pointing
+	 to the first word after the header.  Also, it might move scan
+	 forward.  If we are just starting the link, just use scan as
+	 the argument and let it be changed.  If we are restarting, we
+	 need to use use a temporary variable that points to the right
+	 place.  */
       if (n_linked == 0)
 	START_OPERATOR_RELOCATION (scan, ref);
       else
@@ -1053,6 +1059,8 @@ link_section (link_cc_state_t * s)
     }
 
  done:
+  /* If we failed on the first entry, back scan up to where it was
+     before START_OPERATOR_RELOCATION possibly changed it.  */
   (s->scan) = ((n_linked == 0) ? scan1 : scan);
   (s->n_linked_entries) = n_linked;
   (* (s->scan0)) = (make_linkage_section_marker ((s->type), n_linked));
