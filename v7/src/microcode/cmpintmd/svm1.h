@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.h,v 1.1.2.3 2006/08/29 04:37:46 cph Exp $
+$Id: svm1.h,v 1.1.2.4 2006/09/08 06:06:42 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -49,10 +49,6 @@ typedef byte_t insn_t;
 /* Number of insn_t units preceding entry header in which GC trap
    instructions are stored.  */
 #define CC_ENTRY_GC_TRAP_SIZE 0
-
-#define DECLARE_RELOCATION_REFERENCE(name)
-#define START_OPERATOR_RELOCATION(scan, name) do {} while (0)
-#define END_OPERATOR_RELOCATION(scan, name) do {} while (0)
 
 /* Size of execution cache in SCHEME_OBJECTS.  */
 #define UUO_LINK_SIZE 2
