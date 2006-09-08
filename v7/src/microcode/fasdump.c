@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.11 2006/09/07 18:27:36 cph Exp $
+$Id: fasdump.c,v 9.68.2.12 2006/09/08 02:18:14 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -73,7 +73,7 @@ typedef struct
 } fasl_file_info_t;
 
 static void close_fasl_file (void *);
-static gc_walk_proc_t walk_tospace_write;
+static gc_walk_proc_t save_tospace_write;
 
 static fasl_header_t fasl_header;
 static fasl_header_t * fh;
@@ -177,7 +177,7 @@ at by compiled code are ignored (and discarded).")
   (FASLHDR_PRIMITIVE_TABLE_SIZE (fh)) = prim_table_length;
 
   ok = ((write_fasl_header (fh, (ff_info . handle)))
-	&& (walk_tospace (walk_tospace_write, (&ff_info))));
+	&& (save_tospace (save_tospace_write, (&ff_info))));
   transaction_commit ();	/* 1 */
 
   COMPARE_GC_VARS ();
@@ -195,7 +195,7 @@ close_fasl_file (void * p)
 }
 
 static bool
-walk_tospace_write (SCHEME_OBJECT * start, SCHEME_OBJECT * end, void * p)
+save_tospace_write (SCHEME_OBJECT * start, SCHEME_OBJECT * end, void * p)
 {
   fasl_file_info_t * ff_info = p;
   return (write_to_fasl_file (start, (end - start), (ff_info->handle)));

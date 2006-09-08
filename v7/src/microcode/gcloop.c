@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.15 2006/09/07 18:27:40 cph Exp $
+$Id: gcloop.c,v 9.51.2.16 2006/09/08 02:18:26 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -191,23 +191,8 @@ open_tospace (SCHEME_OBJECT * start)
   newspace_end = (start + (tospace_end - tospace_start));
 }
 
-SCHEME_OBJECT *
-save_tospace_to_newspace (void)
-{
-  SCHEME_OBJECT * p;
-
-  GUARANTEE_TOSPACE_OPEN ();
-  CHECK_NEWSPACE_SYNC ();
-  p = newspace_next;
-  (void) memmove (newspace_start,
-		  tospace_start,
-		  ((tospace_next - tospace_start) * SIZEOF_SCHEME_OBJECT));
-  CLOSE_TOSPACE ();
-  return (p);
-}
-
 bool
-walk_tospace (gc_walk_proc_t * proc, void * ctx)
+save_tospace (gc_walk_proc_t * proc, void * ctx)
 {
   bool ok;
 

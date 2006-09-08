@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: memmag.c,v 9.71.2.7 2006/09/07 18:27:41 cph Exp $
+$Id: memmag.c,v 9.71.2.8 2006/09/08 02:18:33 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -73,6 +73,7 @@ static unsigned long saved_stack_size;
 
 static gc_tospace_allocator_t allocate_tospace;
 static gc_abort_handler_t abort_gc NORETURN;
+static gc_walk_proc_t save_tospace_copy;
 
 /* Memory Allocation, sequential processor:
 
@@ -305,7 +306,9 @@ std_gc_pt1 (void)
 void
 std_gc_pt2 (void)
 {
-  Free = (save_tospace_to_newspace ());
+  SCHEME_OBJECT * p = (get_newspace_ptr ());
+  (void) save_tospace (save_tospace_copy, 0);
+  Free = p;
 
   fixed_objects = (*saved_to++);
   history_register = (OBJECT_ADDRESS (*saved_to++));
@@ -314,6 +317,15 @@ std_gc_pt2 (void)
 
   CC_TRANSPORT_END ();
   CLEAR_INTERRUPT (INT_GC);
+}
+
+static bool
+save_tospace_copy (SCHEME_OBJECT * start, SCHEME_OBJECT * end, void * p)
+{
+  (void) memmove ((tospace_to_newspace (start)),
+		  start,
+		  ((end - start) * SIZEOF_SCHEME_OBJECT));
+  return (true);
 }
 
 void

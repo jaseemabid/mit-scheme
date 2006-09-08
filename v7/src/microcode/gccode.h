@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.8 2006/09/07 18:27:38 cph Exp $
+$Id: gccode.h,v 9.60.2.9 2006/09/08 02:18:20 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
@@ -172,8 +172,7 @@ extern void increment_tospace_ptr (unsigned long);
 extern SCHEME_OBJECT * get_newspace_ptr (void);
 extern void * tospace_to_newspace (void *);
 extern void * newspace_to_tospace (void *);
-extern SCHEME_OBJECT * save_tospace_to_newspace (void);
-extern bool walk_tospace (gc_walk_proc_t *, void *);
+extern bool save_tospace (gc_walk_proc_t *, void *);
 
 extern void initialize_weak_chain (void);
 extern void update_weak_pointers (void);
