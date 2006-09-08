@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.9 2006/09/08 02:18:20 cph Exp $
+$Id: gccode.h,v 9.60.2.10 2006/09/08 02:42:57 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
@@ -119,6 +119,9 @@ typedef struct
 #define GC_HANDLE_CC_ENTRY(object)					\
   ((* (GCT_CC_ENTRY (current_gc_table))) ((object)))
 
+#define GC_HANDLE_WEAK_PAIR(object)					\
+  ((* (GCT_WEAK_PAIR (current_gc_table))) ((object)))
+
 #define GC_PRECHECK_FROM(from)						\
   ((* (GCT_PRECHECK_FROM (current_gc_table))) ((from)))
 
@@ -132,6 +135,7 @@ extern gc_handler_t gc_handle_cell;
 extern gc_handler_t gc_handle_pair;
 extern gc_handler_t gc_handle_triple;
 extern gc_handler_t gc_handle_quadruple;
+extern gc_handler_t gc_handle_weak_pair;
 extern gc_handler_t gc_handle_cc_entry;
 extern gc_handler_t gc_handle_aligned_vector;
 extern gc_handler_t gc_handle_unaligned_vector;

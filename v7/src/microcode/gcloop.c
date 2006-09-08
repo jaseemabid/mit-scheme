@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.16 2006/09/08 02:18:26 cph Exp $
+$Id: gcloop.c,v 9.51.2.17 2006/09/08 02:43:03 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -146,6 +146,8 @@ static void tospace_open (void);
    static SCHEME_OBJECT * gc_object_references_scan;
    static SCHEME_OBJECT * gc_object_references_end;
 
+   static unsigned long weak_chain_length;
+
    static void initialize_gc_history (void);
    static void handle_gc_trap (SCHEME_OBJECT *, SCHEME_OBJECT);
    static void check_newspace_sync (void);
@@ -281,11 +283,17 @@ initialize_gc_table (gc_table_t * table, bool transport_p)
       {
       case GC_NON_POINTER: SIMPLE_HANDLER (gc_handle_non_pointer);
       case GC_CELL:        SIMPLE_HANDLER (gc_handle_cell);
-      case GC_PAIR:        SIMPLE_HANDLER (gc_handle_pair);
       case GC_TRIPLE:      SIMPLE_HANDLER (gc_handle_triple);
       case GC_QUADRUPLE:   SIMPLE_HANDLER (gc_handle_quadruple);
       case GC_COMPILED:    SIMPLE_HANDLER (gc_handle_cc_entry);
       case GC_UNDEFINED:   SIMPLE_HANDLER (gc_handle_undefined);
+
+      case GC_PAIR:
+	(GCT_ENTRY (table, i))
+	  = ((i == TC_WEAK_CONS)
+	     ? gc_handle_weak_pair
+	     : gc_handle_pair);
+	break;
 
       case GC_VECTOR:
 	(GCT_ENTRY (table, i))
@@ -541,6 +549,12 @@ DEFINE_GC_HANDLER (gc_handle_quadruple)
   return (scan + 1);
 }
 
+DEFINE_GC_HANDLER (gc_handle_weak_pair)
+{
+  (*scan) = (GC_HANDLE_WEAK_PAIR (object));
+  return (scan + 1);
+}
+
 DEFINE_GC_HANDLER (gc_handle_cc_entry)
 {
   (*scan) = (GC_HANDLE_CC_ENTRY (object));
@@ -733,6 +747,9 @@ gc_transport_weak_pair (SCHEME_OBJECT pair)
 	   ? (MAKE_OBJECT ((OBJECT_TYPE (old_car)), 0))
 	   : (MAKE_POINTER_OBJECT ((OBJECT_TYPE (old_car)), weak_chain)));
       weak_chain = old_addr;
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+      weak_chain_length += 1;
+#endif
     }
   return (OBJECT_NEW_ADDRESS (pair, new_addr));
 }
@@ -741,11 +758,20 @@ void
 initialize_weak_chain (void)
 {
   weak_chain = 0;
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+  weak_chain_length = 0;
+#endif
 }
 
 void
 update_weak_pointers (void)
 {
+#if 0
+#ifdef ENABLE_GC_DEBUGGING_TOOLS
+  outf_console ("; **** Weak chain length = %lu\n", weak_chain_length);
+  outf_flush_console ();
+#endif
+#endif
   while (weak_chain != 0)
     {
       SCHEME_OBJECT * new_addr = (OBJECT_ADDRESS (weak_chain[0]));
