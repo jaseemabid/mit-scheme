@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.7 2006/09/05 03:14:08 cph Exp $
+$Id: cmpint.c,v 1.103.2.8 2006/09/08 06:07:47 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -907,6 +907,7 @@ DEFINE_SCHEME_UTILITY_4 (comutil_link,
   start_linking_cc_block ();
   {
     long result = (link_remaining_sections (&s));
+    end_linking_cc_block (&s);
     if (result != PRIM_DONE)
       RETURN_TO_C (result);
   }
@@ -927,10 +928,10 @@ DEFINE_SCHEME_ENTRY (comp_link_caches_restart)
   start_linking_cc_block ();
 
   result = (link_section (&s));
-  if (result != PRIM_DONE)
-    return (result);
-
-  result = (link_remaining_sections (&s));
+  if (result == PRIM_DONE)
+    result = (link_remaining_sections (&s));
+  
+  end_linking_cc_block (&s);
   if (result != PRIM_DONE)
     return (result);
 
@@ -946,13 +947,9 @@ link_remaining_sections (link_cc_state_t * s)
       {
 	long result = (link_section (s));
 	if (result != PRIM_DONE)
-	  {
-	    end_linking_cc_block (s);
-	    return (result);
-	  }
+	  return (result);
       }
     }
-  end_linking_cc_block (s);
   return (PRIM_DONE);
 }
 
@@ -1014,6 +1011,7 @@ start_linking_section (link_cc_state_t * s)
 static long
 link_section (link_cc_state_t * s)
 {
+  SCHEME_OBJECT * scan1 = ((s->scan0) + 1);
   SCHEME_OBJECT * scan = (s->scan);
   SCHEME_OBJECT * block_address = (s->block_address);
   unsigned long n_linked = (s->n_linked_entries);
@@ -1032,7 +1030,10 @@ link_section (link_cc_state_t * s)
 
   if (execute_p)
     {
-      START_OPERATOR_RELOCATION (scan, ref);
+      if (n_linked == 0)
+	START_OPERATOR_RELOCATION (scan, ref);
+      else
+	START_OPERATOR_RELOCATION (scan1, ref);
       entry_size = UUO_LINK_SIZE;
     }
   else
@@ -1050,21 +1051,15 @@ link_section (link_cc_state_t * s)
       scan += entry_size;
       n_linked += 1;
     }
-  if (execute_p)
-    END_OPERATOR_RELOCATION (scan, ref);
 
  done:
-  (s->scan) = scan;
+  (s->scan) = ((n_linked == 0) ? scan1 : scan);
   (s->n_linked_entries) = n_linked;
   (* (s->scan0)) = (make_linkage_section_marker ((s->type), n_linked));
   if (result == PRIM_DONE)
     (s->n_linked_sections) += 1;
   else
-    {
-      back_out_of_link_section (s);
-      transaction_abort ();
-      update_cache_after_link (s);
-    }
+    back_out_of_link_section (s);
   return (result);
 }
 

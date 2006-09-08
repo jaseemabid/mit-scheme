@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.17 2006/09/08 02:43:03 cph Exp $
+$Id: gcloop.c,v 9.51.2.18 2006/09/08 06:07:53 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -624,7 +624,6 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
 	    scan += UUO_LINK_SIZE;
 	    count -= 1;
 	  }
-	END_OPERATOR_RELOCATION (scan, ref);
       }
       break;
 
@@ -659,7 +658,6 @@ DEFINE_GC_HANDLER (gc_handle_manifest_closure)
       }
     scan = (skip_compiled_closure_padding (start));
   }
-  END_CLOSURE_RELOCATION (scan, ref);
   return (scan);
 #else
   return (compiled_closure_objects (scan + 1));

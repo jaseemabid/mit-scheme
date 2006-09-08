@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpgc.h,v 1.34.2.3 2006/08/29 04:44:31 cph Exp $
+$Id: cmpgc.h,v 1.34.2.4 2006/09/08 06:07:38 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -40,10 +40,7 @@ USA.
    reference information when code pointers are relative.
 
    START_CLOSURE_RELOCATION(block_addr, reference) is called
-   immediately before relocating a block of closure entries.
-
-   END_CLOSURE_RELOCATION(block_addr, reference) is called immediately
-   after relocating a block of closure entries.  */
+   immediately before relocating a block of closure entries.  */
 
 #ifndef DECLARE_RELOCATION_REFERENCE
 #  define DECLARE_RELOCATION_REFERENCE(reference)
@@ -51,14 +48,8 @@ USA.
 #ifndef START_CLOSURE_RELOCATION
 #  define START_CLOSURE_RELOCATION(scan, reference) do {} while (false)
 #endif
-#ifndef END_CLOSURE_RELOCATION
-#  define END_CLOSURE_RELOCATION(scan, reference) do {} while (false)
-#endif
 #ifndef START_OPERATOR_RELOCATION
 #  define START_OPERATOR_RELOCATION(scan, reference) do {} while (false)
-#endif
-#ifndef END_OPERATOR_RELOCATION
-#  define END_OPERATOR_RELOCATION(scan, reference) do {} while (false)
 #endif
 
 #ifdef CC_SUPPORT_P
