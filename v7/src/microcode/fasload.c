@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.12 2006/09/05 19:17:17 cph Exp $
+$Id: fasload.c,v 9.96.2.13 2006/09/08 17:17:13 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -81,7 +81,6 @@ static gc_handler_t handle_primitive;
 static gc_tuple_handler_t fasload_tuple;
 static gc_vector_handler_t fasload_vector;
 static gc_object_handler_t fasload_cc_entry;
-static gc_object_handler_t fasload_weak_pair;
 static void * relocate_address (void *);
 
 static gc_table_t * intern_block_table (void);
@@ -89,7 +88,6 @@ static gc_handler_t intern_handle_symbol;
 static gc_tuple_handler_t intern_tuple;
 static gc_vector_handler_t intern_vector;
 static gc_object_handler_t intern_cc_entry;
-static gc_object_handler_t intern_weak_pair;
 
 static SCHEME_OBJECT read_band_file (SCHEME_OBJECT);
 static void terminate_band_load (void *);
@@ -477,8 +475,8 @@ relocate_block_table (void)
       (GCT_TUPLE (&table)) = fasload_tuple;
       (GCT_VECTOR (&table)) = fasload_vector;
       (GCT_CC_ENTRY (&table)) = fasload_cc_entry;
-      (GCT_WEAK_PAIR (&table)) = fasload_weak_pair;
 
+      (GCT_ENTRY ((&table), TC_WEAK_CONS)) = gc_handle_pair;
       (GCT_ENTRY ((&table), TC_PRIMITIVE)) = handle_primitive;
       (GCT_ENTRY ((&table), TC_PCOMB0)) = handle_primitive;
       (GCT_ENTRY ((&table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
@@ -526,12 +524,6 @@ DEFINE_GC_OBJECT_HANDLER (fasload_cc_entry)
 #else
   return (object);
 #endif
-}
-
-static
-DEFINE_GC_OBJECT_HANDLER (fasload_weak_pair)
-{
-  return (RELOCATE_OBJECT (object));
 }
 
 /* Relocate an address as read in from the file.  The address is
@@ -596,8 +588,8 @@ intern_block_table (void)
       (GCT_TUPLE (&table)) = intern_tuple;
       (GCT_VECTOR (&table)) = intern_vector;
       (GCT_CC_ENTRY (&table)) = intern_cc_entry;
-      (GCT_WEAK_PAIR (&table)) = intern_weak_pair;
 
+      (GCT_ENTRY ((&table), TC_WEAK_CONS)) = gc_handle_pair;
       (GCT_ENTRY ((&table), TC_INTERNED_SYMBOL)) = intern_handle_symbol;
       (GCT_ENTRY ((&table), TC_BROKEN_HEART)) = gc_handle_non_pointer;
 
@@ -643,12 +635,6 @@ DEFINE_GC_VECTOR_HANDLER (intern_vector)
 
 static
 DEFINE_GC_OBJECT_HANDLER (intern_cc_entry)
-{
-  return (object);
-}
-
-static
-DEFINE_GC_OBJECT_HANDLER (intern_weak_pair)
 {
   return (object);
 }

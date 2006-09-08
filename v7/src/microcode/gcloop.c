@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.18 2006/09/08 06:07:53 cph Exp $
+$Id: gcloop.c,v 9.51.2.19 2006/09/08 17:17:18 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -119,6 +119,7 @@ static SCHEME_OBJECT current_object;
 static SCHEME_OBJECT * weak_chain;
 
 static void run_gc_loop (SCHEME_OBJECT * , SCHEME_OBJECT **);
+static SCHEME_OBJECT gc_transport_weak_pair (SCHEME_OBJECT);
 static void tospace_closed (void);
 static void tospace_open (void);
 
@@ -283,24 +284,12 @@ initialize_gc_table (gc_table_t * table, bool transport_p)
       {
       case GC_NON_POINTER: SIMPLE_HANDLER (gc_handle_non_pointer);
       case GC_CELL:        SIMPLE_HANDLER (gc_handle_cell);
+      case GC_PAIR:        SIMPLE_HANDLER (gc_handle_pair);
       case GC_TRIPLE:      SIMPLE_HANDLER (gc_handle_triple);
       case GC_QUADRUPLE:   SIMPLE_HANDLER (gc_handle_quadruple);
+      case GC_VECTOR:      SIMPLE_HANDLER (gc_handle_unaligned_vector);
       case GC_COMPILED:    SIMPLE_HANDLER (gc_handle_cc_entry);
       case GC_UNDEFINED:   SIMPLE_HANDLER (gc_handle_undefined);
-
-      case GC_PAIR:
-	(GCT_ENTRY (table, i))
-	  = ((i == TC_WEAK_CONS)
-	     ? gc_handle_weak_pair
-	     : gc_handle_pair);
-	break;
-
-      case GC_VECTOR:
-	(GCT_ENTRY (table, i))
-	  = (((i == TC_COMPILED_CODE_BLOCK) || (i == TC_BIG_FLONUM))
-	     ? gc_handle_aligned_vector
-	     : gc_handle_unaligned_vector);
-	break;
 
       case GC_SPECIAL:
 	switch (i)
@@ -326,13 +315,15 @@ initialize_gc_table (gc_table_t * table, bool transport_p)
 	  }
 	break;
       }
+  (GCT_ENTRY (table, TC_WEAK_CONS)) = gc_handle_weak_pair;
+  (GCT_ENTRY (table, TC_BIG_FLONUM)) = gc_handle_aligned_vector;
+  (GCT_ENTRY (table, TC_COMPILED_CODE_BLOCK)) = gc_handle_aligned_vector;
   /* The next is for backwards compatibility with older bands.
      This type used to be TC_MANIFEST_SPECIAL_NM_VECTOR.  */
   (GCT_ENTRY (table, 0x2B)) = gc_handle_non_pointer;
   (GCT_TUPLE (table)) = gc_tuple;
   (GCT_VECTOR (table)) = gc_vector;
   (GCT_CC_ENTRY (table)) = gc_cc_entry;
-  (GCT_WEAK_PAIR (table)) = gc_weak_pair;
   if (transport_p)
     {
       (GCT_PRECHECK_FROM (table)) = gc_precheck_from;
@@ -436,14 +427,6 @@ DEFINE_GC_OBJECT_HANDLER (gc_cc_entry)
   gc_no_cc_support ();
   return (object);
 #endif
-}
-
-DEFINE_GC_OBJECT_HANDLER (gc_weak_pair)
-{
-  SCHEME_OBJECT * new_address = (GC_PRECHECK_FROM (OBJECT_ADDRESS (object)));
-  return ((new_address != 0)
-	  ? (OBJECT_NEW_ADDRESS (object, new_address))
-	  : (gc_transport_weak_pair (object)));
 }
 
 DEFINE_GC_PRECHECK_FROM (gc_precheck_from)
@@ -551,7 +534,11 @@ DEFINE_GC_HANDLER (gc_handle_quadruple)
 
 DEFINE_GC_HANDLER (gc_handle_weak_pair)
 {
-  (*scan) = (GC_HANDLE_WEAK_PAIR (object));
+  SCHEME_OBJECT * new_address = (GC_PRECHECK_FROM (OBJECT_ADDRESS (object)));
+  (*scan)
+    = ((new_address != 0)
+       ? (OBJECT_NEW_ADDRESS (object, new_address))
+       : (gc_transport_weak_pair (object)));
   return (scan + 1);
 }
 
@@ -708,7 +695,7 @@ DEFINE_GC_HANDLER (gc_handle_undefined)
 
  */
 
-SCHEME_OBJECT
+static SCHEME_OBJECT
 gc_transport_weak_pair (SCHEME_OBJECT pair)
 {
   SCHEME_OBJECT * old_addr = (OBJECT_ADDRESS (pair));

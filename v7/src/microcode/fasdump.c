@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.12 2006/09/08 02:18:14 cph Exp $
+$Id: fasdump.c,v 9.68.2.13 2006/09/08 17:17:12 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -91,7 +91,6 @@ static gc_handler_t handle_variable;
 static gc_handler_t handle_environment;
 
 static gc_object_handler_t fasdump_cc_entry;
-static gc_object_handler_t fasdump_weak_pair;
 static gc_precheck_from_t fasdump_precheck_from;
 static gc_transport_words_t fasdump_transport_words;
 
@@ -321,7 +320,6 @@ fasdump_table (void)
       initialize_gc_table ((&table), true);
 
       (GCT_CC_ENTRY ((&table))) = fasdump_cc_entry;
-      (GCT_WEAK_PAIR ((&table))) = fasdump_weak_pair;
       (GCT_PRECHECK_FROM ((&table))) = fasdump_precheck_from;
       (GCT_TRANSPORT_WORDS ((&table))) = fasdump_transport_words;
 
@@ -334,6 +332,7 @@ fasdump_table (void)
       (GCT_ENTRY ((&table), TC_UNINTERNED_SYMBOL)) = handle_symbol;
       (GCT_ENTRY ((&table), TC_VARIABLE)) = handle_variable;
       (GCT_ENTRY ((&table), TC_ENVIRONMENT)) = handle_environment;
+      (GCT_ENTRY ((&table), TC_WEAK_CONS)) = gc_handle_pair;
 
       initialized_p = true;
     }
@@ -368,12 +367,6 @@ DEFINE_GC_OBJECT_HANDLER (fasdump_cc_entry)
   gc_no_cc_support ();
   return (object);
 #endif
-}
-
-static
-DEFINE_GC_OBJECT_HANDLER (fasdump_weak_pair)
-{
-  return (GC_HANDLE_TUPLE (object, 2));
 }
 
 static

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.10 2006/09/08 02:42:57 cph Exp $
+$Id: gccode.h,v 9.60.2.11 2006/09/08 17:17:15 cph Exp $
 
 Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
@@ -95,7 +95,6 @@ typedef struct
   gc_tuple_handler_t * tuple_handler;
   gc_vector_handler_t * vector_handler;
   gc_object_handler_t * cc_entry_handler;
-  gc_object_handler_t * weak_pair_handler;
   gc_precheck_from_t * precheck_from;
   gc_transport_words_t * transport_words;
   gc_ignore_object_p_t * ignore_object_p;
@@ -105,7 +104,6 @@ typedef struct
 #define GCT_TUPLE(table) ((table)->tuple_handler)
 #define GCT_VECTOR(table) ((table)->vector_handler)
 #define GCT_CC_ENTRY(table) ((table)->cc_entry_handler)
-#define GCT_WEAK_PAIR(table) ((table)->weak_pair_handler)
 #define GCT_PRECHECK_FROM(table) ((table)->precheck_from)
 #define GCT_TRANSPORT_WORDS(table) ((table)->transport_words)
 #define GCT_IGNORE_OBJECT_P(table) ((table)->ignore_object_p)
@@ -118,9 +116,6 @@ typedef struct
 
 #define GC_HANDLE_CC_ENTRY(object)					\
   ((* (GCT_CC_ENTRY (current_gc_table))) ((object)))
-
-#define GC_HANDLE_WEAK_PAIR(object)					\
-  ((* (GCT_WEAK_PAIR (current_gc_table))) ((object)))
 
 #define GC_PRECHECK_FROM(from)						\
   ((* (GCT_PRECHECK_FROM (current_gc_table))) ((from)))
@@ -149,7 +144,6 @@ extern gc_handler_t gc_handle_undefined;
 extern gc_tuple_handler_t gc_tuple;
 extern gc_vector_handler_t gc_vector;
 extern gc_object_handler_t gc_cc_entry;
-extern gc_object_handler_t gc_weak_pair;
 extern gc_precheck_from_t gc_precheck_from;
 extern gc_precheck_from_t gc_precheck_from_no_transport;
 extern gc_transport_words_t gc_transport_words;
@@ -184,8 +178,6 @@ extern void update_weak_pointers (void);
 extern gc_table_t * std_gc_table (void);
 extern void gc_scan_oldspace (SCHEME_OBJECT *, SCHEME_OBJECT *);
 extern void gc_scan_tospace (SCHEME_OBJECT *, SCHEME_OBJECT *);
-
-extern SCHEME_OBJECT gc_transport_weak_pair (SCHEME_OBJECT);
 
 extern void std_gc_death (const char *, ...)
   ATTRIBUTE ((__noreturn__, __format__ (__printf__, 1, 2)));
