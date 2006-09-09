@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.13 2006/09/08 17:17:12 cph Exp $
+$Id: fasdump.c,v 9.68.2.14 2006/09/09 02:34:09 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -52,9 +52,6 @@ USA.
 #    define COMPARE_MEMORY_CHECKSUM compare_memory_checksum
      static void compare_memory_checksum (void);
      static void * compute_memory_checksum (void);
-#  else
-#    define SAVE_MEMORY_CHECKSUM() do {} while (false)
-#    define CHECK_MEMORY_CHECKSUM() do {} while (false)
 #  endif
 #else
 #  define SAVE_GC_VARS() do {} while (false)
@@ -62,6 +59,8 @@ USA.
 #endif
 
 #ifndef SAVE_MEMORY_CHECKSUM
+#  define SAVE_MEMORY_CHECKSUM() do {} while (false)
+#  define CHECK_MEMORY_CHECKSUM() do {} while (false)
 #endif
 
 typedef enum { FE_ERROR, FE_DUMP, FE_DROP_CC } env_mode_t;
