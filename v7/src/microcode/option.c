@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: option.c,v 1.61.2.5 2006/09/08 17:02:44 cph Exp $
+$Id: option.c,v 1.61.2.6 2006/09/09 03:42:15 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,1999,2000,2001 Massachusetts Institute of Technology
@@ -901,7 +901,7 @@ read_command_line_options (int argc, const char ** argv)
       };
     struct band_descriptor * scan = available_bands;
 
-    option_band_specified = 0;
+    option_band_specified = false;
     if (option_band_file != 0)
       xfree (option_band_file);
 
@@ -911,11 +911,11 @@ read_command_line_options (int argc, const char ** argv)
 	    && (option_edwin_defaults ? (scan -> edwin_support_p) : 1)
 	    && (search_for_library_file (scan -> band)))
 	  {
-	    option_band_specified = 1;
+	    option_band_specified = true;
 	    band_variable = (scan -> envvar);
 	    default_band = (scan -> band);
 	    if (scan -> large_p)
-	      option_large_sizes = 1;
+	      option_large_sizes = true;
 	    break;
 	  }
 	scan += 1;
@@ -931,14 +931,14 @@ read_command_line_options (int argc, const char ** argv)
 		     scheme_program_name, option_fasl_file);
 	    termination_init_error ();
 	  }
-	option_large_sizes = 1;
-	option_band_specified = 1;
+	option_large_sizes = true;
+	option_band_specified = true;
 	option_band_file = 0;
       }
     else
       {
 	if (option_raw_band != 0)
-	  option_band_specified = 1;
+	  option_band_specified = true;
 	option_band_file =
 	  (standard_filename_option ("band",
 				     option_raw_band,
@@ -961,7 +961,11 @@ read_command_line_options (int argc, const char ** argv)
 				 (option_large_sizes
 				  ? DEFAULT_LARGE_HEAP
 				  : DEFAULT_SMALL_HEAP)))
-       + (band_sizes_valid ? band_heap_size : 0));
+       + (band_sizes_valid
+	  ? band_heap_size
+	  : (option_fasl_file != 0)
+	  ? DEFAULT_LARGE_CONSTANT
+	  : 0));
   option_constant_size
     = (standard_numeric_option ("constant",
 				option_raw_constant,
