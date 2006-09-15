@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.19 2006/09/08 17:17:18 cph Exp $
+$Id: gcloop.c,v 9.51.2.20 2006/09/15 01:32:28 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,2000,2001,2005,2006 Massachusetts Institute of Technology
@@ -1045,10 +1045,7 @@ gc_type_t gc_type_map [N_TYPE_CODES] =
 gc_type_t
 gc_type_code (unsigned int type_code)
 {
-  gc_type_t type = (gc_type_map[type_code]);
-  if (type == GC_UNDEFINED)
-    std_gc_death ("bad type code = 0x%02x\n", type_code);
-  return (type);
+  return (gc_type_map[type_code]);
 }
 
 gc_ptr_type_t
