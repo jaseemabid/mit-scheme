@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: boot.c,v 9.118.2.4 2006/09/05 03:14:00 cph Exp $
+$Id: boot.c,v 9.118.2.5 2006/09/22 17:57:35 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -380,6 +380,7 @@ Re_Enter_Interpreter (void)
 #define ID_OS_NAME		8	/* OS name (string) */
 #define ID_OS_VARIANT		9	/* OS variant (string) */
 #define ID_STACK_TYPE		10	/* Scheme stack type (string) */
+#define ID_MACHINE_TYPE		11	/* Machine type (string) */
 
 DEFINE_PRIMITIVE ("MICROCODE-IDENTIFY", Prim_microcode_identify, 0, 0, 0)
 {
@@ -402,6 +403,7 @@ DEFINE_PRIMITIVE ("MICROCODE-IDENTIFY", Prim_microcode_identify, 0, 0, 0)
   VECTOR_SET (Result, ID_OS_NAME, (char_pointer_to_string (OS_Name)));
   VECTOR_SET (Result, ID_OS_VARIANT, (char_pointer_to_string (OS_Variant)));
   VECTOR_SET (Result, ID_STACK_TYPE, (char_pointer_to_string ("standard")));
+  VECTOR_SET (Result, ID_MACHINE_TYPE, (char_pointer_to_string (MACHINE_TYPE)));
   PRIMITIVE_RETURN (Result);
 }
 
