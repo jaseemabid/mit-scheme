@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxsig.c,v 1.42.2.5 2006/03/11 04:15:36 cph Exp $
+$Id: uxsig.c,v 1.42.2.6 2006/09/22 18:02:07 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1996 Massachusetts Institute of Technology
 Copyright 2000,2001,2005 Massachusetts Institute of Technology
@@ -56,6 +56,10 @@ extern void UX_reinitialize_tty (void);
 #  endif
 #endif
 
+#ifndef __APPLE__
+#  define HAVE_SIGFPE
+#endif
+
 static Tsignal_handler
 current_handler (int signo)
 {
@@ -78,6 +82,10 @@ INSTALL_HANDLER (int signo, Tsignal_handler handler)
     {
       (SIGACT_HANDLER (&act)) = handler;
       (act . sa_flags) = SA_SIGINFO;
+      /* Work-around for 64-bit environment bug on Mac OSX */
+#if defined(__APPLE__) && defined(__LP64__)
+      (act . sa_flags) |= SA_64REGSET;
+#endif
     }
   UX_sigemptyset (& (act . sa_mask));
   UX_sigaddset ((& (act . sa_mask)), signo);
@@ -321,7 +329,9 @@ initialize_signal_descriptors (void)
   defsignal (SIGTRAP, "SIGTRAP",	dfl_terminate,	CORE_DUMP);
   defsignal (SIGIOT, "SIGIOT",		dfl_terminate,	CORE_DUMP);
   defsignal (SIGEMT, "SIGEMT",		dfl_terminate,	CORE_DUMP);
+#ifdef HAVE_SIGFPE
   defsignal (SIGFPE, "SIGFPE",		dfl_terminate,	CORE_DUMP);
+#endif
   defsignal (SIGKILL, "SIGKILL",	dfl_terminate,	(NOIGNORE | NOBLOCK | NOCATCH));
   defsignal (SIGBUS, "SIGBUS",		dfl_terminate,	CORE_DUMP);
   defsignal (SIGSEGV, "SIGSEGV",	dfl_terminate,	CORE_DUMP);
@@ -533,16 +543,14 @@ DEFUN_STD_HANDLER (sighnd_terminate,
     : 0)))
 
 #if (COMPILER_PROCESSOR_TYPE == COMPILER_IA32_TYPE)
-
-extern void i386_interface_initialize (void);
-#define FPE_RESET_TRAPS i386_interface_initialize
-
+   extern void i386_interface_initialize (void);
+#  define FPE_RESET_TRAPS i386_interface_initialize
 #endif
-
 #ifndef FPE_RESET_TRAPS
 #  define FPE_RESET_TRAPS()
 #endif
 
+#ifdef HAVE_SIGFPE
 static
 DEFUN_STD_HANDLER (sighnd_fpe,
 {
@@ -551,6 +559,7 @@ DEFUN_STD_HANDLER (sighnd_fpe,
   FPE_RESET_TRAPS ();
   trap_handler ("floating-point exception", signo, info, scp);
 })
+#endif
 
 static
 DEFUN_STD_HANDLER (sighnd_hardware_trap,
@@ -595,11 +604,11 @@ DEFUN_STD_HANDLER (sighnd_renice,
 void (*subprocess_death_hook) (pid_t pid, int * status);
 
 #ifdef HAVE_WAITPID
-#define WAITPID(status) (UX_waitpid ((-1), (status), (WNOHANG | WUNTRACED)))
-#define BREAK
+#  define WAITPID(status) (UX_waitpid ((-1), (status), (WNOHANG | WUNTRACED)))
+#  define BREAK
 #else
-#define WAITPID(status) (UX_wait (status))
-#define BREAK break
+#  define WAITPID(status) (UX_wait (status))
+#  define BREAK break
 #endif
 
 static
@@ -664,7 +673,9 @@ UX_initialize_signals (void)
   initialize_signal_descriptors ();
   initialize_signal_debugging ();
   bind_handler (SIGINT,		sighnd_control_g);
+#ifdef HAVE_SIGFPE
   bind_handler (SIGFPE,		sighnd_fpe);
+#endif
   bind_handler (SIGALRM,	sighnd_timer);
   bind_handler (SIGVTALRM,	sighnd_timer);
   bind_handler (SIGUSR1,	sighnd_save_then_terminate);

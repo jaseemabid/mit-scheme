@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtrap.c,v 1.41.2.5 2006/09/05 19:10:35 cph Exp $
+$Id: uxtrap.c,v 1.41.2.6 2006/09/22 18:02:14 cph Exp $
 
 Copyright 1990,1991,1992,1993,1995,1997 Massachusetts Institute of Technology
 Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
@@ -35,6 +35,20 @@ USA.
 
 #ifdef HAVE_SIGCONTEXT
 #  define ENABLE_TRAP_RECOVERY 1
+#endif
+
+/* FIXME: Support these architectures.  */
+#ifdef __ppc__
+#  undef ENABLE_TRAP_RECOVERY
+#endif
+#ifdef __ppc64__
+#  undef ENABLE_TRAP_RECOVERY
+#endif
+#ifdef __x86_64__
+#  undef ENABLE_TRAP_RECOVERY
+#endif
+#ifdef __ia64__
+#  undef ENABLE_TRAP_RECOVERY
 #endif
 
 extern const char * find_signal_name (int);
@@ -306,6 +320,8 @@ trap_handler (const char * message,
     }
 }
 
+#define PC_ALIGNED_P(pc) ((((unsigned long) (pc)) & PC_ALIGNMENT_MASK) == 0)
+
 #ifdef ENABLE_TRAP_RECOVERY
 
 /* Heuristic recovery from Unix signals (traps).
@@ -324,8 +340,6 @@ trap_handler (const char * message,
 
 #define ALIGNED_P(addr)							\
   ((((unsigned long) (addr)) & SCHEME_ALIGNMENT_MASK) == 0)
-
-#define PC_ALIGNED_P(pc) ((((unsigned long) (pc)) & PC_ALIGNMENT_MASK) == 0)
 
 #define SET_RECOVERY_INFO(s, arg1, arg2) do				\
 {									\

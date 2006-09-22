@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ux.h,v 1.78.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: ux.h,v 1.78.2.3 2006/09/22 18:02:01 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,1999,2000,2003 Massachusetts Institute of Technology
@@ -44,6 +44,10 @@ USA.
 #  define SYSTEM_VARIANT "Domain"
 #endif
 
+#ifdef __APPLE__
+#  define SYSTEM_VARIANT "MacOSX"
+#endif
+
 #ifdef __bsdi__			/* works on bsdi 3.0 */
 #  define SYSTEM_VARIANT "BSDI BSD/OS"
 #endif
@@ -62,6 +66,10 @@ USA.
 
 #ifdef __linux__
 #  define SYSTEM_VARIANT "GNU/Linux"
+#endif
+
+#if defined(__netbsd__) || defined(__NetBSD__)
+#  define SYSTEM_VARIANT "NetBSD"
 #endif
 
 #ifdef _NEXTOS
@@ -560,6 +568,11 @@ typedef RETSIGTYPE Tsignal_handler_result;
 #  define EMULATE_GETPAGESIZE
 #endif
 
+/* poll is somewhat busted on Mac OSX 10.4 (Tiger), so use select.  */
+#ifdef __APPLE__
+#  undef HAVE_POLL
+#endif
+
 #ifdef HAVE_POLL
 #  ifndef INFTIM
 #    define INFTIM (-1)
@@ -700,6 +713,12 @@ extern int UX_terminal_set_state (int, Ttty_state *);
 #  define EMULATE_TCGETPGRP
    extern int UX_tcsetpgrp (int, pid_t);
 #  define EMULATE_TCSETPGRP
+#endif
+
+/* setsid is apparently broken in Max OSX.  */
+#ifdef __APPLE__
+#  undef UX_setsid
+#  define UX_setsid() (setsid (), 0)
 #endif
 
 #ifdef HAVE_SIGACTION
