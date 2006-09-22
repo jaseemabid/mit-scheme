@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bignum.c,v 9.52.2.2 2005/08/23 02:54:58 cph Exp $
+$Id: bignum.c,v 9.52.2.3 2006/09/22 17:56:52 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1996,1997,2000 Massachusetts Institute of Technology
@@ -638,7 +638,7 @@ bignum_to_double (bignum_type bignum)
 	if (current_digit_bit_count == BIGNUM_DIGIT_LENGTH) {
 	  if (index == 0) /* there is no guard bit */
 	    goto finished;
-	  guard_bit_mask = (1 << (BIGNUM_DIGIT_LENGTH - 1));
+	  guard_bit_mask = (1UL << (BIGNUM_DIGIT_LENGTH - 1));
 	  rounding_correction = 1;
 	  index -= 1;
 	} else {

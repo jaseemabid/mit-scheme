@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: history.h,v 9.33.2.2 2005/08/23 02:55:09 cph Exp $
+$Id: history.h,v 9.33.2.3 2006/09/22 17:57:04 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
 Copyright 2002,2005 Massachusetts Institute of Technology
@@ -41,7 +41,7 @@ USA.
 #define RIB_MARK		2
 
 #define HISTORY_MARK_TYPE (UNMARKED_HISTORY_TYPE ^ MARKED_HISTORY_TYPE)
-#define HISTORY_MARK_MASK (HISTORY_MARK_TYPE << DATUM_LENGTH)
+#define HISTORY_MARK_MASK (((unsigned long) HISTORY_MARK_TYPE) << DATUM_LENGTH)
 
 #if ((UNMARKED_HISTORY_TYPE | HISTORY_MARK_TYPE) != MARKED_HISTORY_TYPE)
 #include "error: Bad history types in types.h and history.h"

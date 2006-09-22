@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: comlin.c,v 1.11.2.2 2005/08/23 02:55:08 cph Exp $
+$Id: comlin.c,v 1.11.2.3 2006/09/22 17:56:58 cph Exp $
 
 Copyright 1988,1992,1993,2005 Massachusetts Institute of Technology
 
@@ -198,7 +198,7 @@ parse_keywords (int argc,
 
 	  case BOOLEAN_KYWRD:
 	  {
-	    bool value;
+	    bool value = false;
 
 	    if (*argument != '\0')
 	    {
