@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ux.c,v 1.27.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: ux.c,v 1.27.2.3 2006/09/22 18:00:00 cph Exp $
 
 Copyright 1991,1992,1993,1996,1997,2000 Massachusetts Institute of Technology
 Copyright 2002,2003,2005 Massachusetts Institute of Technology
@@ -600,7 +600,13 @@ fpathconf (int filedes, int parameter)
 #endif /* EMULATE_FPATHCONF */
 
 void *
-OS_malloc (unsigned int size)
+OS_malloc_init (size_t size)
+{
+  return (UX_malloc (size));
+}
+
+void *
+OS_malloc (size_t size)
 {
   void * result = (UX_malloc (size));
   if (result == 0)
@@ -609,7 +615,7 @@ OS_malloc (unsigned int size)
 }
 
 void *
-OS_realloc (void * ptr, unsigned int size)
+OS_realloc (void * ptr, size_t size)
 {
   void * result = (UX_realloc (ptr, size));
   if (result == 0)

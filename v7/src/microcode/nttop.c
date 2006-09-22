@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: nttop.c,v 1.35.2.4 2006/03/11 03:01:41 cph Exp $
+$Id: nttop.c,v 1.35.2.5 2006/09/22 17:59:17 cph Exp $
 
 Copyright 1993,1997,1998,2000,2003,2004 Massachusetts Institute of Technology
 Copyright 2005,2006 Massachusetts Institute of Technology
@@ -476,7 +476,13 @@ bcopy (const char * s1, char * s2, int n)
 #endif
 
 void *
-OS_malloc (unsigned int size)
+OS_malloc_init (size_t size)
+{
+  return (malloc (size));
+}
+
+void *
+OS_malloc (size_t size)
 {
   void * result = (malloc (size));
   if (result == 0)
@@ -485,7 +491,7 @@ OS_malloc (unsigned int size)
 }
 
 void *
-OS_realloc (void * ptr, unsigned int size)
+OS_realloc (void * ptr, size_t size)
 {
   void * result = (realloc (ptr, size));
   if (result == 0)

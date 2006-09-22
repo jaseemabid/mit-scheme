@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: os2msg.c,v 1.17.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: os2msg.c,v 1.17.2.3 2006/09/22 17:59:38 cph Exp $
 
 Copyright 1994,1995,1997,2000,2003,2005 Massachusetts Institute of Technology
 
@@ -28,7 +28,7 @@ USA.
 #include "os2.h"
 
 extern void tty_set_next_interrupt_char (cc_t c);
-extern void * OS2_malloc_noerror (unsigned int);
+extern void * OS2_malloc_noerror (unsigned long);
 
 static qid_t allocate_qid (void);
 static void OS2_initialize_message_lengths (void);

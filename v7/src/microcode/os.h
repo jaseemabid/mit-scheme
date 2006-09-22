@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: os.h,v 1.9.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: os.h,v 1.9.2.3 2006/09/22 17:59:53 cph Exp $
 
 Copyright 1990,1993,1994,2000,2005 Massachusetts Institute of Technology
 
@@ -30,8 +30,9 @@ USA.
 
 typedef unsigned int Tchannel;
 
-extern void * OS_malloc (unsigned int);
-extern void * OS_realloc (void *, unsigned int);
+extern void * OS_malloc_init (size_t);
+extern void * OS_malloc (size_t);
+extern void * OS_realloc (void *, size_t);
 extern void OS_free (void *);
 
 #define FASTCOPY(from, to, n) (memcpy ((to), (from), (n)))

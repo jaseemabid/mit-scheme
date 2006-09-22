@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: os2top.c,v 1.23.2.2 2005/08/23 02:55:11 cph Exp $
+$Id: os2top.c,v 1.23.2.3 2006/09/22 17:59:46 cph Exp $
 
 Copyright 1994,1995,1996,1997,1998,2000 Massachusetts Institute of Technology
 Copyright 2005 Massachusetts Institute of Technology
@@ -54,8 +54,8 @@ extern void OS2_initialize_tty (void);
 extern void OS2_initialize_window_primitives (void);
 
 extern void OS2_check_message_length_initializations (void);
-extern void * OS2_malloc_noerror (unsigned int);
-extern void * OS2_realloc_noerror (void *, unsigned int);
+extern void * OS2_malloc_noerror (unsigned long);
+extern void * OS2_realloc_noerror (void *, unsigned long);
 
 extern void OS2_create_msg_queue (void); /* forward reference */
 

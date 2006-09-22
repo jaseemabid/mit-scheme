@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: object.h,v 9.59.2.7 2006/09/05 19:10:25 cph Exp $
+$Id: object.h,v 9.59.2.8 2006/09/22 17:59:23 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
@@ -149,7 +149,7 @@ typedef unsigned char byte_t;
 /* Machine dependencies */
 
 #ifndef HEAP_MALLOC
-#  define HEAP_MALLOC OS_malloc
+#  define HEAP_MALLOC OS_malloc_init
 #endif
 
 #ifdef HEAP_IN_LOW_MEMORY	/* Storing absolute addresses */
@@ -186,12 +186,17 @@ extern SCHEME_OBJECT * memory_base;
   (high) = (memory_base + _space);					\
 } while (0)
 
+#define MEMBASE memory_base
+
+/* These use the MEMBASE macro so that C-compiled code can cache
+   memory_base locally and use the local version.  */
+
 #ifndef DATUM_TO_ADDRESS
-#  define DATUM_TO_ADDRESS(datum) ((SCHEME_OBJECT *) ((datum) + memory_base))
+#  define DATUM_TO_ADDRESS(datum) ((SCHEME_OBJECT *) ((datum) + MEMBASE))
 #endif
 
 #ifndef ADDRESS_TO_DATUM
-#  define ADDRESS_TO_DATUM(address) ((SCHEME_OBJECT) ((address) - memory_base))
+#  define ADDRESS_TO_DATUM(address) ((SCHEME_OBJECT) ((address) - MEMBASE))
 #endif
 
 #endif /* not HEAP_IN_LOW_MEMORY */
@@ -340,7 +345,7 @@ extern SCHEME_OBJECT * memory_base;
 #define MAKE_CHAR(bits, code)						\
   (MAKE_OBJECT (TC_CHARACTER,						\
 		((((unsigned long) (bits)) << (CODE_LENGTH))		\
-		 | (code))))
+		 | ((unsigned long) (code)))))
 
 #define CHAR_BITS(c) (((OBJECT_DATUM (c)) >> CODE_LENGTH) & CHAR_MASK_BITS)
 #define CHAR_CODE(c) ((OBJECT_DATUM (c)) & CHAR_MASK_CODE)

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: os2.c,v 1.10.2.2 2005/08/23 04:15:28 cph Exp $
+$Id: os2.c,v 1.10.2.3 2006/09/22 17:59:32 cph Exp $
 
 Copyright 1994,1995 Massachusetts Institute of Technology
 
@@ -70,7 +70,7 @@ guarantee_valid_malloc_pointer (void * ptr)
 }
 
 void *
-OS2_malloc_noerror (unsigned int size)
+OS2_malloc_noerror (unsigned long size)
 {
   PVOID result;
   APIRET rc
@@ -106,9 +106,9 @@ OS_free (void * ptr)
 }
 
 void *
-OS2_realloc_noerror (void * ptr, unsigned int size)
+OS2_realloc_noerror (void * ptr, unsigned long size)
 {
-  unsigned int osize = ((guarantee_valid_malloc_pointer (ptr)) -> size);
+  unsigned long osize = ((guarantee_valid_malloc_pointer (ptr)) -> size);
   if (osize == size)
     return (ptr);
   {
@@ -136,13 +136,13 @@ OS2_initialize_malloc (void)
 }
 
 void *
-OS2_malloc_noerror (unsigned int size)
+OS2_malloc_noerror (unsigned long size)
 {
   return (malloc (size));
 }
 
 void *
-OS2_realloc_noerror (void * ptr, unsigned int size)
+OS2_realloc_noerror (void * ptr, unsigned long size)
 {
   return (realloc (ptr, size));
 }
@@ -156,7 +156,13 @@ OS_free (void * ptr)
 #endif /* not OS2_USE_SUBHEAP_MALLOC */
 
 void *
-OS_malloc (unsigned int size)
+OS_malloc_init (size_t size)
+{
+  return (OS2_malloc_noerror (size));
+}
+
+void *
+OS_malloc (size_t size)
 {
   void * result = (OS2_malloc_noerror (size));
   if (result == 0)
@@ -165,7 +171,7 @@ OS_malloc (unsigned int size)
 }
 
 void *
-OS_realloc (void * ptr, unsigned int size)
+OS_realloc (void * ptr, size_t size)
 {
   void * result = (OS2_realloc_noerror (ptr, size));
   if (result == 0)
