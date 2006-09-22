@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40.2.6 2006/09/05 03:14:38 cph Exp $
+$Id: fasl.h,v 9.40.2.7 2006/09/22 17:54:52 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
 Copyright 1994,1997,2002,2005,2006 Massachusetts Institute of Technology
@@ -34,7 +34,13 @@ USA.
 
 #include "object.h"
 
-#define FASL_FILE_MARKER	0xFAFAFAFA
+#if (SIZEOF_UNSIGNED_LONG == 4)
+#  define FASL_FILE_MARKER 0xFAFAFAFAUL
+#else
+#  if (SIZEOF_UNSIGNED_LONG == 8)
+#    define FASL_FILE_MARKER 0xFAFAFAFAFAFAFAFAUL
+#  endif
+#endif
 
 /* The FASL file has a header which begins as follows: */
 
@@ -185,5 +191,8 @@ extern bool close_fasl_input_file (fasl_file_handle_t);
 extern bool read_fasl_header (fasl_header_t *, fasl_file_handle_t);
 extern bool read_from_fasl_file (void *, size_t, fasl_file_handle_t);
 extern SCHEME_OBJECT * faslhdr_utilities_end (fasl_header_t *);
+extern fasl_read_status_t check_fasl_version (fasl_header_t *);
+extern fasl_read_status_t check_fasl_cc_version
+  (fasl_header_t *, unsigned long, unsigned long);
 
 #endif /* not SCM_FASL_H */

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.c,v 1.1.2.3 2006/09/05 03:14:32 cph Exp $
+$Id: fasl.c,v 1.1.2.4 2006/09/22 17:54:46 cph Exp $
 
 Copyright 2006 Massachusetts Institute of Technology
 
@@ -28,6 +28,7 @@ USA.
 #include <stdio.h>
 #include <stdbool.h>
 #include "fasl.h"
+#include "cmptype.h"
 
 static void encode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
 static bool decode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
@@ -94,6 +95,33 @@ bool
 read_from_fasl_file (void * start, size_t n_words, fasl_file_handle_t handle)
 {
   return ((fread (start, SIZEOF_SCHEME_OBJECT, n_words, handle)) == n_words);
+}
+
+fasl_read_status_t
+check_fasl_version (fasl_header_t * fh)
+{
+  return
+    ((((FASLHDR_VERSION (fh)) >= INPUT_FASL_VERSION)
+      && ((FASLHDR_VERSION (fh)) <= CURRENT_FASL_VERSION))
+     ? (((FASLHDR_ARCH (fh)) == CURRENT_FASL_ARCH)
+	? FASL_FILE_FINE
+	: FASL_FILE_BAD_MACHINE)
+     : FASL_FILE_BAD_VERSION);
+}
+
+fasl_read_status_t
+check_fasl_cc_version (fasl_header_t * fh,
+		       unsigned long version, unsigned long type)
+{
+  return
+    ((((FASLHDR_CC_VERSION (fh)) == 0)
+      && ((FASLHDR_CC_ARCH (fh)) == COMPILER_NONE_TYPE))
+     ? FASL_FILE_FINE
+     : ((FASLHDR_CC_VERSION (fh)) == version)
+     ? (((FASLHDR_CC_ARCH (fh)) == type)
+	? FASL_FILE_FINE
+	: FASL_FILE_BAD_PROCESSOR)
+     : FASL_FILE_BAD_INTERFACE);
 }
 
 static void

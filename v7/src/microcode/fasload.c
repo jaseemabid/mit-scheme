@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.13 2006/09/08 17:17:13 cph Exp $
+$Id: fasload.c,v 9.96.2.14 2006/09/22 17:54:58 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -69,8 +69,6 @@ static unsigned long reload_constant_size = 0;
 
 static void init_fasl_file (const char *, bool, fasl_file_handle_t *);
 static void close_fasl_file (void *);
-static fasl_read_status_t check_fasl_version (void);
-static fasl_read_status_t check_fasl_cc_version (void);
 
 static SCHEME_OBJECT load_file (fasl_file_handle_t);
 static void * read_from_file (void *, size_t, fasl_file_handle_t);
@@ -140,13 +138,35 @@ init_fasl_file (const char * file_name, bool band_p,
     signal_error_from_primitive (ERR_FASL_FILE_BAD_DATA);
 
 #ifndef INHIBIT_FASL_VERSION_CHECK
-  if ((check_fasl_version ()) != FASL_FILE_FINE)
-    signal_error_from_primitive (ERR_FASL_FILE_BAD_DATA);
+  if ((check_fasl_version (fh)) != FASL_FILE_FINE)
+    {
+      outf_error ("\nBad version in FASL File: %s\n", file_name);
+      outf_error
+	("File has: Version %4u Architecture %4u.\n",
+	 (FASLHDR_VERSION (fh)), (FASLHDR_ARCH (fh)));
+      outf_error
+	("Expected:  Version %4u Architecture %4u.\n",
+	 INPUT_FASL_VERSION,
+	 CURRENT_FASL_ARCH);
+      signal_error_from_primitive (ERR_FASL_FILE_BAD_DATA);
+    }
 #endif
 
 #ifndef INHIBIT_COMPILED_VERSION_CHECK
-  if ((check_fasl_cc_version ()) != FASL_FILE_FINE)
-    signal_error_from_primitive (ERR_FASLOAD_COMPILED_MISMATCH);
+  if ((check_fasl_cc_version (fh,
+			      compiler_interface_version,
+			      compiler_processor_type))
+      != FASL_FILE_FINE)
+    {
+      outf_error ("\nBad compiled-code version in FASL File: %s\n", file_name);
+      outf_error
+	("File has: compiled-code interface %4u; architecture %4u.\n",
+	 (FASLHDR_CC_VERSION (fh)), (FASLHDR_CC_ARCH (fh)));
+      outf_error
+	("Expected:  compiled code interface %4ld; architecture %4ld.\n",
+	 compiler_interface_version, compiler_processor_type);
+      signal_error_from_primitive (ERR_FASLOAD_COMPILED_MISMATCH);
+    }
 #endif
 
   if ((FASLHDR_BAND_P (fh)) != band_p)
@@ -157,50 +177,6 @@ static void
 close_fasl_file (void * p)
 {
   (void) close_fasl_input_file (* ((fasl_file_handle_t *) p));
-}
-
-/* The error messages here should be handled by the runtime system! */
-
-static fasl_read_status_t
-check_fasl_version (void)
-{
-  if (((FASLHDR_VERSION (fh)) >= INPUT_FASL_VERSION)
-      && ((FASLHDR_VERSION (fh)) <= CURRENT_FASL_VERSION))
-    return (FASL_FILE_FINE);
-
-  outf_error
-    ("\nFASL File: Version %4u Architecture %4u.\n",
-     (FASLHDR_VERSION (fh)), (FASLHDR_ARCH (fh)));
-  outf_error
-    ("Expected:  Version %4u Architecture %4u.\n",
-     INPUT_FASL_VERSION,
-     CURRENT_FASL_ARCH);
-
-  return (((FASLHDR_ARCH (fh)) != CURRENT_FASL_ARCH)
-	  ? FASL_FILE_BAD_MACHINE
-	  : FASL_FILE_BAD_VERSION);
-}
-
-static fasl_read_status_t
-check_fasl_cc_version (void)
-{
-  if ((((FASLHDR_CC_VERSION (fh)) == 0)
-       && ((FASLHDR_CC_ARCH (fh)) == COMPILER_NONE_TYPE))
-      || (((FASLHDR_CC_VERSION (fh)) == compiler_interface_version)
-	  && ((FASLHDR_CC_ARCH (fh)) == compiler_processor_type)))
-    return (FASL_FILE_FINE);
-
-  outf_error
-    ("\nFASL File: compiled-code interface %4u; architecture %4u.\n",
-     (FASLHDR_CC_VERSION (fh)), (FASLHDR_CC_ARCH (fh)));
-  outf_error
-    ("Expected:  compiled code interface %4ld; architecture %4ld.\n",
-     compiler_interface_version, compiler_processor_type);
-
-  return
-    (((FASLHDR_CC_ARCH (fh)) == compiler_processor_type)
-     ? FASL_FILE_BAD_INTERFACE
-     : FASL_FILE_BAD_PROCESSOR);
 }
 
 DEFINE_PRIMITIVE ("LOAD-BAND", Prim_band_load, 1, 1, "(NAMESTRING)\n\

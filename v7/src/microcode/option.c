@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: option.c,v 1.61.2.6 2006/09/09 03:42:15 cph Exp $
+$Id: option.c,v 1.61.2.7 2006/09/22 17:55:05 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,1999,2000,2001 Massachusetts Institute of Technology
@@ -790,6 +790,13 @@ read_band_sizes (const char * filename,
     return (0);
   ok = (read_fasl_header ((&h), handle));
   if (! ((close_fasl_input_file (handle)) && ok))
+    return (0);
+  if ((check_fasl_version (&h)) != FASL_FILE_FINE)
+    return (0);
+  if ((check_fasl_cc_version ((&h),
+			      compiler_interface_version,
+			      compiler_processor_type))
+      != FASL_FILE_FINE)
     return (0);
   (*constant_size) = (SCHEME_WORDS_TO_BLOCKS (FASLHDR_CONSTANT_SIZE (&h)));
   (*heap_size) = (SCHEME_WORDS_TO_BLOCKS (FASLHDR_HEAP_SIZE (&h)));
