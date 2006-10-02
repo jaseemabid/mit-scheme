@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.h,v 10.12.2.5 2006/10/02 20:03:49 cph Exp $
+$Id: cmpint.h,v 10.12.2.6 2006/10/02 20:11:45 cph Exp $
 
 Copyright 1987,1988,1989,1990,1993,2000 Massachusetts Institute of Technology
 Copyright 2002,2005,2006 Massachusetts Institute of Technology
@@ -195,7 +195,6 @@ extern long coerce_to_compiled (SCHEME_OBJECT, unsigned int, SCHEME_OBJECT *);
 extern SCHEME_OBJECT read_uuo_link (SCHEME_OBJECT, unsigned long);
 
 extern SCHEME_OBJECT read_uuo_symbol (SCHEME_OBJECT *);
-extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *);
 extern SCHEME_OBJECT read_uuo_target_no_reloc (SCHEME_OBJECT *);
 extern void write_uuo_target (SCHEME_OBJECT, SCHEME_OBJECT *);
 

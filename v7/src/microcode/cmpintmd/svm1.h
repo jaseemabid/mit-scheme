@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.h,v 1.1.2.5 2006/10/02 20:04:06 cph Exp $
+$Id: svm1.h,v 1.1.2.6 2006/10/02 20:11:49 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -74,5 +74,6 @@ typedef byte_t insn_t;
 
 extern long C_to_interface (void *);
 extern void initialize_svm1 (void);
+extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *);
 
 #endif /* not SCM_CMPINTMD_SVM1_H */

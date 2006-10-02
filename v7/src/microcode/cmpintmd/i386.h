@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.37.2.4 2006/10/02 20:04:00 cph Exp $
+$Id: i386.h,v 1.37.2.5 2006/10/02 20:11:47 cph Exp $
 
 Copyright 1992,1993,1994,1995,1996,2000 Massachusetts Institute of Technology
 Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -348,6 +348,7 @@ extern void ASM_ENTRY_POINT (asm_trampoline_to_interface) (void);
 extern void start_closure_relocation (SCHEME_OBJECT *, reloc_ref_t *);
 extern SCHEME_OBJECT read_compiled_closure_target (insn_t *, reloc_ref_t *);
 extern void start_operator_relocation (SCHEME_OBJECT *, reloc_ref_t *);
+extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *, reloc_ref_t *);
 extern void i386_reset_hook (void);
 
 #define ASM_RESET_HOOK i386_reset_hook
