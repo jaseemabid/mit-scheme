@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([MIT/GNU Scheme], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.8 2006/09/06 05:06:12 cph Exp $])
+AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
+AC_REVISION([$Id: configure.ac,v 1.6.2.9 2006/10/02 18:33:15 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -315,9 +315,6 @@ AC_CHECK_TYPE([uintptr_t],
                         [Define to 'unsigned long' if undefined.])
      AC_DEFINE_UNQUOTED([SIZEOF_UINTPTR_T], [SIZEOF_UNSIGNED_LONG],
                         [Define to 'SIZEOF_UNSIGNED_LONG' if undefined.])])
-    
-    
-
 
 AC_MSG_CHECKING([for clock_t])
 AC_TRY_COMPILE([
@@ -600,7 +597,7 @@ fi
 
 dnl Checks for system characteristics.
 AC_CANONICAL_HOST
-AC_PATH_XTRA
+AC_PATH_X
 AC_SYS_LARGEFILE
 AC_SYS_LONG_FILE_NAMES
 AC_SYS_RESTARTABLE_SYSCALLS
@@ -879,6 +876,7 @@ fi
 dnl Add architecture-dependent customizations.
 dnl This is mostly support for native-code compilation.
 if test "${enable_cmpint}" = "yes"; then
+    AC_MSG_CHECKING([for native-code support])
     SCM_ARCH=
     OPTIONAL_BASES="${OPTIONAL_BASES} cmpint comutl"
     GC_HEAD_FILES="gccode.h cmpgc.h"
@@ -911,6 +909,7 @@ if test "${enable_cmpint}" = "yes"; then
 	    ;;
 	esac
 	if test "${SCM_ARCH}" != ""; then
+	    AC_MSG_RESULT([yes, for ${SCM_ARCH}])
 	    test -f cmpauxmd.m4 || ${LN_S} cmpauxmd/${SCM_ARCH}.m4 cmpauxmd.m4
 	    test -f cmpintmd.h || ${LN_S} cmpintmd/${SCM_ARCH}.h cmpintmd.h
 	    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpauxmd.m4"

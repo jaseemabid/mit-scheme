@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.3 2006/08/16 04:23:12 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.4 2006/10/02 18:33:19 cph Exp $
 #
 # Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
 #
@@ -73,14 +73,13 @@ GZIP_ENV = --best
 DEFS = -DMIT_SCHEME -DDEFAULT_LIBRARY_PATH=\"$(AUXDIR)\" @DEFS@ \
        @SCHEME_DEFS@ -I. -I$(srcdir) -I.
 CFLAGS = @CFLAGS@
-X_CFLAGS = @X_CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 M4_FLAGS = @M4_FLAGS@
 AS_FLAGS = @AS_FLAGS@
 
-COMPILE = $(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) $(X_CFLAGS)
+COMPILE = $(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(LDFLAGS) -o $@
 EXPAND = $(M4) $(M4_FLAGS)
@@ -92,7 +91,7 @@ GC_HEAD_FILES = @GC_HEAD_FILES@
 OPTIONAL_SOURCES = @OPTIONAL_SOURCES@
 OPTIONAL_OBJECTS = @OPTIONAL_OBJECTS@
 STATIC_LIBS = @STATIC_PREFIX@ @STATIC_LIBS@ @STATIC_SUFFIX@
-X_LIBS = @X_PRE_LIBS@ @LIB_X11@ @X_EXTRA_LIBS@
+X_LIBS = @LIB_X11@
 PRBFISH_LIBS = @PRBFISH_LIBS@
 PRMD5_LIBS = @PRMD5_LIBS@
 
@@ -130,7 +129,7 @@ EXTRA_PROGRAMS = findprim
 scheme_SOURCES = $(SHARED_SOURCES) usrdef.c
 scheme_OBJECTS = $(SHARED_OBJECTS) usrdef.o
 scheme_DEPENDENCIES = 
-scheme_LDFLAGS = @X_LIBS@ @DLD_LDFLAGS@
+scheme_LDFLAGS = @DLD_LDFLAGS@
 scheme_LIBS = $(STATIC_LIBS) $(X_LIBS) $(LIBS)
 
 findprim_SOURCES = findprim.c
@@ -158,7 +157,7 @@ MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps config.h.in configure TAGS
 .SUFFIXES: .c .o .s .m4
 
 .c.o:
-	$(COMPILE) -c $*.c
+	$(COMPILE) -o $*.o -c $*.c
 
 .m4.s:
 	$(EXPAND) $*.m4 > $*.s
@@ -176,7 +175,7 @@ scheme: $(scheme_OBJECTS) $(scheme_DEPENDENCIES)
 	-rm -f $@
 	$(LINK) $(scheme_LDFLAGS) $(scheme_OBJECTS) $(scheme_LIBS)
 
-usrdef.c: $(SHARED_SOURCES) findprim
+usrdef.c: $(SHARED_SOURCES) findprim Makefile
 	-rm -f $@
 	./findprim $(SHARED_SOURCES) > usrdef.c
 
