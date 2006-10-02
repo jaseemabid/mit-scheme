@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.37.2.3 2006/08/29 04:37:41 cph Exp $
+$Id: i386.h,v 1.37.2.4 2006/10/02 20:04:00 cph Exp $
 
 Copyright 1992,1993,1994,1995,1996,2000 Massachusetts Institute of Technology
 Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -265,11 +265,6 @@ typedef struct
 
 #define READ_UUO_TARGET(a, r) read_uuo_target ((a), (&r))
 
-extern void start_closure_relocation (SCHEME_OBJECT *, reloc_ref_t *);
-extern void start_operator_relocation (SCHEME_OBJECT *, reloc_ref_t *);
-extern SCHEME_OBJECT read_compiled_closure_target (insn_t *, reloc_ref_t *);
-extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *, reloc_ref_t *);
-
 #define TRAMPOLINE_STORAGE(tramp_entry)					\
   ((((SCHEME_OBJECT *) (tramp_entry)) - TRAMPOLINE_BLOCK_TO_ENTRY) +	\
    (2 + TRAMPOLINE_ENTRY_SIZE))
@@ -288,5 +283,73 @@ extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *, reloc_ref_t *);
 {									\
   IA32_CACHE_SYNCHRONIZE ();						\
 } while (0)
+
+extern int ASM_ENTRY_POINT (i386_interface_initialize) (void);
+
+extern void ASM_ENTRY_POINT (asm_assignment_trap) (void);
+extern void ASM_ENTRY_POINT (asm_dont_serialize_cache) (void);
+extern void ASM_ENTRY_POINT (asm_error) (void);
+extern void ASM_ENTRY_POINT (asm_generic_add) (void);
+extern void ASM_ENTRY_POINT (asm_generic_decrement) (void);
+extern void ASM_ENTRY_POINT (asm_generic_divide) (void);
+extern void ASM_ENTRY_POINT (asm_generic_equal) (void);
+extern void ASM_ENTRY_POINT (asm_generic_greater) (void);
+extern void ASM_ENTRY_POINT (asm_generic_increment) (void);
+extern void ASM_ENTRY_POINT (asm_generic_less) (void);
+extern void ASM_ENTRY_POINT (asm_generic_modulo) (void);
+extern void ASM_ENTRY_POINT (asm_generic_multiply) (void);
+extern void ASM_ENTRY_POINT (asm_generic_negative) (void);
+extern void ASM_ENTRY_POINT (asm_generic_positive) (void);
+extern void ASM_ENTRY_POINT (asm_generic_quotient) (void);
+extern void ASM_ENTRY_POINT (asm_generic_remainder) (void);
+extern void ASM_ENTRY_POINT (asm_generic_subtract) (void);
+extern void ASM_ENTRY_POINT (asm_generic_zero) (void);
+extern void ASM_ENTRY_POINT (asm_interrupt_closure) (void);
+extern void ASM_ENTRY_POINT (asm_interrupt_continuation) (void);
+extern void ASM_ENTRY_POINT (asm_interrupt_continuation_2) (void);
+extern void ASM_ENTRY_POINT (asm_interrupt_dlink) (void);
+extern void ASM_ENTRY_POINT (asm_interrupt_procedure) (void);
+extern void ASM_ENTRY_POINT (asm_link) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_add) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_decrement) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_divide) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_equal) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_greater) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_increment) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_less) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_modulo) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_multiply) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_negative) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_positive) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_quotient) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_remainder) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_subtract) (void);
+extern void ASM_ENTRY_POINT (asm_nofp_zero) (void);
+extern void ASM_ENTRY_POINT (asm_primitive_apply) (void);
+extern void ASM_ENTRY_POINT (asm_primitive_error) (void);
+extern void ASM_ENTRY_POINT (asm_primitive_lexpr_apply) (void);
+extern void ASM_ENTRY_POINT (asm_reference_trap) (void);
+extern void ASM_ENTRY_POINT (asm_safe_reference_trap) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply_size_1) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply_size_2) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply_size_3) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply_size_4) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply_size_5) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply_size_6) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply_size_7) (void);
+extern void ASM_ENTRY_POINT (asm_sc_apply_size_8) (void);
+extern void ASM_ENTRY_POINT (asm_scheme_to_interface) (void);
+extern void ASM_ENTRY_POINT (asm_scheme_to_interface_call) (void);
+extern void ASM_ENTRY_POINT (asm_serialize_cache) (void);
+extern void ASM_ENTRY_POINT (asm_short_primitive_apply) (void);
+extern void ASM_ENTRY_POINT (asm_trampoline_to_interface) (void);
+
+extern void start_closure_relocation (SCHEME_OBJECT *, reloc_ref_t *);
+extern SCHEME_OBJECT read_compiled_closure_target (insn_t *, reloc_ref_t *);
+extern void start_operator_relocation (SCHEME_OBJECT *, reloc_ref_t *);
+extern void i386_reset_hook (void);
+
+#define ASM_RESET_HOOK i386_reset_hook
 
 #endif /* not SCM_CMPINTMD_I386_H */

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.h,v 10.12.2.4 2006/10/02 17:57:14 cph Exp $
+$Id: cmpint.h,v 10.12.2.5 2006/10/02 20:03:49 cph Exp $
 
 Copyright 1987,1988,1989,1990,1993,2000 Massachusetts Institute of Technology
 Copyright 2002,2005,2006 Massachusetts Institute of Technology
@@ -30,7 +30,12 @@ USA.
 #define SCM_CMPINT_H 1
 
 #include "config.h"
+#include "object.h"
 #include "cmptype.h"
+
+typedef struct cc_entry_type_s cc_entry_type_t;
+typedef struct cc_entry_offset_s cc_entry_offset_t;
+
 #include "cmpintmd.h"
 
 #if (COMPILER_PROCESSOR_TYPE == COMPILER_NONE_TYPE)
@@ -61,7 +66,7 @@ typedef enum
   CET_CLOSURE
 } cc_entry_type_marker_t;
 
-typedef struct
+struct cc_entry_type_s
 {
   cc_entry_type_marker_t marker;
   union
@@ -79,7 +84,7 @@ typedef struct
 	  unsigned long offset;
 	} for_continuation;
     } args;
-} cc_entry_type_t;
+};
 
 extern void make_compiled_procedure_type
   (cc_entry_type_t *, unsigned int, unsigned int, bool);
@@ -93,11 +98,11 @@ extern bool write_cc_entry_type (cc_entry_type_t *, insn_t *);
    units between the entry and the CC block.  Otherwise, offset is the
    distance in insn_t units between this entry and a preceding one.
    */
-typedef struct
+struct cc_entry_offset_s
 {
   unsigned long offset;
   bool continued_p;
-} cc_entry_offset_t;
+};
 
 extern bool read_cc_entry_offset (cc_entry_offset_t *, insn_t *);
 extern bool write_cc_entry_offset (cc_entry_offset_t *, insn_t *);
@@ -190,6 +195,8 @@ extern long coerce_to_compiled (SCHEME_OBJECT, unsigned int, SCHEME_OBJECT *);
 extern SCHEME_OBJECT read_uuo_link (SCHEME_OBJECT, unsigned long);
 
 extern SCHEME_OBJECT read_uuo_symbol (SCHEME_OBJECT *);
+extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *);
+extern SCHEME_OBJECT read_uuo_target_no_reloc (SCHEME_OBJECT *);
 extern void write_uuo_target (SCHEME_OBJECT, SCHEME_OBJECT *);
 
 extern unsigned int read_uuo_frame_size (SCHEME_OBJECT *);

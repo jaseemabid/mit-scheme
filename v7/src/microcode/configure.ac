@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.9 2006/10/02 18:33:15 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.10 2006/10/02 20:03:51 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -883,8 +883,9 @@ if test "${enable_cmpint}" = "yes"; then
 
     if test "${enable_svm}" != "no"; then
 	test -f cmpintmd.h || ${LN_S} cmpintmd/svm1.h cmpintmd.h
-	OPTIONAL_SOURCES="${OPTIONAL_SOURCES} svm1.c"
-	OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} svm1.o"
+	test -f cmpintmd.c || ${LN_S} cmpintmd/svm1.c cmpintmd.c
+	OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpintmd.c svm1-interp.c"
+	OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpintmd.o svm1-interp.o"
 	GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
     else
 	case "$host_cpu" in
@@ -912,13 +913,16 @@ if test "${enable_cmpint}" = "yes"; then
 	    AC_MSG_RESULT([yes, for ${SCM_ARCH}])
 	    test -f cmpauxmd.m4 || ${LN_S} cmpauxmd/${SCM_ARCH}.m4 cmpauxmd.m4
 	    test -f cmpintmd.h || ${LN_S} cmpintmd/${SCM_ARCH}.h cmpintmd.h
-	    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpauxmd.m4"
-	    OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpauxmd.o"
+	    test -f cmpintmd.c || ${LN_S} cmpintmd/${SCM_ARCH}.c cmpintmd.c
+	    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpintmd.c cmpauxmd.m4"
+	    OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpintmd.o cmpauxmd.o"
 	    GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
 	fi
     fi
 else
     test -f cmpintmd.h || ${LN_S} cmpintmd/none.h cmpintmd.h
+    test -f cmpintmd.c || ${LN_S} cmpintmd/none.c cmpintmd.c
+    GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
 fi
 
 for base in ${OPTIONAL_BASES}; do

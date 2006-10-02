@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.h,v 1.1.2.4 2006/09/08 06:06:42 cph Exp $
+$Id: svm1.h,v 1.1.2.5 2006/10/02 20:04:06 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -54,6 +54,25 @@ typedef byte_t insn_t;
 #define UUO_LINK_SIZE 2
 #define READ_UUO_TARGET(a, r) read_uuo_target (a)
 
-extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *);
+#define ASM_RESET_HOOK initialize_svm1
+
+#define RETURN_TO_C(code) do						\
+{									\
+  (DSU_result->scheme_p) = false;					\
+  ((DSU_result->arg) . interpreter_code) = (code);			\
+  return;								\
+} while (0)
+
+#define RETURN_TO_SCHEME(ep) do						\
+{									\
+  (DSU_result->scheme_p) = true;					\
+  ((DSU_result->arg) . new_pc) = (ep);					\
+  return;								\
+} while (0)
+
+#define ENTER_SCHEME(ep) return (C_to_interface (ep))
+
+extern long C_to_interface (void *);
+extern void initialize_svm1 (void);
 
 #endif /* not SCM_CMPINTMD_SVM1_H */

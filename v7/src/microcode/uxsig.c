@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxsig.c,v 1.42.2.6 2006/09/22 18:02:07 cph Exp $
+$Id: uxsig.c,v 1.42.2.7 2006/10/02 20:03:56 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1996 Massachusetts Institute of Technology
 Copyright 2000,2001,2005 Massachusetts Institute of Technology
@@ -543,7 +543,6 @@ DEFUN_STD_HANDLER (sighnd_terminate,
     : 0)))
 
 #if (COMPILER_PROCESSOR_TYPE == COMPILER_IA32_TYPE)
-   extern void i386_interface_initialize (void);
 #  define FPE_RESET_TRAPS i386_interface_initialize
 #endif
 #ifndef FPE_RESET_TRAPS

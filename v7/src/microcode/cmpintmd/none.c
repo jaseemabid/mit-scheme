@@ -1,8 +1,8 @@
-#| -*-Scheme-*-
+/* -*-C-*-
 
-$Id: files-optional.scm,v 1.6.2.4 2006/10/02 20:04:08 cph Exp $
+$Id: none.c,v 1.1.2.1 2006/10/02 20:04:02 cph Exp $
 
-Copyright 2000,2001,2003,2005,2006 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -21,24 +21,6 @@ along with MIT/GNU Scheme; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301,
 USA.
 
-|#
+*/
 
-;;;; Optional C files that are conditionally linked in.
-
-"cmpint"
-"comutl"
-"prbfish"
-"prgdbm"
-"prmcrypt"
-"prmd5"
-"prmhash"
-"prpgsql"
-"pruxdld"
-"svm1-interp"
-"termcap"
-"terminfo"
-"tparam"
-"x11base"
-"x11color"
-"x11graph"
-"x11term"
+/* Compiled code interface stub.  */

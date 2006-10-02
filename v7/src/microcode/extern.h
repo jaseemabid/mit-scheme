@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.7 2006/10/02 18:34:27 cph Exp $
+$Id: extern.h,v 9.65.2.8 2006/10/02 20:03:53 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -29,6 +29,8 @@ USA.
 
 #ifndef SCM_EXTERN_H
 #define SCM_EXTERN_H 1
+
+#include "outf.h"
 
 /* The register block */
 
