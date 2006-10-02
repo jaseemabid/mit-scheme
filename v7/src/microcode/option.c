@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: option.c,v 1.61.2.7 2006/09/22 17:55:05 cph Exp $
+$Id: option.c,v 1.61.2.8 2006/10/02 18:32:17 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,1999,2000,2001 Massachusetts Institute of Technology
@@ -793,11 +793,15 @@ read_band_sizes (const char * filename,
     return (0);
   if ((check_fasl_version (&h)) != FASL_FILE_FINE)
     return (0);
+#if 0
+  /* Can't check this because compiler_interface_version and
+     compiler_processor_type haven't been set yet.  */
   if ((check_fasl_cc_version ((&h),
 			      compiler_interface_version,
 			      compiler_processor_type))
       != FASL_FILE_FINE)
     return (0);
+#endif
   (*constant_size) = (SCHEME_WORDS_TO_BLOCKS (FASLHDR_CONSTANT_SIZE (&h)));
   (*heap_size) = (SCHEME_WORDS_TO_BLOCKS (FASLHDR_HEAP_SIZE (&h)));
   return (1);
@@ -1012,7 +1016,15 @@ read_command_line_options (int argc, const char ** argv)
 				 option_raw_utab,
 				 UTABMD_FILE_VARIABLE,
 				 DEFAULT_UTABMD_FILE,
-				 (option_fasl_file != 0)));
+#ifdef NATIVE_CODE_IS_C
+				 /* FIXME: This should check if we
+				    have "microcode_utabmd"
+				    compiled */
+				 false
+#else
+				 (option_fasl_file != 0)
+#endif
+				 ));
 
   if (option_summary)
     describe_options ();
