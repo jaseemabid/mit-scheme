@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: confshared.h,v 11.8.2.3 2006/08/28 17:03:33 cph Exp $
+$Id: confshared.h,v 11.8.2.4 2006/10/02 18:35:08 cph Exp $
 
 Copyright 2000,2002,2003,2005,2006 Massachusetts Institute of Technology
 
@@ -193,7 +193,11 @@ typedef enum
   FASL_APOLLO_68K,
   FASL_APOLLO_PRISM,
   FASL_ALPHA,
-  FASL_RS6000
+  FASL_RS6000,
+  FASL_PPC32,
+  FASL_X86_64,
+  FASL_PPC64,
+  FASL_IA64
 } fasl_arch_t;
 
 #ifdef vax
@@ -552,7 +556,32 @@ extern void win32_stack_reset (void);
 #define FLONUM_EXPT_SIZE       10
 #define MAX_FLONUM_EXPONENT    1023
 #endif
+
+#ifdef __ppc__
+#  define MACHINE_TYPE		"PowerPC-32"
+#  define CURRENT_FASL_ARCH	FASL_PPC32
+#  define FLOATING_ALIGNMENT	0x7
+#endif
+
+#ifdef __ppc64__
+#  define MACHINE_TYPE		"PowerPC-64"
+#  define CURRENT_FASL_ARCH	FASL_PPC64
+#endif
+
+#ifdef __x86_64__
+#  define MACHINE_TYPE		"x86-64"
+#  define CURRENT_FASL_ARCH	FASL_X86_64
+#endif
+
+#ifdef __ia64__
+#  define MACHINE_TYPE		"ia64"
+#  define CURRENT_FASL_ARCH	FASL_IA64
+#endif
 
+#ifdef NATIVE_CODE_IS_C
+#  undef HEAP_IN_LOW_MEMORY
+#endif
+
 #ifdef sonyrisc
       /* On the Sony NEWS 3250, this procedure initializes the
 	 floating-point CPU control register to enable the IEEE traps.

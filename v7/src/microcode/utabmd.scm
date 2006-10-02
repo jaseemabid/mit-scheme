@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: utabmd.scm,v 9.88.2.4 2006/09/05 19:17:25 cph Exp $
+$Id: utabmd.scm,v 9.88.2.5 2006/10/02 18:35:10 cph Exp $
 
 Copyright 1987,1988,1989,1990,1991,1992 Massachusetts Institute of Technology
 Copyright 1993,1994,2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -607,8 +607,9 @@ USA.
 	       OS-NAME-STRING			;08
 	       OS-VARIANT-STRING		;09
 	       STACK-TYPE-STRING		;0A
+	       MACHINE-TYPE-STRING		;0B
 	       ))
 
 ;;; This identification string is saved by the system.
 
-"$Id: utabmd.scm,v 9.88.2.4 2006/09/05 19:17:25 cph Exp $"
+"$Id: utabmd.scm,v 9.88.2.5 2006/10/02 18:35:10 cph Exp $"
