@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: config.h,v 1.7.2.2 2005/08/23 02:55:15 cph Exp $
+$Id: config.h,v 1.7.2.3 2006/10/02 18:33:35 cph Exp $
 
 Copyright 2000,2001,2002,2003,2005 Massachusetts Institute of Technology
 
@@ -81,16 +81,16 @@ typedef unsigned char cc_t;
 #define PACKAGE_BUGREPORT "bug-mit-scheme@gnu.org"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "MIT/GNU Scheme"
+#define PACKAGE_NAME "MIT/GNU Scheme microcode"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "MIT/GNU Scheme 14.11"
+#define PACKAGE_STRING "MIT/GNU Scheme microcode 15.0"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "mit-scheme"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "14.11"
+#define PACKAGE_VERSION "15.0"
 
 /* Include the shared configuration header.  */
 #include "confshared.h"
