@@ -1,9 +1,10 @@
 /* -*-C-*-
 
-$Id: bitstr.c,v 9.65.2.2 2005/08/23 02:54:59 cph Exp $
+$Id: bitstr.c,v 9.65.2.3 2006/10/02 18:34:25 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1995,1996,1997,2000,2005 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -37,8 +38,8 @@ USA.
 static void copy_bits
   (SCHEME_OBJECT *, long, SCHEME_OBJECT *, long, long);
 
-static SCHEME_OBJECT
-allocate_bit_string (long length)
+SCHEME_OBJECT
+allocate_bit_string (unsigned long length)
 {
   long total_pointers;
   SCHEME_OBJECT result;
@@ -55,7 +56,7 @@ allocate_bit_string (long length)
 DEFINE_PRIMITIVE ("BIT-STRING-ALLOCATE", Prim_bit_string_allocate, 1, 1, 0)
 {
   PRIMITIVE_HEADER (1);
-  PRIMITIVE_RETURN (allocate_bit_string (arg_nonnegative_integer (1)));
+  PRIMITIVE_RETURN (allocate_bit_string (arg_ulong_integer (1)));
 }
 
 /* (BIT-STRING? object)
@@ -82,8 +83,6 @@ fill_bit_string (SCHEME_OBJECT bit_string,
     (* (DEC_BIT_STRING_PTR (scanner))) = filler;
 }
 
-extern void clear_bit_string (SCHEME_OBJECT);
-
 void
 clear_bit_string (SCHEME_OBJECT bit_string)
 {
@@ -103,7 +102,7 @@ set to zero if the initialization is false, one otherwise.")
 {
   SCHEME_OBJECT result;
   PRIMITIVE_HEADER (2);
-  result = allocate_bit_string (arg_nonnegative_integer (1));
+  result = allocate_bit_string (arg_ulong_integer (1));
   fill_bit_string (result, (OBJECT_TO_BOOLEAN (ARG_REF (2))));
   PRIMITIVE_RETURN (result);
 }
@@ -528,60 +527,40 @@ copy_bits (SCHEME_OBJECT * source,
 
 /* Integer <-> Bit-string Conversions */
 
-long
-count_significant_bits (long number, long start)
+static unsigned long
+ulong_significant_bits (unsigned long number)
 {
-  long significant_bits, i;
-
-  significant_bits = start;
-  for (i = (1L << (start - 1)); (i >= 0); i >>= 1)
+  unsigned long limit = 1;
+  unsigned int nbits = 1;
+  while (true)
     {
-      if (number >= i)
-	break;
-      significant_bits -= 1;
+      if (number <= limit)
+	return (nbits);
+      limit = ((limit * 2) + 1);
+      nbits += 1;
     }
-  return (significant_bits);
 }
 
-long
-long_significant_bits (long number)
+static SCHEME_OBJECT
+zero_to_bit_string (unsigned long length)
 {
-  return
-    ((number < 0)
-     ? ((sizeof (long)) * CHAR_BIT)
-     : (count_significant_bits (number, (((sizeof (long)) * CHAR_BIT) - 1))));
-}
-
-SCHEME_OBJECT
-zero_to_bit_string (long length)
-{
-  SCHEME_OBJECT result;
-
-  result = (allocate_bit_string (length));
+  SCHEME_OBJECT result = (allocate_bit_string (length));
   clear_bit_string (result);
   return (result);
 }
 
-SCHEME_OBJECT
-long_to_bit_string (long length, long number)
+static SCHEME_OBJECT
+ulong_to_bit_string (unsigned long length, unsigned long number)
 {
-  if (number < 0)
-    error_bad_range_arg (2);
-
   if (number == 0)
-    {
-      return (zero_to_bit_string (length));
-    }
-  else
-    {
-      SCHEME_OBJECT result;
-
-      if (length < (long_significant_bits (number)))
-	error_bad_range_arg (2);
-      result = (zero_to_bit_string (length));
-      (BIT_STRING_LSW (result)) = number;
-      return (result);
-    }
+    return (zero_to_bit_string (length));
+  if (length < (ulong_significant_bits (number)))
+    error_bad_range_arg (2);
+  {
+    SCHEME_OBJECT result = (zero_to_bit_string (length));
+    (BIT_STRING_LSW (result)) = number;
+    return (result);
+  }
 }
 
 static void
@@ -592,8 +571,8 @@ btbs_consumer (void * result_ptr,
     = ((unsigned char) digit);
 }
 
-SCHEME_OBJECT
-bignum_to_bit_string (long length, SCHEME_OBJECT bignum)
+static SCHEME_OBJECT
+bignum_to_bit_string (unsigned long length, SCHEME_OBJECT bignum)
 {
   switch (bignum_test (bignum))
     {
@@ -606,8 +585,8 @@ bignum_to_bit_string (long length, SCHEME_OBJECT bignum)
 	error_bad_range_arg (2);
       {
 	SCHEME_OBJECT result = (zero_to_bit_string (length));
-	unsigned char * result_ptr =
-	  ((unsigned char *) (BIT_STRING_LOW_PTR (result)));
+	unsigned char * result_ptr
+	  = ((unsigned char *) (BIT_STRING_LOW_PTR (result)));
 	bignum_to_digit_stream
 	  (bignum, (1L << CHAR_BIT), btbs_consumer, (&result_ptr));
 	return (result);
@@ -620,7 +599,7 @@ bignum_to_bit_string (long length, SCHEME_OBJECT bignum)
 
 struct bitstr_to_bignm_context
 {
-  unsigned char *source_ptr;
+  unsigned char * source_ptr;
   unsigned int mask;
 };
 
@@ -634,28 +613,30 @@ bstb_producer (void * context)
   return (result);
 }
 
-SCHEME_OBJECT
-bit_string_to_bignum (long nbits, SCHEME_OBJECT bitstr)
+static SCHEME_OBJECT
+bit_string_to_bignum (unsigned long nbits, SCHEME_OBJECT bitstr)
 {
+  unsigned long ndigits = ((nbits + (CHAR_BIT - 1)) / CHAR_BIT);
   struct bitstr_to_bignm_context context;
-  int ndigits, skip;
 
-  ndigits = ((nbits + (CHAR_BIT - 1)) / CHAR_BIT);
-
-  context.mask = (LOW_MASK (((nbits - 1) % (CHAR_BIT)) + 1));
-  context.source_ptr =
-    ((unsigned char *)
-     (MEMORY_LOC (bitstr, (BIT_STRING_INDEX_TO_WORD (bitstr, (nbits - 1))))));
+  (context.mask) = (LOW_MASK (((nbits - 1) % (CHAR_BIT)) + 1));
+  (context.source_ptr)
+    = ((unsigned char *)
+       (MEMORY_LOC (bitstr, (BIT_STRING_INDEX_TO_WORD (bitstr, (nbits - 1))))));
 
   if (ndigits != 0)
-  {
-    skip = ((sizeof (SCHEME_OBJECT)) -
-	    (((ndigits - 1) % (sizeof (SCHEME_OBJECT))) + 1));
-    while ((--skip) >= 0)
     {
-      DEC_BIT_STRING_PTR (context.source_ptr);
+      unsigned long skip
+	= ((sizeof (SCHEME_OBJECT))
+	   - (((ndigits - 1)
+	       % (sizeof (SCHEME_OBJECT)))
+	      + 1));
+      while (skip > 0)
+	{
+	  DEC_BIT_STRING_PTR (context.source_ptr);
+	  skip -= 1;
+	}
     }
-  }
 
   return
     (digit_stream_to_bignum (ndigits, bstb_producer,
@@ -669,18 +650,18 @@ INTEGER, which must be a non-negative integer, is converted to \
 a bit-string of length LENGTH.  If INTEGER is too large, an \
 error is signalled.")
 {
-  long length;
+  unsigned long length;
   SCHEME_OBJECT object;
   PRIMITIVE_HEADER (2);
-  length = (arg_nonnegative_integer (1));
+
+  length = (arg_ulong_integer (1));
   object = (ARG_REF (2));
   if (FIXNUM_P (object))
     {
-      if (FIXNUM_NEGATIVE_P (object))
+      if (!FIXNUM_TO_ULONG_P (object))
 	error_bad_range_arg (2);
       PRIMITIVE_RETURN
-	(long_to_bit_string
-	 (length, (UNSIGNED_FIXNUM_TO_LONG (object))));
+	(ulong_to_bit_string ((FIXNUM_TO_ULONG (object)), length));
     }
   if (BIGNUM_P (object))
     PRIMITIVE_RETURN (bignum_to_bit_string (length, object));
@@ -696,9 +677,13 @@ DEFINE_PRIMITIVE ("BIT-STRING->UNSIGNED-INTEGER", Prim_bit_string_to_unsigned, 1
 BIT-STRING is converted to the appropriate non-negative integer. \
 This operation is the inverse of `unsigned-integer->bit-string'.")
 {
-  SCHEME_OBJECT bit_string, *scan;
-  long nwords, nbits, word;
+  SCHEME_OBJECT bit_string;
+  SCHEME_OBJECT * scan;
+  unsigned long nwords;
+  unsigned long nbits;
+  unsigned long word;
   PRIMITIVE_HEADER (1);
+
   CHECK_ARG (1, BIT_STRING_P);
   bit_string = (ARG_REF (1));
   /* Count the number of significant bits.*/
@@ -716,7 +701,7 @@ This operation is the inverse of `unsigned-integer->bit-string'.")
     }
   if (nwords == 0)
     PRIMITIVE_RETURN (LONG_TO_UNSIGNED_FIXNUM (0));
-  nbits = (((nwords - 1) * OBJECT_LENGTH) + (long_significant_bits (word)));
+  nbits = (((nwords - 1) * OBJECT_LENGTH) + (ulong_significant_bits (word)));
   PRIMITIVE_RETURN
     ((nbits <= FIXNUM_LENGTH)
      ? (LONG_TO_UNSIGNED_FIXNUM (word))
@@ -850,8 +835,6 @@ DEFINE_PRIMITIVE ("BIT-SUBSTRING-FIND-NEXT-SET-BIT", Prim_bitstr_find_next_set_b
      (BIT_STRING_INDEX_PAIR_TO_INDEX (bit_string, word, bit)));
 }
 
-extern void bit_string_set (SCHEME_OBJECT, long, int);
-
 void
 bit_string_set (SCHEME_OBJECT bitstr, long index, int value)
 {

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.6 2006/09/05 19:17:15 cph Exp $
+$Id: extern.h,v 9.65.2.7 2006/10/02 18:34:27 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -254,6 +254,7 @@ extern SCHEME_OBJECT memory_to_string (unsigned long, const void *);
 extern SCHEME_OBJECT memory_to_string_no_gc (unsigned long, const void *);
 extern SCHEME_OBJECT char_pointer_to_string (const char *);
 extern SCHEME_OBJECT char_pointer_to_string_no_gc (const char *);
+extern SCHEME_OBJECT allocate_bit_string (unsigned long);
 extern const char * arg_symbol (int);
 extern const char * arg_interned_symbol (int);
 extern SCHEME_OBJECT intern_symbol (SCHEME_OBJECT);
