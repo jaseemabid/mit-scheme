@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.h,v 10.12.2.3 2006/08/29 04:44:31 cph Exp $
+$Id: cmpint.h,v 10.12.2.4 2006/10/02 17:57:14 cph Exp $
 
 Copyright 1987,1988,1989,1990,1993,2000 Massachusetts Institute of Technology
 Copyright 2002,2005,2006 Massachusetts Institute of Technology
@@ -325,6 +325,7 @@ typedef struct
 #else /* not CMPINT_USE_STRUCS */
 
 typedef insn_t * utility_result_t;
+extern long C_return_value;
 
 #endif /* not CMPINT_USE_STRUCS */
 #endif /* not (COMPILER_PROCESSOR_TYPE == COMPILER_SVM1_TYPE) */
@@ -335,7 +336,7 @@ typedef void utility_proc_t
 extern utility_proc_t * utility_table [];
 
 #ifndef FLUSH_I_CACHE
-#  define FLUSH_I_CACHE() do {} while (0)
+#  define FLUSH_I_CACHE() do {} while (false)
 #endif
 
 #if !defined(PUSH_D_CACHE_REGION) && defined(FLUSH_I_CACHE_REGION)
