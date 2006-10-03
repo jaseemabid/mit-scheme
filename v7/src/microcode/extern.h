@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.8 2006/10/02 20:03:53 cph Exp $
+$Id: extern.h,v 9.65.2.9 2006/10/03 06:45:08 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -204,6 +204,7 @@ extern bool integer_to_double_p (SCHEME_OBJECT);
 extern double integer_to_double (SCHEME_OBJECT);
 extern SCHEME_OBJECT double_to_integer (double);
 extern double double_truncate (double);
+extern double double_round (double);
 extern SCHEME_OBJECT bignum_to_fixnum (SCHEME_OBJECT);
 extern SCHEME_OBJECT bignum_to_integer (SCHEME_OBJECT);
 extern SCHEME_OBJECT bignum_to_flonum (SCHEME_OBJECT);

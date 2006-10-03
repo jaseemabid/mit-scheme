@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: artutl.c,v 1.18.2.2 2005/08/23 02:54:58 cph Exp $
+$Id: artutl.c,v 1.18.2.3 2006/10/03 06:45:02 cph Exp $
 
 Copyright 1989,1990,1992,1995,1997,2005 Massachusetts Institute of Technology
 
@@ -123,6 +123,12 @@ double_truncate (double x)
   (void) modf (x, (&iptr));
   return (iptr);
 }
+
+double
+double_round (double x)
+{
+  return (double_truncate ((x < 0) ? (x - 0.5) : (x + 0.5)));
+}
 
 /* Conversions between Scheme types and Scheme types. */
 
@@ -175,9 +181,7 @@ flonum_ceiling (SCHEME_OBJECT x)
 SCHEME_OBJECT
 flonum_round (SCHEME_OBJECT x)
 {
-  double dx = (FLONUM_TO_DOUBLE (x));
-  return
-    (double_to_flonum (double_truncate ((dx < 0) ? (dx - 0.5) : (dx + 0.5))));
+  return (double_to_flonum (double_round (FLONUM_TO_DOUBLE (x))));
 }
 
 SCHEME_OBJECT
