@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.c,v 1.1.2.1 2006/10/02 20:04:04 cph Exp $
+$Id: svm1.c,v 1.1.2.2 2006/10/03 15:02:05 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -28,6 +28,7 @@ USA.
 #include "cmpint.h"
 #include "extern.h"
 #include "errors.h"
+#include "svm1-defns.h"
 
 static unsigned int cc_entry_reference_offset (insn_t *);
 

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.h,v 1.1.2.6 2006/10/02 20:11:49 cph Exp $
+$Id: svm1.h,v 1.1.2.7 2006/10/03 15:02:10 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -28,8 +28,6 @@ USA.
 #ifndef SCM_CMPINTMD_SVM1_H
 #define SCM_CMPINTMD_SVM1_H 1
 
-#include "svm1-defns.h"
-
 #define COMPILER_PROCESSOR_TYPE COMPILER_SVM_TYPE
 
 #define COMPILER_TEMP_SIZE 1	/* temporaries aren't used */
