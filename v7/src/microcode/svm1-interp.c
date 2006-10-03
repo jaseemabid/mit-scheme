@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: svm1-interp.c,v 1.1.2.1 2006/10/02 20:03:55 cph Exp $
+$Id: svm1-interp.c,v 1.1.2.2 2006/10/03 06:46:57 cph Exp $
 
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -84,7 +84,6 @@ static inst_defn_t * inst_defns [256];
 #define OFFSET_PC(o) return (PC + (o))
 #define COND_OFFSET_PC(p, o) return ((p) ? (PC + (o)) : PC)
 #define NEW_PC(addr) return (addr)
-static void initialize_inst_defns (void);
 static long svm1_result;
 
 #define EXIT_VM(code) do						\
@@ -112,7 +111,6 @@ struct address_s
   static void decode_addr_##name (address_t * address)
 #define DECODE_ADDRESS(name) address_t name; decode_address (&name)
 static void decode_address (address_t *);
-static void initialize_address_decoders (void);
 
 typedef byte_t * trap_0_t (void);
 typedef byte_t * trap_1_t (wreg_t);
@@ -129,7 +127,8 @@ static trap_3_t * traps_3 [256];
 #define DECODE_TRAP_2(name) byte_t name = NEXT_BYTE
 #define DECODE_TRAP_3(name) byte_t name = NEXT_BYTE
 
-static void initialize_traps (void);
+static void signal_illegal_instruction (void);
+static void initialize_decoder_tables (void);
 
 static int initialized_p = 0;
 static int little_endian_p;
@@ -156,9 +155,7 @@ initialize_svm1 (void)
   if (!initialized_p)
     {
       compute_little_endian_p ();
-      initialize_inst_defns ();
-      initialize_address_decoders ();
-      initialize_traps ();
+      initialize_decoder_tables ();
       initialized_p = 1;
     }
   for (i = 0; (i < N_WORD_REGISTERS); i += 1)
@@ -203,16 +200,16 @@ static jmp_buf k_execute_instruction;
 static byte_t *
 execute_instruction (void)
 {
-  byte_t b = NEXT_BYTE;
-  inst_defn_t * defn = (inst_defns[b]);
-  if (defn == 0)
-    {
-      svm1_result = ERR_COMPILED_CODE_ERROR;
-      return (0);
-    }
   if ((setjmp (k_execute_instruction)) != 0)
     return (0);
-  return ((*defn) ());
+  return ((* (inst_defns[NEXT_BYTE])) ());
+}
+
+static insn_t *
+illegal_instruction (void)
+{
+  signal_illegal_instruction ();
+  return (0);
 }
 
 static void
@@ -474,6 +471,8 @@ DEFINE_INST (load_immediate_fr_flt)
 
 #define X_MAKE_PTR(t, a) (X_MAKE_OBJECT (t, (ADDRESS_TO_DATUM (a))))
 
+#define X_OBJECT_ADDRESS(o) ((word_t) (OBJECT_ADDRESS (o)))
+
 DEFINE_INST (load_non_pointer_tc_u8)
 {
   DECODE_SVM1_INST_LOAD_NON_POINTER_TC_U8 (target, type, datum);
@@ -656,7 +655,7 @@ DEFINE_INST (icall_u32)
 
 /* Conditional jumps */
 
-#define DEFINE_CJ_1(pl, pu, rl, ru, z, sl, su)				\
+#define DEFINE_CJ_1(pl, pu, rl, ru, sl, su)				\
 DEFINE_INST (cjump_##pl##_##rl##_##rl##_pcr_##sl)			\
 {									\
   DECODE_SVM1_INST_CJUMP_##pu##_##ru##_##ru##_PCR_##su			\
@@ -674,16 +673,23 @@ DEFINE_INST (cjump_##pl##_##rl##_pcr_##sl)				\
 #define CJ_PCR(p) COND_OFFSET_PC (p, offset)
 
 #define DEFINE_CJ_3(pl, pu, rl, ru, z, sl, su)				\
-DEFINE_CJ_1 (pl, pu, rl, ru, z, sl, su)					\
+DEFINE_CJ_1 (pl, pu, rl, ru, sl, su)					\
 DEFINE_CJ_2 (pl, pu, rl, ru, z, sl, su)
 
-#define DEFINE_CJ_4(pl, pu, rl, ru, z)					\
-DEFINE_CJ_3 (pl, pu, rl, ru, z, s8, S8)					\
-DEFINE_CJ_3 (pl, pu, rl, ru, z, s16, S16)				\
-DEFINE_CJ_3 (pl, pu, rl, ru, z, s32, S32)
+#define DEFINE_CJ_WR(pl, pu)						\
+DEFINE_CJ_3 (pl, pu, wr, WR, 0, s8, S8)					\
+DEFINE_CJ_3 (pl, pu, wr, WR, 0, s16, S16)				\
+DEFINE_CJ_3 (pl, pu, wr, WR, 0, s32, S32)
 
-#define DEFINE_CJ_WR(pl, pu) DEFINE_CJ_4 (pl, pu, wr, WR, 0)
-#define DEFINE_CJ_FR(pl, pu) DEFINE_CJ_4 (pl, pu, fr, FR, 0.0)
+#define DEFINE_CJ_WR_NZ(pl, pu)						\
+DEFINE_CJ_1 (pl, pu, wr, WR, s8, S8)					\
+DEFINE_CJ_1 (pl, pu, wr, WR, s16, S16)					\
+DEFINE_CJ_1 (pl, pu, wr, WR, s32, S32)
+
+#define DEFINE_CJ_FR(pl, pu)						\
+DEFINE_CJ_3 (pl, pu, fr, FR, 0.0, s8, S8)				\
+DEFINE_CJ_3 (pl, pu, fr, FR, 0.0, s16, S16)				\
+DEFINE_CJ_3 (pl, pu, fr, FR, 0.0, s32, S32)
 
 #define CMP_EQ(a, b) ((a) == (b))
 #define CMP_NEQ(a, b) ((a) != (b))
@@ -706,14 +712,15 @@ cmp_cmp (double a, double b)
 
 DEFINE_CJ_WR (eq, EQ)
 DEFINE_CJ_WR (neq, NEQ)
-DEFINE_CJ_WR (lt, LT)		/* compare to zero always false */
-DEFINE_CJ_WR (le, LE)
-DEFINE_CJ_WR (gt, GT)
-DEFINE_CJ_WR (ge, GE)		/* compare to zero always true */
 DEFINE_CJ_WR (slt, SLT)
 DEFINE_CJ_WR (sle, SLE)
 DEFINE_CJ_WR (sgt, SGT)
 DEFINE_CJ_WR (sge, SGE)
+
+DEFINE_CJ_WR_NZ (lt, LT)
+DEFINE_CJ_WR_NZ (le, LE)
+DEFINE_CJ_WR_NZ (gt, GT)
+DEFINE_CJ_WR_NZ (ge, GE)
 
 DEFINE_CJ_FR (eq, EQ)
 DEFINE_CJ_FR (neq, NEQ)
@@ -746,40 +753,56 @@ DEFINE_CJF (nfix, NFIX)
 DEFINE_CJF (ifix, IFIX)
 DEFINE_CJF (nifix, NIFIX)
 
-DEFINE_INST (trap_0)
+DEFINE_INST (trap_trap_0)
 {
   DECODE_SVM1_INST_TRAP_TRAP_0 (code);
-  trap_0_t * proc = (traps_0[code]);
-  if (proc == 0)
-    signal_illegal_instruction ();
-  return ((*proc) ());
+  return ((* (traps_0[code])) ());
 }
 
-DEFINE_INST (trap_1)
+static byte_t *
+illegal_trap_0 (void)
+{
+  signal_illegal_instruction ();
+  return (0);
+}
+
+DEFINE_INST (trap_trap_1_wr)
 {
   DECODE_SVM1_INST_TRAP_TRAP_1_WR (code, r1);
-  trap_1_t * proc = (traps_1[code]);
-  if (proc == 0)
-    signal_illegal_instruction ();
-  return ((*proc) (r1));
+  return ((* (traps_1[code])) (r1));
 }
 
-DEFINE_INST (trap_2)
+static byte_t *
+illegal_trap_1 (wreg_t r1)
+{
+  signal_illegal_instruction ();
+  return (0);
+}
+
+DEFINE_INST (trap_trap_2_wr)
 {
   DECODE_SVM1_INST_TRAP_TRAP_2_WR (code, r1, r2);
-  trap_2_t * proc = (traps_2[code]);
-  if (proc == 0)
-    signal_illegal_instruction ();
-  return ((*proc) (r1, r2));
+  return ((* (traps_2[code])) (r1, r2));
 }
 
-DEFINE_INST (trap_3)
+static byte_t *
+illegal_trap_2 (wreg_t r1, wreg_t r2)
+{
+  signal_illegal_instruction ();
+  return (0);
+}
+
+DEFINE_INST (trap_trap_3_wr)
 {
   DECODE_SVM1_INST_TRAP_TRAP_3_WR (code, r1, r2, r3);
-  trap_3_t * proc = (traps_3[code]);
-  if (proc == 0)
-    signal_illegal_instruction ();
-  return ((*proc) (r1, r2, r3));
+  return ((* (traps_3[code])) (r1, r2, r3));
+}
+
+static byte_t *
+illegal_trap_3 (wreg_t r1, wreg_t r2, wreg_t r3)
+{
+  signal_illegal_instruction ();
+  return (0);
 }
 
 #define TRAP_PREFIX(result)						\
@@ -966,73 +989,6 @@ DEFINE_TRAMPOLINE (operator_primitive, operator_primitive_trap)
 DEFINE_TRAMPOLINE (reflect_to_interface, reflect_to_interface)
 DEFINE_TRAMPOLINE (return_to_interpreter, return_to_interpreter)
 
-#define BIND_TRAP_0(index, name)					\
-  (traps_0[SVM1_TRAP_0_##index]) = trap_##name
-
-#define BIND_TRAP_1(index, name)					\
-  (traps_1[SVM1_TRAP_1_##index]) = trap_##name
-
-#define BIND_TRAP_2(index, name)					\
-  (traps_2[SVM1_TRAP_2_##index]) = trap_##name
-
-#define BIND_TRAP_3(index, name)					\
-  (traps_3[SVM1_TRAP_3_##index]) = trap_##name
-
-static void
-initialize_traps (void)
-{
-  memset (traps_0, 0, (sizeof (traps_0)));
-  BIND_TRAP_0 (ADD, add);
-  BIND_TRAP_0 (DECREMENT, decrement);
-  BIND_TRAP_0 (DIVIDE, divide);
-  BIND_TRAP_0 (EQUAL_P, equal_p);
-  BIND_TRAP_0 (GREATER_P, greater_p);
-  BIND_TRAP_0 (INCREMENT, increment);
-  BIND_TRAP_0 (LESS_P, less_p);
-  BIND_TRAP_0 (MODULO, modulo);
-  BIND_TRAP_0 (MULTIPLY, multiply);
-  BIND_TRAP_0 (NEGATIVE_P, negative_p);
-  BIND_TRAP_0 (OPERATOR_1_0, operator_1_0);
-  BIND_TRAP_0 (OPERATOR_2_0, operator_2_0);
-  BIND_TRAP_0 (OPERATOR_2_1, operator_2_1);
-  BIND_TRAP_0 (OPERATOR_3_0, operator_3_0);
-  BIND_TRAP_0 (OPERATOR_3_1, operator_3_1);
-  BIND_TRAP_0 (OPERATOR_3_2, operator_3_2);
-  BIND_TRAP_0 (OPERATOR_4_0, operator_4_0);
-  BIND_TRAP_0 (OPERATOR_4_1, operator_4_1);
-  BIND_TRAP_0 (OPERATOR_4_2, operator_4_2);
-  BIND_TRAP_0 (OPERATOR_4_3, operator_4_3);
-  BIND_TRAP_0 (OPERATOR_APPLY, operator_apply);
-  BIND_TRAP_0 (OPERATOR_LEXPR, operator_lexpr);
-  BIND_TRAP_0 (OPERATOR_LOOKUP, operator_lookup);
-  BIND_TRAP_0 (OPERATOR_PRIMITIVE, operator_primitive);
-  BIND_TRAP_0 (POSITIVE_P, positive_p);
-  BIND_TRAP_0 (QUOTIENT, quotient);
-  BIND_TRAP_0 (REFLECT_TO_INTERFACE, reflect_to_interface);
-  BIND_TRAP_0 (REMAINDER, remainder);
-  BIND_TRAP_0 (RETURN_TO_INTERPRETER, return_to_interpreter);
-  BIND_TRAP_0 (SUBTRACT, subtract);
-  BIND_TRAP_0 (ZERO_P, zero_p);
-
-  memset (traps_1, 0, (sizeof (traps_1)));
-  BIND_TRAP_1 (ERROR, error);
-  BIND_TRAP_1 (LOOKUP, lookup);
-  BIND_TRAP_1 (PRIMITIVE_APPLY, primitive_apply);
-  BIND_TRAP_1 (PRIMITIVE_LEXPR_APPLY, primitive_lexpr_apply);
-  BIND_TRAP_1 (SAFE_LOOKUP, safe_lookup);
-  BIND_TRAP_1 (UNASSIGNED_P, unassigned_p);
-
-  memset (traps_2, 0, (sizeof (traps_2)));
-  BIND_TRAP_2 (APPLY, apply);
-  BIND_TRAP_2 (ASSIGNMENT, assignment);
-  BIND_TRAP_2 (LEXPR_APPLY, lexpr_apply);
-  BIND_TRAP_2 (PRIMITIVE_ERROR, primitive_error);
-
-  memset (traps_3, 0, (sizeof (traps_3)));
-  BIND_TRAP_3 (CACHE_REFERENCE_APPLY, cache_reference_apply);
-  BIND_TRAP_3 (LINK, link);
-}
-
 #define DEFINE_INTERRUPT_TEST(name, a1, a2)				\
 DEFINE_INST (interrupt_test_##name)					\
 {									\
@@ -1092,262 +1048,142 @@ DEFINE_INST (flonum_header)
   NEXT_PC;
 }
 
-DEFINE_INST (copy_wr)
+DEFINE_INST (flonum_align)
 {
-  DECODE_SVM1_INST_COPY_WR (target, source);
-  WREG_SET (target, (WREG_REF (source)));
-  NEXT_PC;
-}
-
-DEFINE_INST (copy_fr)
-{
-  DECODE_SVM1_INST_COPY_FR (target, source);
-  FREG_SET (target, (FREG_REF (source)));
-  NEXT_PC;
-}
-
-DEFINE_INST (negate_wr)
-{
-  DECODE_SVM1_INST_NEGATE_WR (target, source);
-  WREG_SET (target, (SIGNED_UNARY (-, (WREG_REF (source)))));
-  NEXT_PC;
-}
-
-DEFINE_INST (negate_fr)
-{
-  DECODE_SVM1_INST_NEGATE_FR (target, source);
-  FREG_SET (target, (- (FREG_REF (source))));
-  NEXT_PC;
-}
-
-DEFINE_INST (increment_wr)
-{
-  DECODE_SVM1_INST_INCREMENT_WR (target, source);
-  WREG_SET (target, ((WREG_REF (source)) + 1));
-  NEXT_PC;
-}
-
-DEFINE_INST (increment_fr)
-{
-  DECODE_SVM1_INST_INCREMENT_FR (target, source);
-  FREG_SET (target, ((FREG_REF (source)) + 1.0));
-  NEXT_PC;
-}
-
-DEFINE_INST (decrement_wr)
-{
-  DECODE_SVM1_INST_DECREMENT_WR (target, source);
-  WREG_SET (target, ((WREG_REF (source)) - 1));
-  NEXT_PC;
-}
-
-DEFINE_INST (decrement_fr)
-{
-  DECODE_SVM1_INST_DECREMENT_FR (target, source);
-  FREG_SET (target, ((FREG_REF (source)) - 1.0));
-  NEXT_PC;
-}
-
-DEFINE_INST (abs_wr)
-{
-  DECODE_SVM1_INST_ABS_WR (target, source);
-  WREG_SET (target, (SIGNED_UNARY (labs, (WREG_REF (source)))));
-  NEXT_PC;
-}
-
-DEFINE_INST (abs_fr)
-{
-  DECODE_SVM1_INST_ABS_FR (target, source);
-  FREG_SET (target, (fabs (FREG_REF (source))));
+  DECODE_SVM1_INST_FLONUM_ALIGN (target, source);
+  SCHEME_OBJECT * p = ((SCHEME_OBJECT *) (WREG_REF (source)));
+  ALIGN_FLOAT (p);
+  WREG_SET (target, ((word_t) p));
   NEXT_PC;
 }
 
-#define BIND_INST(index, defn) (inst_defns[SVM1_INST_##index]) = insn_##defn
+#define UNARY_NOP(x) x
+#define SIGNED_NEGATE(x) (SIGNED_UNARY (-, (x)))
+#define WINCR(x) ((x) + 1)
+#define FINCR(x) ((x) + 1.0)
+#define WDECR(x) ((x) - 1)
+#define FDECR(x) ((x) - 1.0)
+#define WABS(x) (SIGNED_UNARY (labs, (x)))
 
-static void
-initialize_inst_defns (void)
-{
-  memset (inst_defns, 0, (sizeof (inst_defns)));
-  BIND_INST (STORE_B_WR_ADDR, store_b_wr_addr);
-  BIND_INST (STORE_W_WR_ADDR, store_w_wr_addr);
-  BIND_INST (STORE_F_FR_ADDR, store_f_fr_addr);
-  BIND_INST (LOAD_B_WR_ADDR, load_b_wr_addr);
-  BIND_INST (LOAD_W_WR_ADDR, load_w_wr_addr);
-  BIND_INST (LOAD_F_FR_ADDR, load_f_fr_addr);
-  BIND_INST (LOAD_ADDRESS_ADDR, load_address_addr);
-  BIND_INST (LOAD_IMMEDIATE_WR_S8, load_immediate_wr_s8);
-  BIND_INST (LOAD_IMMEDIATE_WR_S16, load_immediate_wr_s16);
-  BIND_INST (LOAD_IMMEDIATE_WR_S32, load_immediate_wr_s32);
-  BIND_INST (LOAD_IMMEDIATE_WR_U8, load_immediate_wr_u8);
-  BIND_INST (LOAD_IMMEDIATE_WR_U16, load_immediate_wr_u16);
-  BIND_INST (LOAD_IMMEDIATE_WR_U32, load_immediate_wr_u32);
-  BIND_INST (LOAD_IMMEDIATE_FR_FLT, load_immediate_fr_flt);
-  BIND_INST (COPY_BLOCK_U8_W, copy_block_u8_w);
-  BIND_INST (COPY_BLOCK_WR_W, copy_block_wr_w);
-  BIND_INST (LOAD_NON_POINTER_TC_U8, load_non_pointer_tc_u8);
-  BIND_INST (LOAD_NON_POINTER_WR_U8, load_non_pointer_wr_u8);
-  BIND_INST (LOAD_NON_POINTER_TC_U16, load_non_pointer_tc_u16);
-  BIND_INST (LOAD_NON_POINTER_WR_U16, load_non_pointer_wr_u16);
-  BIND_INST (LOAD_NON_POINTER_TC_U32, load_non_pointer_tc_u32);
-  BIND_INST (LOAD_NON_POINTER_WR_U32, load_non_pointer_wr_u32);
-  BIND_INST (LOAD_NON_POINTER_TC_WR, load_non_pointer_tc_wr);
-  BIND_INST (LOAD_NON_POINTER, load_non_pointer);
-  BIND_INST (LOAD_POINTER_TC_WR, load_pointer_tc_wr);
-  BIND_INST (LOAD_POINTER, load_pointer);
-  BIND_INST (JUMP_PCR_S8, jump_pcr_s8);
-  BIND_INST (JUMP_PCR_S16, jump_pcr_s16);
-  BIND_INST (JUMP_PCR_S32, jump_pcr_s32);
-  BIND_INST (JUMP_INDIR_WR, jump_indir_wr);
-  BIND_INST (IJUMP_U8, ijump_u8);
-  BIND_INST (IJUMP_U16, ijump_u16);
-  BIND_INST (IJUMP_U32, ijump_u32);
-  BIND_INST (ICALL_U8, icall_u8);
-  BIND_INST (ICALL_U16, icall_u16);
-  BIND_INST (ICALL_U32, icall_u32);
-  BIND_INST (CJUMP_EQ_WR_WR_PCR_S8, cjump_eq_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_NEQ_WR_WR_PCR_S8, cjump_neq_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_LT_WR_WR_PCR_S8, cjump_lt_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_GE_WR_WR_PCR_S8, cjump_ge_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_GT_WR_WR_PCR_S8, cjump_gt_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_LE_WR_WR_PCR_S8, cjump_le_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_SLT_WR_WR_PCR_S8, cjump_slt_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_SGE_WR_WR_PCR_S8, cjump_sge_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_SGT_WR_WR_PCR_S8, cjump_sgt_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_SLE_WR_WR_PCR_S8, cjump_sle_wr_wr_pcr_s8);
-  BIND_INST (CJUMP_EQ_WR_WR_PCR_S16, cjump_eq_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_NEQ_WR_WR_PCR_S16, cjump_neq_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_LT_WR_WR_PCR_S16, cjump_lt_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_GE_WR_WR_PCR_S16, cjump_ge_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_GT_WR_WR_PCR_S16, cjump_gt_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_LE_WR_WR_PCR_S16, cjump_le_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_SLT_WR_WR_PCR_S16, cjump_slt_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_SGE_WR_WR_PCR_S16, cjump_sge_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_SGT_WR_WR_PCR_S16, cjump_sgt_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_SLE_WR_WR_PCR_S16, cjump_sle_wr_wr_pcr_s16);
-  BIND_INST (CJUMP_EQ_WR_WR_PCR_S32, cjump_eq_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_NEQ_WR_WR_PCR_S32, cjump_neq_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_LT_WR_WR_PCR_S32, cjump_lt_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_GE_WR_WR_PCR_S32, cjump_ge_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_GT_WR_WR_PCR_S32, cjump_gt_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_LE_WR_WR_PCR_S32, cjump_le_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_SLT_WR_WR_PCR_S32, cjump_slt_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_SGE_WR_WR_PCR_S32, cjump_sge_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_SGT_WR_WR_PCR_S32, cjump_sgt_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_SLE_WR_WR_PCR_S32, cjump_sle_wr_wr_pcr_s32);
-  BIND_INST (CJUMP_EQ_WR_PCR_S8, cjump_eq_wr_pcr_s8);
-  BIND_INST (CJUMP_NEQ_WR_PCR_S8, cjump_neq_wr_pcr_s8);
-  BIND_INST (CJUMP_LT_WR_PCR_S8, cjump_lt_wr_pcr_s8);
-  BIND_INST (CJUMP_GE_WR_PCR_S8, cjump_ge_wr_pcr_s8);
-  BIND_INST (CJUMP_GT_WR_PCR_S8, cjump_gt_wr_pcr_s8);
-  BIND_INST (CJUMP_LE_WR_PCR_S8, cjump_le_wr_pcr_s8);
-  BIND_INST (CJUMP_SLT_WR_PCR_S8, cjump_slt_wr_pcr_s8);
-  BIND_INST (CJUMP_SGE_WR_PCR_S8, cjump_sge_wr_pcr_s8);
-  BIND_INST (CJUMP_SGT_WR_PCR_S8, cjump_sgt_wr_pcr_s8);
-  BIND_INST (CJUMP_SLE_WR_PCR_S8, cjump_sle_wr_pcr_s8);
-  BIND_INST (CJUMP_EQ_WR_PCR_S16, cjump_eq_wr_pcr_s16);
-  BIND_INST (CJUMP_NEQ_WR_PCR_S16, cjump_neq_wr_pcr_s16);
-  BIND_INST (CJUMP_LT_WR_PCR_S16, cjump_lt_wr_pcr_s16);
-  BIND_INST (CJUMP_GE_WR_PCR_S16, cjump_ge_wr_pcr_s16);
-  BIND_INST (CJUMP_GT_WR_PCR_S16, cjump_gt_wr_pcr_s16);
-  BIND_INST (CJUMP_LE_WR_PCR_S16, cjump_le_wr_pcr_s16);
-  BIND_INST (CJUMP_SLT_WR_PCR_S16, cjump_slt_wr_pcr_s16);
-  BIND_INST (CJUMP_SGE_WR_PCR_S16, cjump_sge_wr_pcr_s16);
-  BIND_INST (CJUMP_SGT_WR_PCR_S16, cjump_sgt_wr_pcr_s16);
-  BIND_INST (CJUMP_SLE_WR_PCR_S16, cjump_sle_wr_pcr_s16);
-  BIND_INST (CJUMP_EQ_WR_PCR_S32, cjump_eq_wr_pcr_s32);
-  BIND_INST (CJUMP_NEQ_WR_PCR_S32, cjump_neq_wr_pcr_s32);
-  BIND_INST (CJUMP_LT_WR_PCR_S32, cjump_lt_wr_pcr_s32);
-  BIND_INST (CJUMP_GE_WR_PCR_S32, cjump_ge_wr_pcr_s32);
-  BIND_INST (CJUMP_GT_WR_PCR_S32, cjump_gt_wr_pcr_s32);
-  BIND_INST (CJUMP_LE_WR_PCR_S32, cjump_le_wr_pcr_s32);
-  BIND_INST (CJUMP_SLT_WR_PCR_S32, cjump_slt_wr_pcr_s32);
-  BIND_INST (CJUMP_SGE_WR_PCR_S32, cjump_sge_wr_pcr_s32);
-  BIND_INST (CJUMP_SGT_WR_PCR_S32, cjump_sgt_wr_pcr_s32);
-  BIND_INST (CJUMP_SLE_WR_PCR_S32, cjump_sle_wr_pcr_s32);
-  BIND_INST (CJUMP_EQ_FR_FR_PCR_S8, cjump_eq_fr_fr_pcr_s8);
-  BIND_INST (CJUMP_NEQ_FR_FR_PCR_S8, cjump_neq_fr_fr_pcr_s8);
-  BIND_INST (CJUMP_LT_FR_FR_PCR_S8, cjump_lt_fr_fr_pcr_s8);
-  BIND_INST (CJUMP_GT_FR_FR_PCR_S8, cjump_gt_fr_fr_pcr_s8);
-  BIND_INST (CJUMP_LE_FR_FR_PCR_S8, cjump_le_fr_fr_pcr_s8);
-  BIND_INST (CJUMP_GE_FR_FR_PCR_S8, cjump_ge_fr_fr_pcr_s8);
-  BIND_INST (CJUMP_CMP_FR_FR_PCR_S8, cjump_cmp_fr_fr_pcr_s8);
-  BIND_INST (CJUMP_NCMP_FR_FR_PCR_S8, cjump_ncmp_fr_fr_pcr_s8);
-  BIND_INST (CJUMP_EQ_FR_FR_PCR_S16, cjump_eq_fr_fr_pcr_s16);
-  BIND_INST (CJUMP_NEQ_FR_FR_PCR_S16, cjump_neq_fr_fr_pcr_s16);
-  BIND_INST (CJUMP_LT_FR_FR_PCR_S16, cjump_lt_fr_fr_pcr_s16);
-  BIND_INST (CJUMP_GT_FR_FR_PCR_S16, cjump_gt_fr_fr_pcr_s16);
-  BIND_INST (CJUMP_LE_FR_FR_PCR_S16, cjump_le_fr_fr_pcr_s16);
-  BIND_INST (CJUMP_GE_FR_FR_PCR_S16, cjump_ge_fr_fr_pcr_s16);
-  BIND_INST (CJUMP_CMP_FR_FR_PCR_S16, cjump_cmp_fr_fr_pcr_s16);
-  BIND_INST (CJUMP_NCMP_FR_FR_PCR_S16, cjump_ncmp_fr_fr_pcr_s16);
-  BIND_INST (CJUMP_EQ_FR_FR_PCR_S32, cjump_eq_fr_fr_pcr_s32);
-  BIND_INST (CJUMP_NEQ_FR_FR_PCR_S32, cjump_neq_fr_fr_pcr_s32);
-  BIND_INST (CJUMP_LT_FR_FR_PCR_S32, cjump_lt_fr_fr_pcr_s32);
-  BIND_INST (CJUMP_GT_FR_FR_PCR_S32, cjump_gt_fr_fr_pcr_s32);
-  BIND_INST (CJUMP_LE_FR_FR_PCR_S32, cjump_le_fr_fr_pcr_s32);
-  BIND_INST (CJUMP_GE_FR_FR_PCR_S32, cjump_ge_fr_fr_pcr_s32);
-  BIND_INST (CJUMP_CMP_FR_FR_PCR_S32, cjump_cmp_fr_fr_pcr_s32);
-  BIND_INST (CJUMP_NCMP_FR_FR_PCR_S32, cjump_ncmp_fr_fr_pcr_s32);
-  BIND_INST (CJUMP_EQ_FR_PCR_S8, cjump_eq_fr_pcr_s8);
-  BIND_INST (CJUMP_NEQ_FR_PCR_S8, cjump_neq_fr_pcr_s8);
-  BIND_INST (CJUMP_LT_FR_PCR_S8, cjump_lt_fr_pcr_s8);
-  BIND_INST (CJUMP_GT_FR_PCR_S8, cjump_gt_fr_pcr_s8);
-  BIND_INST (CJUMP_LE_FR_PCR_S8, cjump_le_fr_pcr_s8);
-  BIND_INST (CJUMP_GE_FR_PCR_S8, cjump_ge_fr_pcr_s8);
-  BIND_INST (CJUMP_CMP_FR_PCR_S8, cjump_cmp_fr_pcr_s8);
-  BIND_INST (CJUMP_NCMP_FR_PCR_S8, cjump_ncmp_fr_pcr_s8);
-  BIND_INST (CJUMP_EQ_FR_PCR_S16, cjump_eq_fr_pcr_s16);
-  BIND_INST (CJUMP_NEQ_FR_PCR_S16, cjump_neq_fr_pcr_s16);
-  BIND_INST (CJUMP_LT_FR_PCR_S16, cjump_lt_fr_pcr_s16);
-  BIND_INST (CJUMP_GT_FR_PCR_S16, cjump_gt_fr_pcr_s16);
-  BIND_INST (CJUMP_LE_FR_PCR_S16, cjump_le_fr_pcr_s16);
-  BIND_INST (CJUMP_GE_FR_PCR_S16, cjump_ge_fr_pcr_s16);
-  BIND_INST (CJUMP_CMP_FR_PCR_S16, cjump_cmp_fr_pcr_s16);
-  BIND_INST (CJUMP_NCMP_FR_PCR_S16, cjump_ncmp_fr_pcr_s16);
-  BIND_INST (CJUMP_EQ_FR_PCR_S32, cjump_eq_fr_pcr_s32);
-  BIND_INST (CJUMP_NEQ_FR_PCR_S32, cjump_neq_fr_pcr_s32);
-  BIND_INST (CJUMP_LT_FR_PCR_S32, cjump_lt_fr_pcr_s32);
-  BIND_INST (CJUMP_GT_FR_PCR_S32, cjump_gt_fr_pcr_s32);
-  BIND_INST (CJUMP_LE_FR_PCR_S32, cjump_le_fr_pcr_s32);
-  BIND_INST (CJUMP_GE_FR_PCR_S32, cjump_ge_fr_pcr_s32);
-  BIND_INST (CJUMP_CMP_FR_PCR_S32, cjump_cmp_fr_pcr_s32);
-  BIND_INST (CJUMP_NCMP_FR_PCR_S32, cjump_ncmp_fr_pcr_s32);
-  BIND_INST (CJUMP_FIX_WR_PCR_S8, cjump_fix_wr_pcr_s8);
-  BIND_INST (CJUMP_FIX_WR_PCR_S16, cjump_fix_wr_pcr_s16);
-  BIND_INST (CJUMP_FIX_WR_PCR_S32, cjump_fix_wr_pcr_s32);
-  BIND_INST (CJUMP_NFIX_WR_PCR_S8, cjump_nfix_wr_pcr_s8);
-  BIND_INST (CJUMP_NFIX_WR_PCR_S16, cjump_nfix_wr_pcr_s16);
-  BIND_INST (CJUMP_NFIX_WR_PCR_S32, cjump_nfix_wr_pcr_s32);
-  BIND_INST (CJUMP_IFIX_WR_PCR_S8, cjump_ifix_wr_pcr_s8);
-  BIND_INST (CJUMP_IFIX_WR_PCR_S16, cjump_ifix_wr_pcr_s16);
-  BIND_INST (CJUMP_IFIX_WR_PCR_S32, cjump_ifix_wr_pcr_s32);
-  BIND_INST (CJUMP_NIFIX_WR_PCR_S8, cjump_nifix_wr_pcr_s8);
-  BIND_INST (CJUMP_NIFIX_WR_PCR_S16, cjump_nifix_wr_pcr_s16);
-  BIND_INST (CJUMP_NIFIX_WR_PCR_S32, cjump_nifix_wr_pcr_s32);
-  BIND_INST (TRAP_TRAP_0, trap_0);
-  BIND_INST (TRAP_TRAP_1_WR, trap_1);
-  BIND_INST (TRAP_TRAP_2_WR, trap_2);
-  BIND_INST (TRAP_TRAP_3_WR, trap_3);
-  BIND_INST (INTERRUPT_TEST_PROCEDURE, interrupt_test_procedure);
-  BIND_INST (INTERRUPT_TEST_CLOSURE, interrupt_test_closure);
-  BIND_INST (INTERRUPT_TEST_DYNAMIC_LINK, interrupt_test_dynamic_link);
-  BIND_INST (INTERRUPT_TEST_IC_PROCEDURE, interrupt_test_ic_procedure);
-  BIND_INST (INTERRUPT_TEST_CONTINUATION, interrupt_test_continuation);
-  BIND_INST (FLONUM_HEADER_U8, flonum_header_u8);
-  BIND_INST (FLONUM_HEADER_U16, flonum_header_u16);
-  BIND_INST (FLONUM_HEADER_U32, flonum_header_u32);
-  BIND_INST (FLONUM_HEADER, flonum_header);
-  BIND_INST (COPY_WR, copy_wr);
-  BIND_INST (COPY_FR, copy_fr);
-  BIND_INST (NEGATE_WR, negate_wr);
-  BIND_INST (NEGATE_FR, negate_fr);
-  BIND_INST (INCREMENT_WR, increment_wr);
-  BIND_INST (INCREMENT_FR, increment_fr);
-  BIND_INST (DECREMENT_WR, decrement_wr);
-  BIND_INST (DECREMENT_FR, decrement_fr);
-  BIND_INST (ABS_WR, abs_wr);
-  BIND_INST (ABS_FR, abs_fr);
+#define OP_ADD(x, y) ((x) + (y))
+#define OP_SUBTRACT(x, y) ((x) - (y))
+#define OP_MULTIPLY(x, y) ((x) * (y))
+#define OP_DIVIDE(x, y) ((x) / (y))
+#define OP_REMAINDER(x, y) ((x) % (y))
+#define OP_AND(x, y) ((x) & (y))
+#define OP_ANDC(x, y) ((x) &~ (y))
+#define OP_OR(x, y) ((x) | (y))
+#define OP_XOR(x, y) ((x) ^ (y))
+
+#define DEFINE_UNARY_WR(nl, nu, op)					\
+DEFINE_INST (nl)							\
+{									\
+  DECODE_SVM1_INST_##nu (target, source);				\
+  WREG_SET (target, (op (WREG_REF (source))));				\
+  NEXT_PC;								\
 }
+
+DEFINE_UNARY_WR (copy_wr, COPY_WR, UNARY_NOP)
+DEFINE_UNARY_WR (negate_wr, NEGATE_WR, SIGNED_NEGATE)
+DEFINE_UNARY_WR (increment_wr, INCREMENT_WR, WINCR)
+DEFINE_UNARY_WR (decrement_wr, DECREMENT_WR, WDECR)
+DEFINE_UNARY_WR (abs_wr, ABS_WR, WABS)
+DEFINE_UNARY_WR (not, NOT, ~)
+
+DEFINE_UNARY_WR (object_type, OBJECT_TYPE, OBJECT_TYPE)
+DEFINE_UNARY_WR (object_datum, OBJECT_DATUM, OBJECT_DATUM)
+DEFINE_UNARY_WR (object_address, OBJECT_ADDRESS, X_OBJECT_ADDRESS)
+DEFINE_UNARY_WR (fixnum_to_integer, FIXNUM_TO_INTEGER, FIXNUM_TO_LONG)
+DEFINE_UNARY_WR (integer_to_fixnum, INTEGER_TO_FIXNUM, LONG_TO_FIXNUM)
+DEFINE_UNARY_WR (flonum_length, FLONUM_LENGTH, FLOATING_VECTOR_LENGTH)
+
+#define DEFINE_UNARY_FR(nl, nu, op)					\
+DEFINE_INST (nl)							\
+{									\
+  DECODE_SVM1_INST_##nu (target, source);				\
+  FREG_SET (target, (op (FREG_REF (source))));				\
+  NEXT_PC;								\
+}
+
+DEFINE_UNARY_FR (copy_fr, COPY_FR, UNARY_NOP)
+DEFINE_UNARY_FR (negate_fr, NEGATE_FR, -)
+DEFINE_UNARY_FR (increment_fr, INCREMENT_FR, FINCR)
+DEFINE_UNARY_FR (decrement_fr, DECREMENT_FR, FDECR)
+DEFINE_UNARY_FR (abs_fr, ABS_FR, fabs)
+DEFINE_UNARY_FR (sqrt, SQRT, sqrt)
+DEFINE_UNARY_FR (round, ROUND, double_round)
+DEFINE_UNARY_FR (ceiling, CEILING, ceil)
+DEFINE_UNARY_FR (floor, FLOOR, floor)
+DEFINE_UNARY_FR (truncate, TRUNCATE, double_truncate)
+DEFINE_UNARY_FR (log, LOG, log)
+DEFINE_UNARY_FR (exp, EXP, exp)
+DEFINE_UNARY_FR (cos, COS, cos)
+DEFINE_UNARY_FR (sin, SIN, sin)
+DEFINE_UNARY_FR (tan, TAN, tan)
+DEFINE_UNARY_FR (acos, ACOS, acos)
+DEFINE_UNARY_FR (asin, ASIN, asin)
+DEFINE_UNARY_FR (atan, ATAN, atan)
+
+#define DEFINE_BINARY_WR(nl, nu, op)					\
+DEFINE_INST (nl)							\
+{									\
+  DECODE_SVM1_INST_##nu (target, source1, source2);			\
+  WREG_SET (target, (op ((WREG_REF (source1)), (WREG_REF (source2)))));	\
+  NEXT_PC;								\
+}
+
+DEFINE_BINARY_WR (add_wr, ADD_WR, OP_ADD)
+DEFINE_BINARY_WR (subtract_wr, SUBTRACT_WR, OP_SUBTRACT)
+DEFINE_BINARY_WR (multiply_wr, MULTIPLY_WR, OP_MULTIPLY)
+DEFINE_BINARY_WR (quotient, QUOTIENT, OP_DIVIDE)
+DEFINE_BINARY_WR (remainder, REMAINDER, OP_REMAINDER)
+DEFINE_BINARY_WR (and, AND, OP_AND)
+DEFINE_BINARY_WR (andc, ANDC, OP_ANDC)
+DEFINE_BINARY_WR (or, OR, OP_OR)
+DEFINE_BINARY_WR (xor, XOR, OP_XOR)
+
+DEFINE_INST (lsh)
+{
+  DECODE_SVM1_INST_LSH (target, source1, source2);
+  long n = (TO_SIGNED (WREG_REF (source2)));
+  WREG_SET (target,
+	    ((n < 0)
+	     ? ((WREG_REF (source1)) >> (- n))
+	     : ((WREG_REF (source1)) << n)));
+  NEXT_PC;
+}
+
+DEFINE_INST (max_unsigned)
+{
+  DECODE_SVM1_INST_MAX_UNSIGNED (target, source1, source2);
+  word_t n1 = (WREG_REF (source1));
+  word_t n2 = (WREG_REF (source2));
+  WREG_SET (target, ((n1 > n2) ? n1 : n2));
+  NEXT_PC;
+}
+
+DEFINE_INST (min_unsigned)
+{
+  DECODE_SVM1_INST_MIN_UNSIGNED (target, source1, source2);
+  word_t n1 = (WREG_REF (source1));
+  word_t n2 = (WREG_REF (source2));
+  WREG_SET (target, ((n1 < n2) ? n1 : n2));
+  NEXT_PC;
+}
+
+#define DEFINE_BINARY_FR(nl, nu, op)					\
+DEFINE_INST (nl)							\
+{									\
+  DECODE_SVM1_INST_##nu (target, source1, source2);			\
+  FREG_SET (target, (op ((FREG_REF (source1)), (FREG_REF (source2)))));	\
+  NEXT_PC;								\
+}
+
+DEFINE_BINARY_FR (add_fr, ADD_FR, OP_ADD)
+DEFINE_BINARY_FR (subtract_fr, SUBTRACT_FR, OP_SUBTRACT)
+DEFINE_BINARY_FR (multiply_fr, MULTIPLY_FR, OP_MULTIPLY)
+DEFINE_BINARY_FR (divide, DIVIDE, OP_DIVIDE)
+DEFINE_BINARY_FR (atan2, ATAN2, atan2)
 
 /* Address decoders */
 
@@ -1355,6 +1191,12 @@ static void
 decode_address (address_t * address)
 {
   (* (address_decoders[NEXT_BYTE])) (address);
+}
+
+static void
+illegal_address (address_t * address)
+{
+  signal_illegal_instruction ();
 }
 
 static word_t
@@ -1598,37 +1440,38 @@ DEFINE_ADDRESS_DECODER (pcr_s32)
   DECODE_SVM1_ADDR_PCR_S32 (offset);
   MAKE_PCR_ADDRESS (offset);
 }
+
+#define INITIALIZE_DECODER_TABLE(table, initial_value) do		\
+{									\
+  unsigned int i;							\
+  for (i = 0; (i < 256); i += 1)					\
+    (table[i]) = initial_value;						\
+} while (false)
 
 static void
-initialize_address_decoders (void)
+initialize_decoder_tables (void)
 {
-  memset (address_decoders, 0, (sizeof (address_decoders)));
-  (address_decoders[SVM1_ADDR_INDIR]) = decode_addr_indir;
-  (address_decoders[SVM1_ADDR_OFFSET_B]) = decode_addr_offset_b;
-  (address_decoders[SVM1_ADDR_OFFSET_W]) = decode_addr_offset_w;
-  (address_decoders[SVM1_ADDR_OFFSET_F]) = decode_addr_offset_f;
-  (address_decoders[SVM1_ADDR_INDEX_B_B]) = decode_addr_index_b_b;
-  (address_decoders[SVM1_ADDR_INDEX_B_W]) = decode_addr_index_b_w;
-  (address_decoders[SVM1_ADDR_INDEX_B_F]) = decode_addr_index_b_f;
-  (address_decoders[SVM1_ADDR_INDEX_W_B]) = decode_addr_index_w_b;
-  (address_decoders[SVM1_ADDR_INDEX_W_W]) = decode_addr_index_w_w;
-  (address_decoders[SVM1_ADDR_INDEX_W_F]) = decode_addr_index_w_f;
-  (address_decoders[SVM1_ADDR_INDEX_F_B]) = decode_addr_index_f_b;
-  (address_decoders[SVM1_ADDR_INDEX_F_W]) = decode_addr_index_f_w;
-  (address_decoders[SVM1_ADDR_INDEX_F_F]) = decode_addr_index_f_f;
-  (address_decoders[SVM1_ADDR_PREDEC_B]) = decode_addr_predec_b;
-  (address_decoders[SVM1_ADDR_PREDEC_W]) = decode_addr_predec_w;
-  (address_decoders[SVM1_ADDR_PREDEC_F]) = decode_addr_predec_f;
-  (address_decoders[SVM1_ADDR_PREINC_B]) = decode_addr_preinc_b;
-  (address_decoders[SVM1_ADDR_PREINC_W]) = decode_addr_preinc_w;
-  (address_decoders[SVM1_ADDR_PREINC_F]) = decode_addr_preinc_f;
-  (address_decoders[SVM1_ADDR_POSTDEC_B]) = decode_addr_postdec_b;
-  (address_decoders[SVM1_ADDR_POSTDEC_W]) = decode_addr_postdec_w;
-  (address_decoders[SVM1_ADDR_POSTDEC_F]) = decode_addr_postdec_f;
-  (address_decoders[SVM1_ADDR_POSTINC_B]) = decode_addr_postinc_b;
-  (address_decoders[SVM1_ADDR_POSTINC_W]) = decode_addr_postinc_w;
-  (address_decoders[SVM1_ADDR_POSTINC_F]) = decode_addr_postinc_f;
-  (address_decoders[SVM1_ADDR_PCR_S8]) = decode_addr_pcr_s8;
-  (address_decoders[SVM1_ADDR_PCR_S16]) = decode_addr_pcr_s16;
-  (address_decoders[SVM1_ADDR_PCR_S32]) = decode_addr_pcr_s32;
+  INITIALIZE_DECODER_TABLE (address_decoders, illegal_address);
+#define BIND_ADDR(code, name) (address_decoders[code]) = decode_addr_##name
+  SVM1_ADDR_BINDINGS (BIND_ADDR);
+
+  INITIALIZE_DECODER_TABLE (inst_defns, illegal_instruction);
+#define BIND_INST(code, name) (inst_defns[code]) = insn_##name
+  SVM1_INST_BINDINGS (BIND_INST);
+
+  INITIALIZE_DECODER_TABLE (traps_0, illegal_trap_0);
+#define BIND_TRAP_0(code, name) (traps_0[code]) = trap_##name
+  SVM1_TRAP_0_BINDINGS (BIND_TRAP_0);
+
+  INITIALIZE_DECODER_TABLE (traps_1, illegal_trap_1);
+#define BIND_TRAP_1(code, name) (traps_1[code]) = trap_##name
+  SVM1_TRAP_1_BINDINGS (BIND_TRAP_1);
+
+  INITIALIZE_DECODER_TABLE (traps_2, illegal_trap_2);
+#define BIND_TRAP_2(code, name) (traps_2[code]) = trap_##name
+  SVM1_TRAP_2_BINDINGS (BIND_TRAP_2);
+
+  INITIALIZE_DECODER_TABLE (traps_3, illegal_trap_3);
+#define BIND_TRAP_3(code, name) (traps_3[code]) = trap_##name
+  SVM1_TRAP_3_BINDINGS (BIND_TRAP_3);
 }
