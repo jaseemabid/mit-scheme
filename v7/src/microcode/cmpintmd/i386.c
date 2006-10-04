@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.c,v 1.1.2.1 2006/10/02 20:03:58 cph Exp $
+$Id: i386.c,v 1.1.2.2 2006/10/04 19:27:56 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -35,128 +35,18 @@ extern void * tospace_to_newspace (void *);
 bool
 read_cc_entry_type (cc_entry_type_t * cet, insn_t * address)
 {
-  unsigned int high = (address[-3]);
-  unsigned int low = (address[-4]);
-  bool rest_p = false;
-
-  if (high < 0x80)
-    {
-      if ((high == 0x00)
-	  || (low == 0x00)
-	  || (low == 0x80))
-	return (true);
-      if (low > 0x80)
-	{
-	  low = (0xFF - low);
-	  rest_p = true;
-	}
-      if (! (high <= low))
-	return (true);
-      make_compiled_procedure_type (cet, (high - 1), (low - high), rest_p);
-      return (false);
-    }
-  if (low < 0x80)
-    return (true);
-  if (low < 0xE0)
-    {
-      make_compiled_continuation_type
-	(cet,
-	 (((low & 0x7F) << 7) | (high & 0x7F)));
-      return (false);
-    }
-  if (high != 0xFF)
-    return (true);
-  switch (low)
-    {
-    case 0xFF:
-      make_cc_entry_type (cet, CET_EXPRESSION);
-      break;
-    case 0xFE:
-      make_cc_entry_type (cet, CET_INTERNAL_PROCEDURE);
-      break;
-    case 0xFD:
-      make_cc_entry_type (cet, CET_TRAMPOLINE);
-      break;
-    case 0xFC:
-      make_cc_entry_type (cet, CET_INTERNAL_CONTINUATION);
-      break;
-    case 0xFB:
-      make_cc_entry_type (cet, CET_RETURN_TO_INTERPRETER);
-      break;
-    case 0xFA:
-      make_cc_entry_type (cet, CET_CLOSURE);
-      break;
-    default:
-      return (true);
-    }
-  return (false);
+  return
+    (decode_old_style_format_word (cet, (((unsigned short *) address) [-2])));
 }
-
+
 bool
 write_cc_entry_type (cc_entry_type_t * cet, insn_t * address)
 {
-  unsigned int low;
-  unsigned int high;
-
-  switch (cet->marker)
-    {
-    case CET_PROCEDURE:
-      high = ((cet->args.for_procedure.n_required) + 1);
-      low = (high + (cet->args.for_procedure.n_optional));
-      if (! (low < 0x80))
-	return (true);
-      if (cet->args.for_procedure.rest_p)
-	low = (0xFF - low);
-      break;
-
-    case CET_CONTINUATION:
-      {
-	unsigned long n = (cet->args.for_continuation.offset);
-	if (! (n < 0x3000))
-	  return (true);
-	high = ((n & 0x7F) | 0x80);
-	low = ((n >> 7) | 0x80);
-      }
-      break;
-
-    case CET_EXPRESSION:
-      low = 0xFF;
-      high = 0xFF;
-      break;
-
-    case CET_INTERNAL_PROCEDURE:
-      low = 0xFE;
-      high = 0xFF;
-      break;
-
-    case CET_TRAMPOLINE:
-      low = 0xFD;
-      high = 0xFF;
-      break;
-
-    case CET_INTERNAL_CONTINUATION:
-      low = 0xFC;
-      high = 0xFF;
-      break;
-
-    case CET_RETURN_TO_INTERPRETER:
-      low = 0xFB;
-      high = 0xFF;
-      break;
-
-    case CET_CLOSURE:
-      low = 0xFA;
-      high = 0xFF;
-      break;
-
-    default:
-      return (true);
-    }
-  (address[-4]) = low;
-  (address[-3]) = high;
-  return (false);
+  return
+    (encode_old_style_format_word
+     (cet, ((unsigned short * address)) - 2));
 }
-
+
 bool
 read_cc_entry_offset (cc_entry_offset_t * ceo, insn_t * address)
 {

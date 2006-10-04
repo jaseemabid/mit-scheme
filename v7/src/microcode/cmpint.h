@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.h,v 10.12.2.7 2006/10/04 02:32:19 cph Exp $
+$Id: cmpint.h,v 10.12.2.8 2006/10/04 19:27:50 cph Exp $
 
 Copyright 1987,1988,1989,1990,1993,2000 Massachusetts Institute of Technology
 Copyright 2002,2005,2006 Massachusetts Institute of Technology
@@ -94,6 +94,9 @@ extern void make_cc_entry_type (cc_entry_type_t *, cc_entry_type_marker_t);
 
 extern bool read_cc_entry_type (cc_entry_type_t *, insn_t *);
 extern bool write_cc_entry_type (cc_entry_type_t *, insn_t *);
+
+extern bool decode_old_style_format_word (cc_entry_type_t *, unsigned short);
+extern bool encode_old_style_format_word (cc_entry_type_t *, unsigned short *);
 
 /* If continued_p is false, then offset is the distance in insn_t
    units between the entry and the CC block.  Otherwise, offset is the

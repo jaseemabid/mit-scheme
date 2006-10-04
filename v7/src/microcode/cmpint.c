@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.12 2006/10/04 05:59:49 cph Exp $
+$Id: cmpint.c,v 1.103.2.13 2006/10/04 19:27:42 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -1845,6 +1845,130 @@ compiled_closure_objects (SCHEME_OBJECT * block)
 
   /* Skip to first object.  */
   return (skip_compiled_closure_padding (start));
+}
+
+bool
+decode_old_style_format_word (cc_entry_type_t * cet, unsigned short fw)
+{
+  unsigned short low = (fw & 0x00FF);
+  unsigned short high = ((fw & 0xFF00) >> 8);
+  bool rest_p = false;
+
+  if (high < 0x80)
+    {
+      if ((high == 0x00)
+	  || (low == 0x00)
+	  || (low == 0x80))
+	return (true);
+      if (low > 0x80)
+	{
+	  low = (0xFF - low);
+	  rest_p = true;
+	}
+      if (! (high <= low))
+	return (true);
+      make_compiled_procedure_type (cet, (high - 1), (low - high), rest_p);
+      return (false);
+    }
+  if (low < 0x80)
+    return (true);
+  if (low < 0xE0)
+    {
+      make_compiled_continuation_type
+	(cet,
+	 (((low & 0x7F) << 7) | (high & 0x7F)));
+      return (false);
+    }
+  if (high != 0xFF)
+    return (true);
+  switch (low)
+    {
+    case 0xFF:
+      make_cc_entry_type (cet, CET_EXPRESSION);
+      break;
+    case 0xFE:
+      make_cc_entry_type (cet, CET_INTERNAL_PROCEDURE);
+      break;
+    case 0xFD:
+      make_cc_entry_type (cet, CET_TRAMPOLINE);
+      break;
+    case 0xFC:
+      make_cc_entry_type (cet, CET_INTERNAL_CONTINUATION);
+      break;
+    case 0xFB:
+      make_cc_entry_type (cet, CET_RETURN_TO_INTERPRETER);
+      break;
+    case 0xFA:
+      make_cc_entry_type (cet, CET_CLOSURE);
+      break;
+    default:
+      return (true);
+    }
+  return (false);
+}
+
+bool
+encode_old_style_format_word (cc_entry_type_t * cet, unsigned short * fw_r)
+{
+  unsigned int low;
+  unsigned int high;
+
+  switch (cet->marker)
+    {
+    case CET_PROCEDURE:
+      high = ((cet->args.for_procedure.n_required) + 1);
+      low = (high + (cet->args.for_procedure.n_optional));
+      if (! (low < 0x80))
+	return (true);
+      if (cet->args.for_procedure.rest_p)
+	low = (0xFF - low);
+      break;
+
+    case CET_CONTINUATION:
+      {
+	unsigned long n = (cet->args.for_continuation.offset);
+	if (! (n < 0x3000))
+	  return (true);
+	high = ((n & 0x7F) | 0x80);
+	low = ((n >> 7) | 0x80);
+      }
+      break;
+
+    case CET_EXPRESSION:
+      low = 0xFF;
+      high = 0xFF;
+      break;
+
+    case CET_INTERNAL_PROCEDURE:
+      low = 0xFE;
+      high = 0xFF;
+      break;
+
+    case CET_TRAMPOLINE:
+      low = 0xFD;
+      high = 0xFF;
+      break;
+
+    case CET_INTERNAL_CONTINUATION:
+      low = 0xFC;
+      high = 0xFF;
+      break;
+
+    case CET_RETURN_TO_INTERPRETER:
+      low = 0xFB;
+      high = 0xFF;
+      break;
+
+    case CET_CLOSURE:
+      low = 0xFA;
+      high = 0xFF;
+      break;
+
+    default:
+      return (true);
+    }
+  (*fw_r) = ((high << 8) | low);
+  return (false);
 }
 
 /* Trampolines
