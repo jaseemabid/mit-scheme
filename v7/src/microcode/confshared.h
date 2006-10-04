@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: confshared.h,v 11.8.2.5 2006/10/04 02:32:31 cph Exp $
+$Id: confshared.h,v 11.8.2.6 2006/10/04 05:00:19 cph Exp $
 
 Copyright 2000,2002,2003,2005,2006 Massachusetts Institute of Technology
 
@@ -231,7 +231,8 @@ typedef enum
 
 #define MACHINE_TYPE		"vax"
 #define CURRENT_FASL_ARCH	FASL_VAX
-#define HEAP_IN_LOW_MEMORY
+#define PC_ZERO_BITS		0
+#define HEAP_IN_LOW_MEMORY	1
 
 /* Not on these, however */
 
@@ -289,6 +290,7 @@ typedef enum
 #define MACHINE_TYPE		"hp9000s800"
 #endif
 #define CURRENT_FASL_ARCH	FASL_HP_SPECTRUM
+#define PC_ZERO_BITS		2
 #define FLOATING_ALIGNMENT	0x7
 
 /* Heap resides in data space, pointed at by space register 5.
@@ -327,17 +329,21 @@ typedef enum
 #endif /* hp9000s800 */
 
 #if defined(hp9000s300) || defined(__hp9000s300)
+
 #if defined(hp9000s400) || defined(__hp9000s400)
-#define MACHINE_TYPE		"hp9000s400"
+#  define MACHINE_TYPE		"hp9000s400"
 #else
-#define MACHINE_TYPE		"hp9000s300"
+#  define MACHINE_TYPE		"hp9000s300"
 #endif
+
 #ifdef MC68010
-#define CURRENT_FASL_ARCH	FASL_68000
+#  define CURRENT_FASL_ARCH	FASL_68000
 #else
-#define CURRENT_FASL_ARCH	FASL_68020
+#  define CURRENT_FASL_ARCH	FASL_68020
 #endif
-#define HEAP_IN_LOW_MEMORY
+
+#define PC_ZERO_BITS		1
+#define HEAP_IN_LOW_MEMORY	1
 
 #endif /* hp9000s300 */
 
@@ -386,7 +392,8 @@ typedef enum
 #ifdef __IA32__
 
 #define CURRENT_FASL_ARCH	FASL_IA32
-#define HEAP_IN_LOW_MEMORY
+#define PC_ZERO_BITS		0
+#define HEAP_IN_LOW_MEMORY	1
 
 #ifdef sequent
 #  define MACHINE_TYPE		"sequent386"
@@ -406,6 +413,7 @@ typedef enum
 
 #define MACHINE_TYPE		"mips"
 #define CURRENT_FASL_ARCH	FASL_MIPS
+#define PC_ZERO_BITS		2
 #define FLOATING_ALIGNMENT   	0x7
 
 #ifdef _IRIX6
@@ -438,17 +446,15 @@ typedef enum
 #endif /* mips */
 
 #ifdef __alpha
-#define MACHINE_TYPE           "Alpha"
-#define CURRENT_FASL_ARCH      FASL_ALPHA
-/* #define TYPE_CODE_LENGTH 8 */
-
-/* The ASCII character set is used. */
-#define HEAP_IN_LOW_MEMORY     1
+#define MACHINE_TYPE		"Alpha"
+#define CURRENT_FASL_ARCH	FASL_ALPHA
+#define PC_ZERO_BITS		2
+#define HEAP_IN_LOW_MEMORY	1
 
 /* Flonums have no special alignment constraints. */
-#define FLONUM_MANTISSA_BITS   53
-#define FLONUM_EXPT_SIZE       10
-#define MAX_FLONUM_EXPONENT    1023
+#define FLONUM_MANTISSA_BITS	53
+#define FLONUM_EXPT_SIZE	10
+#define MAX_FLONUM_EXPONENT	1023
 /* Floating point representation uses hidden bit. */
 
 extern void * alpha_heap_malloc (unsigned long);
@@ -613,6 +619,13 @@ extern void win32_stack_reset (void);
 #ifndef MACHINE_TYPE
 #  include "Error: confshared.h: Unknown configuration."
 #endif
+
+#ifndef PC_ZERO_BITS
+#  include "Error: confshared.h: Unknown PC alignment."
+#endif
+
+#define PC_ALIGNED_P(pc)						\
+  ((((unsigned long) (pc)) & ((1 << PC_ZERO_BITS) - 1)) == 0)
 
 /* Virtually all machines have 8-bit characters these days, so don't
    explicitly specify this value unless it is different.  */

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.37.2.6 2006/10/04 02:33:32 cph Exp $
+$Id: i386.h,v 1.37.2.7 2006/10/04 05:01:02 cph Exp $
 
 Copyright 1992,1993,1994,1995,1996,2000 Massachusetts Institute of Technology
 Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -187,16 +187,14 @@ magic = ([TC_COMPILED_ENTRY | 0] - (offset + length_of_CALL_instruction))
 
 #define CMPINT_USE_STRUCS
 
-/* Big enough to hold 80-bit floating-point value: */
-#define COMPILER_TEMP_SIZE 3
-
-#define PC_ZERO_BITS 0		/* Instructions aren't aligned.  */
 typedef byte_t insn_t;
 
 /* These next definitions must agree with "cmpauxmd/i386.m4", which is
    where the register block is allocated.  */
 
 #define COMPILER_REGBLOCK_N_FIXED 16
+/* Big enough to hold 80-bit floating-point value: */
+#define COMPILER_TEMP_SIZE 3
 #define COMPILER_REGBLOCK_N_TEMPS 256
 #define COMPILER_REGBLOCK_N_HOOKS 80
 #define COMPILER_HOOK_SIZE 1

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: nttrap.c,v 1.26.2.5 2006/09/05 19:10:23 cph Exp $
+$Id: nttrap.c,v 1.26.2.6 2006/10/04 05:00:26 cph Exp $
 
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
 Copyright 2002,2005,2006 Massachusetts Institute of Technology
@@ -562,14 +562,10 @@ setup_trap_frame (DWORD code,
 #define ALIGNED_P(addr)							\
   ((((unsigned long) (addr)) & SCHEME_ALIGNMENT_MASK) == 0)
 
-/* PCs must be aligned according to this. */
-
-#define PC_ALIGNMENT_MASK		((1 << PC_ZERO_BITS) - 1)
-
 /* But they may have bits that can be masked by this. */
 
 #ifndef PC_VALUE_MASK
-# define PC_VALUE_MASK			(~0)
+#  define PC_VALUE_MASK			(~0)
 #endif
 
 #define C_STACK_SIZE			0x01000000
@@ -639,7 +635,7 @@ continue_from_trap (DWORD code, PCONTEXT context)
     goto pc_in_hyperspace;
   }
 
-  if ((the_pc & PC_ALIGNMENT_MASK) != 0)
+  if (!PC_ALIGNED_P (the_pc))
   {
 pc_in_hyperspace:
     pc_in_builtin = 0;

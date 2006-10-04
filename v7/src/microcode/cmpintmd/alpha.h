@@ -1,6 +1,6 @@
 /* -*- C -*-
 
-$Id: alpha.h,v 1.7.2.3 2006/10/04 02:33:13 cph Exp $
+$Id: alpha.h,v 1.7.2.4 2006/10/04 05:00:50 cph Exp $
 
 Copyright 1992,1993 Digital Equipment Corporation (D.E.C.)
 Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -70,13 +70,6 @@ case. */
  */
 
 typedef unsigned short format_word; /* 16 bits */
-
-/* PC alignment constraint.
-   Change PC_ZERO_BITS to be how many low order bits of the pc are
-   guaranteed to be 0 always because of PC alignment constraints.
-*/
-
-#define PC_ZERO_BITS                    2
 
 /* Utilities for manipulating absolute subroutine calls.
    On the ALPHA this is done with either
@@ -114,7 +107,7 @@ extern void alpha_store_absolute_address(void *, void *);
 #define JMP(linkage, dest, displacement)	\
   ((opJMP << 26) | ((linkage) << 21) |		\
    ((dest) << 16) | (fnJMP << 14) |		\
-   (((displacement)>>PC_ZERO_BITS) & ((1<<14)-1)))
+   (((displacement)>>2) & ((1<<14)-1)))
 
 /* Compiled Code Register Conventions */
 /* This must match the compiler and cmpaux-alpha.m4 */
@@ -135,7 +128,7 @@ extern void alpha_store_absolute_address(void *, void *);
 
 #ifdef IN_CMPINT_C
 #define PC_FIELD_SIZE		21
-#define MAX_PC_DISPLACEMENT	(1<<(PC_FIELD_SIZE+PC_ZERO_BITS-1))
+#define MAX_PC_DISPLACEMENT	(1<<22)
 #define MIN_PC_DISPLACEMENT	(-MAX_PC_DISPLACEMENT)
 #define opBR			0x30
 
@@ -152,7 +145,7 @@ alpha_store_absolute_address (void *entry_point, void *address)
       (offset >= MIN_PC_DISPLACEMENT))
     *Instruction_Address =
       (opBR << 26) | (COMP_REG_LINKAGE << 21) |
-      ((offset>>PC_ZERO_BITS)  & ((1L<<PC_FIELD_SIZE)-1));
+      ((offset>>2)  & ((1L<<PC_FIELD_SIZE)-1));
   else
     *Instruction_Address =
       JMP(COMP_REG_LINKAGE, COMP_REG_LONGJUMP,
@@ -640,29 +633,8 @@ allocate_closure (long size, char *this_block)
 #define CLEAR_LOW_BIT(word)                     ((word) & ((unsigned long) -2))
 #define OFFSET_WORD_CONTINUATION_P(word)        (((word) & 1) != 0)
 
-#if (PC_ZERO_BITS == 0)
-/* Instructions aligned on byte boundaries */
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      ((offset) << 1)
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  ((CLEAR_LOW_BIT(offset_word)) >> 1)
-#endif
-
-#if (PC_ZERO_BITS == 1)
-/* Instructions aligned on word (16 bit) boundaries */
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      (offset)
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  (CLEAR_LOW_BIT(offset_word))
-#endif
-
-#if (PC_ZERO_BITS >= 2)
-/* Should be OK for =2, but bets are off for >2 because of problems
-   mentioned earlier!
-*/
-#define SHIFT_AMOUNT                            (PC_ZERO_BITS - 1)
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      ((offset) >> (SHIFT_AMOUNT))
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  ((CLEAR_LOW_BIT(offset_word)) << (SHIFT_AMOUNT))
-#endif
+#define BYTE_OFFSET_TO_OFFSET_WORD(offset) ((offset) >> 1)
+#define OFFSET_WORD_TO_BYTE_OFFSET(word) ((CLEAR_LOW_BIT (word)) << 1)
 
 #define MAKE_OFFSET_WORD(entry, block, continue)                        \
   ((BYTE_OFFSET_TO_OFFSET_WORD(((char *) (entry)) -                     \

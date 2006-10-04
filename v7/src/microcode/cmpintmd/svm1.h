@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.h,v 1.1.2.8 2006/10/04 02:34:08 cph Exp $
+$Id: svm1.h,v 1.1.2.9 2006/10/04 05:01:19 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -28,12 +28,11 @@ USA.
 #ifndef SCM_CMPINTMD_H_INCLUDED
 #define SCM_CMPINTMD_H_INCLUDED 1
 
-#define COMPILER_TEMP_SIZE 1	/* temporaries aren't used */
-#define PC_ZERO_BITS 0		/* addressing is unaligned */
 typedef byte_t insn_t;
 
 #define COMPILER_REGBLOCK_N_FIXED 512
-#define COMPILER_REGBLOCK_N_TEMPS 256
+#define COMPILER_TEMP_SIZE 1
+#define COMPILER_REGBLOCK_N_TEMPS 0
 #define COMPILER_REGBLOCK_N_HOOKS 0
 #define COMPILER_REGBLOCK_EXTRA_SIZE 0
 

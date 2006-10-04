@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtrap.c,v 1.41.2.6 2006/09/22 18:02:14 cph Exp $
+$Id: uxtrap.c,v 1.41.2.7 2006/10/04 05:00:38 cph Exp $
 
 Copyright 1990,1991,1992,1993,1995,1997 Massachusetts Institute of Technology
 Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
@@ -320,8 +320,6 @@ trap_handler (const char * message,
     }
 }
 
-#define PC_ALIGNED_P(pc) ((((unsigned long) (pc)) & PC_ALIGNMENT_MASK) == 0)
-
 #ifdef ENABLE_TRAP_RECOVERY
 
 /* Heuristic recovery from Unix signals (traps).

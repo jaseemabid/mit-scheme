@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: mips.h,v 1.25.2.4 2006/10/04 02:33:44 cph Exp $
+$Id: mips.h,v 1.25.2.5 2006/10/04 05:01:14 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1998 Massachusetts Institute of Technology
 Copyright 2005,2006 Massachusetts Institute of Technology
@@ -112,13 +112,6 @@ extern void syscall();
  */
 
 typedef unsigned short format_word;
-
-/* PC alignment constraint.
-   Change PC_ZERO_BITS to be how many low order bits of the pc are
-   guaranteed to be 0 always because of PC alignment constraints.
-*/
-
-#define PC_ZERO_BITS                    2
 
 /* Utilities for manipulating absolute subroutine calls.
    On the MIPS this is done with:
@@ -360,7 +353,7 @@ do {									\
    arguments in the lower 16 bits.
  */
 
-#define EXECUTE_CACHE_ENTRY_SIZE        2
+#define EXECUTE_CACHE_ENTRY_SIZE 2
 
 /* Execute cache destructuring. */
 
@@ -684,55 +677,18 @@ allocate_closure (long size)
 #define CLEAR_LOW_BIT(word)                     ((word) & ((unsigned long) -2))
 #define OFFSET_WORD_CONTINUATION_P(word)        (((word) & 1) != 0)
 
-#if (PC_ZERO_BITS == 0)
-/* Instructions aligned on byte boundaries */
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      ((offset) << 1)
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  ((CLEAR_LOW_BIT(offset_word)) >> 1)
-#endif
-
-#if (PC_ZERO_BITS == 1)
-/* Instructions aligned on word (16 bit) boundaries */
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      (offset)
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  (CLEAR_LOW_BIT(offset_word))
-#endif
-
-#if (PC_ZERO_BITS >= 2)
-/* Should be OK for =2, but bets are off for >2 because of problems
-   mentioned earlier!
-*/
-#define SHIFT_AMOUNT                            (PC_ZERO_BITS - 1)
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      ((offset) >> (SHIFT_AMOUNT))
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  ((CLEAR_LOW_BIT(offset_word)) << (SHIFT_AMOUNT))
-#endif
+#define BYTE_OFFSET_TO_OFFSET_WORD(offset) ((offset) >> 1)
+#define OFFSET_WORD_TO_BYTE_OFFSET(word) ((CLEAR_LOW_BIT (word)) << 1)
 
 #define MAKE_OFFSET_WORD(entry, block, continue)                        \
   ((BYTE_OFFSET_TO_OFFSET_WORD(((char *) (entry)) -                     \
                                ((char *) (block)))) |                   \
    ((continue) ? 1 : 0))
 
-#if (EXECUTE_CACHE_ENTRY_SIZE == 2)
 #define EXECUTE_CACHE_COUNT_TO_ENTRIES(count)                           \
   ((count) >> 1)
 #define EXECUTE_CACHE_ENTRIES_TO_COUNT(entries)				\
   ((entries) << 1)
-#endif
-
-#if (EXECUTE_CACHE_ENTRY_SIZE == 4)
-#define EXECUTE_CACHE_COUNT_TO_ENTRIES(count)                           \
-  ((count) >> 2)
-#define EXECUTE_CACHE_ENTRIES_TO_COUNT(entries)				\
-  ((entries) << 2)
-#endif
-
-#if (!defined(EXECUTE_CACHE_COUNT_TO_ENTRIES))
-#define EXECUTE_CACHE_COUNT_TO_ENTRIES(count)                           \
-  ((count) / EXECUTE_CACHE_ENTRY_SIZE)
-#define EXECUTE_CACHE_ENTRIES_TO_COUNT(entries)				\
-  ((entries) * EXECUTE_CACHE_ENTRY_SIZE)
-#endif
 
 /* The first entry in a cc block is preceeded by 2 headers (block and nmv),
    a format word and a gc offset word.   See the early part of the

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtrap.h,v 1.35.2.3 2006/08/29 04:44:32 cph Exp $
+$Id: uxtrap.h,v 1.35.2.4 2006/10/04 05:00:44 cph Exp $
 
 Copyright 1990,1991,1992,1993,1996,1998 Massachusetts Institute of Technology
 Copyright 2000,2001,2004,2005,2006 Massachusetts Institute of Technology
@@ -614,10 +614,6 @@ typedef struct
 #ifndef INITIALIZE_UX_SIGNAL_CODES
 #  define INITIALIZE_UX_SIGNAL_CODES()
 #endif
-
-/* PCs must be aligned according to this. */
-
-#define PC_ALIGNMENT_MASK ((1 << PC_ZERO_BITS) - 1)
 
 #ifdef _AIX
    extern int _etext;

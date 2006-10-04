@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: os2xcpt.c,v 1.15.2.4 2006/09/05 19:10:27 cph Exp $
+$Id: os2xcpt.c,v 1.15.2.5 2006/10/04 05:00:32 cph Exp $
 
 Copyright 1994,1995,2000,2001,2002,2005 Massachusetts Institute of Technology
 Copyright 2006 Massachusetts Institute of Technology
@@ -65,7 +65,6 @@ typedef struct
   const char * description;
 } exception_entry_t;
 
-#define PC_ALIGNMENT_MASK ((1 << PC_ZERO_BITS) - 1)
 #define SCHEME_ALIGNMENT_MASK ((sizeof (long)) - 1)
 #define FREE_PARANOIA_MARGIN 0x100
 
@@ -404,7 +403,7 @@ continue_from_trap (PEXCEPTIONREPORTRECORD report, PCONTEXTRECORD context)
 
   /* Classify the PC location.  */
   pc = (context -> ctx_RegEip);
-  if ((pc & PC_ALIGNMENT_MASK) != 0)
+  if (!PC_ALIGNED_P (pc))
     pc_location = pc_in_hyperspace;
   else if (pc <= program_end_address)
     {

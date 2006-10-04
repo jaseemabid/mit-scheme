@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: mc68k.h,v 1.38.2.4 2006/10/04 02:33:38 cph Exp $
+$Id: mc68k.h,v 1.38.2.5 2006/10/04 05:01:08 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,2005 Massachusetts Institute of Technology
 Copyright 2006 Massachusetts Institute of Technology
@@ -60,13 +60,6 @@ USA.
  */
 
 typedef unsigned short format_word;
-
-/* PC alignment constraint.
-   Change PC_ZERO_BITS to be how many low order bits of the pc are
-   guaranteed to be 0 always because of PC alignment constraints.
-*/
-
-#define PC_ZERO_BITS                    1
 
 /* The length of the GC recovery code that precedes an entry.
    On the 68K a "jsr n(a6)" instruction.
@@ -759,29 +752,9 @@ allocate_closure (long size)
 #define CLEAR_LOW_BIT(word)                     ((word) & ((unsigned long) -2))
 #define OFFSET_WORD_CONTINUATION_P(word)        (((word) & 1) != 0)
 
-#if (PC_ZERO_BITS == 0)
-/* Instructions aligned on byte boundaries */
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      ((offset) << 1)
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  ((CLEAR_LOW_BIT(offset_word)) >> 1)
-#endif
-
-#if (PC_ZERO_BITS == 1)
 /* Instructions aligned on word (16 bit) boundaries */
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      (offset)
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  (CLEAR_LOW_BIT(offset_word))
-#endif
-
-#if (PC_ZERO_BITS >= 2)
-/* Should be OK for =2, but bets are off for >2 because of problems
-   mentioned earlier!
-*/
-#define SHIFT_AMOUNT                            (PC_ZERO_BITS - 1)
-#define BYTE_OFFSET_TO_OFFSET_WORD(offset)      ((offset) >> (SHIFT_AMOUNT))
-#define OFFSET_WORD_TO_BYTE_OFFSET(offset_word)                         \
-  ((CLEAR_LOW_BIT(offset_word)) << (SHIFT_AMOUNT))
-#endif
+#define BYTE_OFFSET_TO_OFFSET_WORD(offset) (offset)
+#define OFFSET_WORD_TO_BYTE_OFFSET(word) (CLEAR_LOW_BIT (word))
 
 #define MAKE_OFFSET_WORD(entry, block, continue)                        \
   ((BYTE_OFFSET_TO_OFFSET_WORD(((char *) (entry)) -                     \
