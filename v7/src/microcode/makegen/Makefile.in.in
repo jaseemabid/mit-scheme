@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.5 2006/10/02 20:04:10 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.6 2006/10/04 00:07:35 cph Exp $
 #
 # Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
 #
@@ -212,7 +212,7 @@ prpgsql.so: prpgsql.o
 tags: TAGS
 TAGS:
 	etags -r '/^DEF[A-Z0-9_]*[ \t]*(\("[^"]+"\|[a-zA-Z_][a-zA-Z0-9_]*\)/' \
-	    *.[ch] cmpintmd/*.h cmpauxmd/*.c
+	    *.[ch] */*.[ch]
 
 mostlyclean:
 	-rm -f $(MOSTLYCLEAN_FILES)
