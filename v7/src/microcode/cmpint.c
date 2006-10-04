@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.11 2006/10/04 02:32:11 cph Exp $
+$Id: cmpint.c,v 1.103.2.12 2006/10/04 05:59:49 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -276,16 +276,16 @@ long C_return_value;
 #  define COMPILER_REGBLOCK_N_TEMPS 0
 #endif
 
+#ifndef COMPILER_TEMP_SIZE
+#  define COMPILER_TEMP_SIZE ((sizeof (double)) / (sizeof (SCHEME_OBJECT)))
+#endif
+
 #ifndef COMPILER_REGBLOCK_EXTRA_SIZE
 #  define COMPILER_REGBLOCK_EXTRA_SIZE 0
 #endif
 
 #if (REGBLOCK_MINIMUM_LENGTH > COMPILER_REGBLOCK_N_FIXED)
 #  include "ERROR: cmpint.c and const.h disagree on REGBLOCK_MINIMUM_LENGTH!"
-#endif
-
-#ifndef COMPILER_TEMP_SIZE
-#  define COMPILER_TEMP_SIZE ((sizeof (double)) / (sizeof (SCHEME_OBJECT)))
 #endif
 
 #define REGBLOCK_LENGTH							\
