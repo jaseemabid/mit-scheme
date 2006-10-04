@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.c,v 1.1.2.4 2006/09/22 17:54:46 cph Exp $
+$Id: fasl.c,v 1.1.2.5 2006/10/04 02:32:37 cph Exp $
 
 Copyright 2006 Massachusetts Institute of Technology
 
@@ -25,10 +25,8 @@ USA.
 
 /* I/O for fasdump and fasload */
 
-#include <stdio.h>
-#include <stdbool.h>
+#include "config.h"
 #include "fasl.h"
-#include "cmptype.h"
 
 static void encode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
 static bool decode_fasl_header (SCHEME_OBJECT *, fasl_header_t *);
@@ -191,14 +189,14 @@ decode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
     return (false);
   {
     SCHEME_OBJECT object = (raw[FASL_OFFSET_VERSION]);
-    (h->version) = (FASL_VERSION (object));
-    (h->arch) = (FASL_ARCH (object));
+    (FASLHDR_VERSION (h)) = (FASL_VERSION (object));
+    (FASLHDR_ARCH (h)) = (FASL_ARCH (object));
   }
   {
     SCHEME_OBJECT object = (raw[FASL_OFFSET_CI_VERSION]);
-    (h->cc_version) = (CI_VERSION (object));
-    (h->cc_arch) = (CI_PROCESSOR (object));
-    (h->band_p) = (CI_BAND_P (object));
+    (FASLHDR_CC_VERSION (h)) = (CI_VERSION (object));
+    (FASLHDR_CC_ARCH (h)) = (CI_PROCESSOR (object));
+    (FASLHDR_BAND_P (h)) = (CI_BAND_P (object));
   }
   {
     SCHEME_OBJECT * fasl_memory_base
@@ -214,7 +212,7 @@ decode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
       = ((FASLHDR_HEAP_START (h))
 	 + (OBJECT_DATUM (raw[FASL_OFFSET_HEAP_SIZE])));
     (FASLHDR_HEAP_RESERVED (h))
-      = (((h->version) >= FASL_VERSION_STACK_END)
+      = (((FASLHDR_VERSION (h)) >= FASL_VERSION_STACK_END)
 	 ? (OBJECT_DATUM (raw[FASL_OFFSET_HEAP_RSVD]))
 	 : 4500);
 
@@ -224,7 +222,7 @@ decode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
       = ((FASLHDR_CONSTANT_START (h))
 	 + (OBJECT_DATUM (raw[FASL_OFFSET_CONST_SIZE])));
 
-    if ((h->version) >= FASL_VERSION_STACK_END)
+    if ((FASLHDR_VERSION (h)) >= FASL_VERSION_STACK_END)
       {
 	(FASLHDR_STACK_START (h))
 	  = (faslobj_address ((raw[FASL_OFFSET_STACK_START]), h));

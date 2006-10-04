@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.h,v 1.1.2.7 2006/10/03 15:02:10 cph Exp $
+$Id: svm1.h,v 1.1.2.8 2006/10/04 02:34:08 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -25,16 +25,15 @@ USA.
 
 /* Compiled code interface macros for SVM v1. */
 
-#ifndef SCM_CMPINTMD_SVM1_H
-#define SCM_CMPINTMD_SVM1_H 1
-
-#define COMPILER_PROCESSOR_TYPE COMPILER_SVM_TYPE
+#ifndef SCM_CMPINTMD_H_INCLUDED
+#define SCM_CMPINTMD_H_INCLUDED 1
 
 #define COMPILER_TEMP_SIZE 1	/* temporaries aren't used */
 #define PC_ZERO_BITS 0		/* addressing is unaligned */
 typedef byte_t insn_t;
 
 #define COMPILER_REGBLOCK_N_FIXED 512
+#define COMPILER_REGBLOCK_N_TEMPS 256
 #define COMPILER_REGBLOCK_N_HOOKS 0
 #define COMPILER_REGBLOCK_EXTRA_SIZE 0
 
@@ -54,19 +53,27 @@ typedef byte_t insn_t;
 
 #define ASM_RESET_HOOK initialize_svm1
 
+#define UTILITY_RESULT_DEFINED 1
+
+typedef struct
+{
+  bool scheme_p;
+  union { long interpreter_code; insn_t * new_pc; } arg;
+} utility_result_t;
+
 #define RETURN_TO_C(code) do						\
 {									\
   (DSU_result->scheme_p) = false;					\
   ((DSU_result->arg) . interpreter_code) = (code);			\
   return;								\
-} while (0)
+} while (false)
 
 #define RETURN_TO_SCHEME(ep) do						\
 {									\
   (DSU_result->scheme_p) = true;					\
   ((DSU_result->arg) . new_pc) = (ep);					\
   return;								\
-} while (0)
+} while (false)
 
 #define ENTER_SCHEME(ep) return (C_to_interface (ep))
 
@@ -74,4 +81,4 @@ extern long C_to_interface (void *);
 extern void initialize_svm1 (void);
 extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *);
 
-#endif /* not SCM_CMPINTMD_SVM1_H */
+#endif /* !SCM_CMPINTMD_H_INCLUDED */

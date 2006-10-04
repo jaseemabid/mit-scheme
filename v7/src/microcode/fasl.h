@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40.2.7 2006/09/22 17:54:52 cph Exp $
+$Id: fasl.h,v 9.40.2.8 2006/10/04 02:32:43 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
 Copyright 1994,1997,2002,2005,2006 Massachusetts Institute of Technology
@@ -83,13 +83,13 @@ USA.
   (MAKE_OBJECT (1, ((((unsigned long) (s)) << FASL_ARCH_LENGTH) | (a))))
 
 #define CI_VERSION(P) (((P) >> HALF_DATUM_LENGTH) & HALF_DATUM_MASK)
-#define CI_PROCESSOR(P) ((P) & HALF_DATUM_MASK)
+#define CI_PROCESSOR(P) ((cc_arch_t) ((P) & HALF_DATUM_MASK))
 #define CI_BAND_P(P) ((OBJECT_TYPE (P)) == TC_CONSTANT)
 
 #define MAKE_CI_VERSION(b, v, a)					\
   (MAKE_OBJECT (((b) ? TC_CONSTANT : TC_NULL),				\
 		((((unsigned long) (v)) << HALF_DATUM_LENGTH)		\
-		 | (a))))
+		 | ((unsigned long) (a)))))
 
 typedef enum
 {
@@ -116,7 +116,7 @@ typedef struct
   fasl_version_t version;
   fasl_arch_t arch;
   unsigned int cc_version;
-  unsigned int cc_arch;
+  cc_arch_t cc_arch;
   bool band_p;
   SCHEME_OBJECT * memory_base;
   SCHEME_OBJECT * root_pointer;

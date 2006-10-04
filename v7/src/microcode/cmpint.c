@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.10 2006/10/02 20:03:47 cph Exp $
+$Id: cmpint.c,v 1.103.2.11 2006/10/04 02:32:11 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -80,7 +80,7 @@ typedef enum
 {									\
   STACK_PUSH (ULONG_TO_FIXNUM (code));					\
   STACK_PUSH (reflect_to_interface);					\
-} while (0)
+} while (false)
 
 typedef enum
 {
@@ -129,8 +129,8 @@ trampoline_arity_table [TRAMPOLINE_TABLE_SIZE * TRAMPOLINE_TABLE_SIZE] =
   TRAMPOLINE_K_4_3		/* 4_3 */
 };
 
-unsigned long compiler_processor_type;
-unsigned long compiler_interface_version;
+cc_arch_t compiler_processor_type;
+unsigned int compiler_interface_version;
 
 SCHEME_OBJECT compiler_utilities;
 SCHEME_OBJECT return_to_interpreter;
@@ -199,24 +199,23 @@ static long make_apply_trampoline
 #  define ASM_ENTRY_POINT(name) name
 #endif
 
+#ifndef UTILITY_RESULT_DEFINED
 #ifdef CMPINT_USE_STRUCS
 
 #ifdef C_FUNC_PTR_IS_CLOSURE
    typedef insn_t * c_func_t;
 #else
    typedef void c_func_t (void);
-
 /* From trunk, but may not be needed: */
-#if 0
-#  ifdef __OPEN_WATCOM_14__
-#    define REFENTRY(name) ((void *) name)
-#  else
-#    define REFENTRY(name) ((void EXFUN ((*), (void))) name)
+#  if 0
+#    ifdef __OPEN_WATCOM_14__
+#      define REFENTRY(name) ((void *) name)
+#    else
+#      define REFENTRY(name) ((c_func_t *) name)
+#    endif
+#    define VARENTRY(name) c_func_t * name
+#    define EXTENTRY(name) extern c_func_t ASM_ENTRY_POINT (name)
 #  endif
-#  define VARENTRY(name) void EXFUN ((*name), (void))
-#  define EXTENTRY(name) extern void EXFNX (name, (void))
-#endif
-
 #endif
 
 #define RETURN_TO_C(code) do						\
@@ -224,14 +223,14 @@ static long make_apply_trampoline
   (DSU_result->interface_dispatch) = interface_to_C;			\
   ((DSU_result->extra) . code_to_interpreter) = (code);			\
   return;								\
-} while (0)
+} while (false)
 
 #define RETURN_TO_SCHEME(ep) do						\
 {									\
   (DSU_result->interface_dispatch) = interface_to_scheme;		\
   ((DSU_result->extra) . entry_point) = (ep);				\
   return;								\
-} while (0)
+} while (false)
 
 extern c_func_t ASM_ENTRY_POINT (interface_to_C);
 extern c_func_t ASM_ENTRY_POINT (interface_to_scheme);
@@ -239,50 +238,42 @@ extern c_func_t ASM_ENTRY_POINT (interface_to_scheme);
 #define ENTER_SCHEME(ep) return (C_to_interface (ep))
 extern long ASM_ENTRY_POINT (C_to_interface) (insn_t *);
 
-#else /* not CMPINT_USE_STRUCS */
-#ifndef RETURN_TO_C
+#else /* !CMPINT_USE_STRUCS */
 
 #define RETURN_TO_C(code) do						\
 {									\
   (*DSU_result) = interface_to_C_hook;					\
   C_return_value = (code);						\
   return;								\
-} while (0)
+} while (false)
 
 #define RETURN_TO_SCHEME(ep) do						\
 {									\
   (*DSU_result) = (ep);							\
   return;								\
-} while (0)
+} while (false)
 
 #define ENTER_SCHEME(ep) do
 {
   C_to_interface (ep);
   return (C_return_value);
-} while (0)
+} while (false)
 
 extern utility_result_t interface_to_C_hook;
 extern void ASM_ENTRY_POINT (C_to_interface) (insn_t *);
 long C_return_value;
 
-#endif /* !RETURN_TO_C */
 #endif /* !CMPINT_USE_STRUCS */
+#endif /* !UTILITY_RESULT_DEFINED */
 
 #define JUMP_TO_CC_ENTRY(entry) ENTER_SCHEME (CC_ENTRY_ADDRESS (entry))
 
-#define COMPILER_INTERFACE_VERSION 3
-
-#ifndef COMPILER_PROCESSOR_TYPE
-#  define COMPILER_PROCESSOR_TYPE COMPILER_NONE_TYPE
-#endif
-
 #ifndef COMPILER_REGBLOCK_N_FIXED
 #  define COMPILER_REGBLOCK_N_FIXED REGBLOCK_MINIMUM_LENGTH
 #endif
 
-/* **** Default should be 0.  Change arch-specifics.  */
 #ifndef COMPILER_REGBLOCK_N_TEMPS
-#  define COMPILER_REGBLOCK_N_TEMPS 256
+#  define COMPILER_REGBLOCK_N_TEMPS 0
 #endif
 
 #ifndef COMPILER_REGBLOCK_EXTRA_SIZE
@@ -307,7 +298,7 @@ long C_return_value;
 #endif
 
 #ifndef ASM_RESET_HOOK
-#  define ASM_RESET_HOOK() do {} while (0)
+#  define ASM_RESET_HOOK() do {} while (false)
 #endif
 
 #define SAVE_LAST_RETURN_CODE(code) do					\
@@ -320,14 +311,14 @@ long C_return_value;
   }									\
   PUSH_RC (code);							\
   COMPILER_NEW_SUBPROBLEM ();						\
-} while (0)
+} while (false)
 
 #define RESTORE_LAST_RETURN_CODE() do					\
 {									\
   last_return_code = (STACK_LOC (FIXNUM_TO_ULONG (GET_EXP)));		\
   CHECK_LAST_RETURN_CODE ();						\
   COMPILER_END_SUBPROBLEM ();						\
-} while (0)
+} while (false)
 
 #define CHECK_LAST_RETURN_CODE() do					\
 {									\
@@ -335,7 +326,7 @@ long C_return_value;
     (RETURN_CODE_P							\
      (STACK_LOCATIVE_REFERENCE (last_return_code,			\
 				CONTINUATION_RETURN_CODE)));		\
-} while (0)
+} while (false)
 
 /* Initialization */
 
@@ -685,13 +676,13 @@ ASM_ENTRY_POINT (pname)							\
       return;								\
     }									\
   RETURN_TO_SCHEME (CC_ENTRY_ADDRESS (STACK_POP ()));			\
-} while (0)
+} while (false)
 
 #define TAIL_CALL_1(pname, a1) do					\
 {									\
   pname (DSU_result, ((unsigned long) (a1)), 0, 0, 0);			\
   return;								\
-} while (0)
+} while (false)
 
 #define TAIL_CALL_2(pname, a1, a2) do					\
 {									\
@@ -701,7 +692,7 @@ ASM_ENTRY_POINT (pname)							\
 	 0,								\
 	 0);								\
   return;								\
-} while (0)
+} while (false)
 
 DEFINE_SCHEME_UTILITY_2 (comutil_apply, procedure, frame_size)
 {
@@ -2732,9 +2723,7 @@ typedef struct register_storage
 {
   /* The following must be allocated consecutively */
   unsigned long catatonia_block [3];
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_IA32_TYPE)
   void * Regstart [32];		/* Negative byte offsets from &Registers[0] */
-#endif
   SCHEME_OBJECT Registers [REGBLOCK_LENGTH];
 } REGMEM;
 

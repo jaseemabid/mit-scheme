@@ -1,8 +1,9 @@
 /* -*-C-*-
 
-$Id: mc68k.h,v 1.38.2.3 2006/09/05 03:16:40 cph Exp $
+$Id: mc68k.h,v 1.38.2.4 2006/10/04 02:33:38 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,2005 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -32,10 +33,8 @@ USA.
  * Specialized for the Motorola 68K family.
  */
 
-#ifndef CMPINTMD_H_INCLUDED
-#define CMPINTMD_H_INCLUDED
-
-#include "cmptype.h"
+#ifndef SCM_CMPINTMD_H_INCLUDED
+#define SCM_CMPINTMD_H_INCLUDED 1
 
 /* Machine parameters to be set by the user. */
 
@@ -450,6 +449,7 @@ do {									\
    "cmpint.c". */
 
 #define COMPILER_REGBLOCK_N_FIXED	16
+#define COMPILER_REGBLOCK_N_TEMPS	256
 
 #define COMPILER_REGBLOCK_START_HOOKS	COMPILER_REGBLOCK_N_FIXED
 #define COMPILER_REGBLOCK_N_HOOKS	80
@@ -859,4 +859,4 @@ allocate_closure (long size)
 #define COMPILED_ENTRY_MAXIMUM_ARITY    COMPILED_ENTRY_FORMAT_LOW
 #define COMPILED_ENTRY_MINIMUM_ARITY    COMPILED_ENTRY_FORMAT_HIGH
 
-#endif /* CMPINTMD_H_INCLUDED */
+#endif /* !SCM_CMPINTMD_H_INCLUDED */

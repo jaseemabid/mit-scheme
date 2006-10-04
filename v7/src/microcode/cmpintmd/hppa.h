@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: hppa.h,v 1.54.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: hppa.h,v 1.54.2.3 2006/10/04 02:33:19 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
-Copyright 2002,2005 Massachusetts Institute of Technology
+Copyright 2002,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -27,10 +27,9 @@ USA.
 /* Compiled code interface macros, specialized for the HP Precision
    Architecture.  */
 
-#ifndef SCM_CMPINTMD_HPPA_H
-#define SCM_CMPINTMD_HPPA_H 1
+#ifndef SCM_CMPINTMD_H_INCLUDED
+#define SCM_CMPINTMD_H_INCLUDED 1
 
-#include "cmptype.h"
 #include "hppacach.h"
 
 /* Machine parameters to be set by the user. */
@@ -49,6 +48,8 @@ USA.
    Default is fine for PA.
    define COMPILER_TEMP_SIZE 3
  */
+
+#define COMPILER_REGBLOCK_N_TEMPS 256
 
 /* Descriptor size.
    This is the size of the offset field, and of the format field.
@@ -1357,4 +1358,4 @@ push_d_cache_region (void * start_address, unsigned long block_size)
 
 #endif /* IN_CMPINT_C */
 
-#endif /* not SCM_CMPINTMD_HPPA_H */
+#endif /* !SCM_CMPINTMD_H_INCLUDED */

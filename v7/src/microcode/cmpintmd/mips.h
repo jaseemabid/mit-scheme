@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: mips.h,v 1.25.2.3 2006/09/05 03:16:46 cph Exp $
+$Id: mips.h,v 1.25.2.4 2006/10/04 02:33:44 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1998 Massachusetts Institute of Technology
-Copyright 2005 Massachusetts Institute of Technology
+Copyright 2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -33,10 +33,8 @@ USA.
  * Specialized for the MIPS R2000/R3000
  */
 
-#ifndef CMPINTMD_H_INCLUDED
-#define CMPINTMD_H_INCLUDED
-
-#include "cmptype.h"
+#ifndef SCM_CMPINTMD_H_INCLUDED
+#define SCM_CMPINTMD_H_INCLUDED 1
 
 #ifdef _IRIX
 
@@ -97,7 +95,7 @@ extern void syscall();
 
 /* Processor type.  Choose a number from the above list, or allocate your own. */
 
-#define COMPILER_PROCESSOR_TYPE			COMPILER_MIPS_TYPE
+#define COMPILER_PROCESSOR_TYPE COMPILER_MIPS_TYPE
 
 /* Size (in long words) of the contents of a floating point register if
    different from a double.  For example, an MC68881 saves registers
@@ -105,6 +103,8 @@ extern void syscall();
    Default is fine for MIPS.
    define COMPILER_TEMP_SIZE			3
 */
+
+#define COMPILER_REGBLOCK_N_TEMPS 256
 
 /* Descriptor size.
    This is the size of the offset field, and of the format field.
@@ -785,4 +785,4 @@ allocate_closure (long size)
 #define COMPILED_ENTRY_MAXIMUM_ARITY    COMPILED_ENTRY_FORMAT_LOW
 #define COMPILED_ENTRY_MINIMUM_ARITY    COMPILED_ENTRY_FORMAT_HIGH
 
-#endif /* CMPINTMD_H_INCLUDED */
+#endif /* !SCM_CMPINTMD_H_INCLUDED */

@@ -1,8 +1,8 @@
 /* -*-C-*-
 
-$Id: vax.h,v 1.11.2.2 2005/08/23 02:55:14 cph Exp $
+$Id: vax.h,v 1.11.2.3 2006/10/04 02:34:14 cph Exp $
 
-Copyright 1991,1992,1993,2005 Massachusetts Institute of Technology
+Copyright 1991,1992,1993,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -32,10 +32,8 @@ USA.
  * Specialized for the Vax architecture.
  */
 
-#ifndef CMPNTMD_H_INCLUDED
-#define CMPNTMD_H_INCLUDED
-
-#include "cmptype.h"
+#ifndef SCM_CMPINTMD_H_INCLUDED
+#define SCM_CMPINTMD_H_INCLUDED 1
 
 /* Machine parameters to be set by the user. */
 
@@ -44,7 +42,7 @@ USA.
 
 /* Processor type.  Choose a number from the above list, or allocate your own. */
 
-#define COMPILER_PROCESSOR_TYPE			COMPILER_VAX_TYPE
+#define COMPILER_PROCESSOR_TYPE COMPILER_VAX_TYPE
 
 /* Size (in long words) of the contents of a floating point register if
    different from a double.  Default is fine.
@@ -209,6 +207,7 @@ do {									\
  */
 
 #define COMPILER_REGBLOCK_N_FIXED	16
+#define COMPILER_REGBLOCK_N_TEMPS	256
 
 #define COMPILER_REGBLOCK_N_HOOKS	40
 #define COMPILER_HOOK_SIZE		2	/* jsb @& + pad */
@@ -475,4 +474,4 @@ vax_reset_hook (void)
 #define COMPILED_ENTRY_MAXIMUM_ARITY    COMPILED_ENTRY_FORMAT_LOW
 #define COMPILED_ENTRY_MINIMUM_ARITY    COMPILED_ENTRY_FORMAT_HIGH
 
-#endif /* CMPNTMD_H_INCLUDED */
+#endif /* !SCM_CMPINTMD_H_INCLUDED */

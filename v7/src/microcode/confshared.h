@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: confshared.h,v 11.8.2.4 2006/10/02 18:35:08 cph Exp $
+$Id: confshared.h,v 11.8.2.5 2006/10/04 02:32:31 cph Exp $
 
 Copyright 2000,2002,2003,2005,2006 Massachusetts Institute of Technology
 
@@ -199,6 +199,31 @@ typedef enum
   FASL_PPC64,
   FASL_IA64
 } fasl_arch_t;
+
+/* Possible values for COMPILER_PROCESSOR_TYPE.  This identifies the
+   processor for which native-code support is provided.  This is
+   related to the fasl_arch_t types above, but can also take on values
+   that are independent of the host architecture.  */
+
+typedef enum
+{
+  COMPILER_NONE_TYPE,
+  COMPILER_MC68020_TYPE,
+  COMPILER_VAX_TYPE,
+  COMPILER_SPECTRUM_TYPE,
+  COMPILER_OLD_MIPS_TYPE,
+  COMPILER_MC68040_TYPE,
+  COMPILER_SPARC_TYPE,
+  COMPILER_RS6000_TYPE,
+  COMPILER_MC88K_TYPE,
+  COMPILER_IA32_TYPE,
+  COMPILER_ALPHA_TYPE,
+  COMPILER_MIPS_TYPE,
+  COMPILER_C_TYPE,
+  COMPILER_SVM_TYPE
+} cc_arch_t;
+
+#include "cmpintmd-config.h"
 
 #ifdef vax
 
@@ -430,12 +455,6 @@ extern void * alpha_heap_malloc (unsigned long);
 #define HEAP_MALLOC alpha_heap_malloc
 
 #endif /* __alpha */
-
-#if defined(USE_MMAP_HEAP_MALLOC) && defined(HEAP_IN_LOW_MEMORY)
-   extern void * mmap_heap_malloc (unsigned long);
-#  define HEAP_MALLOC mmap_heap_malloc
-#  define HEAP_FREE(address)
-#endif
 
 #ifdef __OS2__
 
@@ -578,10 +597,6 @@ extern void win32_stack_reset (void);
 #  define CURRENT_FASL_ARCH	FASL_IA64
 #endif
 
-#ifdef NATIVE_CODE_IS_C
-#  undef HEAP_IN_LOW_MEMORY
-#endif
-
 #ifdef sonyrisc
       /* On the Sony NEWS 3250, this procedure initializes the
 	 floating-point CPU control register to enable the IEEE traps.
@@ -610,6 +625,16 @@ extern void win32_stack_reset (void);
 #  undef HAVE_DOUBLE_TO_LONG_BUG
 #  undef UNSIGNED_SHIFT_BUG
 #  undef Conditional_Bug
+#endif
+
+#ifdef NO_HEAP_IN_LOW_MEMORY
+#  undef HEAP_IN_LOW_MEMORY
+#endif
+
+#if defined(USE_MMAP_HEAP_MALLOC) && defined(HEAP_IN_LOW_MEMORY)
+   extern void * mmap_heap_malloc (unsigned long);
+#  define HEAP_MALLOC mmap_heap_malloc
+#  define HEAP_FREE(address)
 #endif
 
 #endif /* SCM_CONFSHARED_H */

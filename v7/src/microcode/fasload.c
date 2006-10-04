@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.14 2006/09/22 17:54:58 cph Exp $
+$Id: fasload.c,v 9.96.2.15 2006/10/04 02:32:49 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -163,7 +163,7 @@ init_fasl_file (const char * file_name, bool band_p,
 	("File has: compiled-code interface %4u; architecture %4u.\n",
 	 (FASLHDR_CC_VERSION (fh)), (FASLHDR_CC_ARCH (fh)));
       outf_error
-	("Expected:  compiled code interface %4ld; architecture %4ld.\n",
+	("Expected:  compiled code interface %4u; architecture %4u.\n",
 	 compiler_interface_version, compiler_processor_type);
       signal_error_from_primitive (ERR_FASLOAD_COMPILED_MISMATCH);
     }

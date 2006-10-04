@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.87.2.7 2006/09/05 03:16:16 cph Exp $
+$Id: utils.c,v 9.87.2.8 2006/10/04 02:33:01 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -127,7 +127,7 @@ setup_interrupt (unsigned long masked_interrupts)
       OS2_handle_attention_interrupt ();
       abort_to_interpreter (PRIM_POP_RETURN);
     }
-#endif /* __OS2__ */
+#endif
   if (!VECTOR_P (fixed_objects))
     {
       outf_fatal ("\nInvalid fixed-objects vector");
@@ -1024,7 +1024,7 @@ C_call_scheme (SCHEME_OBJECT proc,
   SCHEME_OBJECT primitive, prim_lexpr, * sp, result;
   SCHEME_OBJECT * callers_last_return_code;
 
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_IA32_TYPE)
+#ifdef CC_IS_NATIVE
   extern void * C_Frame_Pointer;
   extern void * C_Stack_Pointer;
   void * cfp = C_Frame_Pointer;
@@ -1071,7 +1071,7 @@ C_call_scheme (SCHEME_OBJECT proc,
     SET_LEXPR_ACTUALS (prim_lexpr);
     SET_PRIMITIVE (primitive);
   }
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_IA32_TYPE)
+#ifdef CC_IS_NATIVE
 #ifdef CL386
   __finally
 #endif
@@ -1084,7 +1084,7 @@ C_call_scheme (SCHEME_OBJECT proc,
   return  result;
 }
 
-#endif /* not __OS2__ */
+#endif /* __WIN32__ */
 
 void
 set_ptr_register (unsigned int index, SCHEME_OBJECT * p)

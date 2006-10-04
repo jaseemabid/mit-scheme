@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.37.2.5 2006/10/02 20:11:47 cph Exp $
+$Id: i386.h,v 1.37.2.6 2006/10/04 02:33:32 cph Exp $
 
 Copyright 1992,1993,1994,1995,1996,2000 Massachusetts Institute of Technology
 Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -26,27 +26,8 @@ USA.
 
 /* Compiled code interface macros for Intel IA-32.  */
 
-#ifndef SCM_CMPINTMD_I386_H
-#define SCM_CMPINTMD_I386_H
-
-extern void ia32_cache_synchronize (void);
-extern int ia32_cpuid_needed;
-
-#define IA32_CACHE_SYNCHRONIZE()					\
-{									\
-  if (ia32_cpuid_needed)						\
-    ia32_cache_synchronize ();						\
-}
-
-#define CMPINT_USE_STRUCS
-
-#if defined(__OS2__) && (defined(__IBMC__) || defined(__WATCOMC__))
-#  define ASM_ENTRY_POINT(name) (_System name)
-#elif defined(__WIN32__) && defined(__WATCOMC__)
-#  define ASM_ENTRY_POINT(name) (__cdecl name)
-#else
-#  define ASM_ENTRY_POINT(name) name
-#endif
+#ifndef SCM_CMPINTMD_H_INCLUDED
+#define SCM_CMPINTMD_H_INCLUDED 1
 
 /*
 
@@ -201,7 +182,10 @@ magic = ([TC_COMPILED_ENTRY | 0] - (offset + length_of_CALL_instruction))
 
 */
 
-#define COMPILER_PROCESSOR_TYPE COMPILER_IA32_TYPE
+#define ASM_RESET_HOOK i386_reset_hook
+#define FPE_RESET_TRAPS i386_interface_initialize
+
+#define CMPINT_USE_STRUCS
 
 /* Big enough to hold 80-bit floating-point value: */
 #define COMPILER_TEMP_SIZE 3
@@ -213,6 +197,7 @@ typedef byte_t insn_t;
    where the register block is allocated.  */
 
 #define COMPILER_REGBLOCK_N_FIXED 16
+#define COMPILER_REGBLOCK_N_TEMPS 256
 #define COMPILER_REGBLOCK_N_HOOKS 80
 #define COMPILER_HOOK_SIZE 1
 
@@ -252,7 +237,7 @@ typedef struct
 {									\
   start_operator_relocation ((scan), (&ref));				\
   (scan) += 1;								\
-} while (0)
+} while (false)
 
 #define READ_COMPILED_CLOSURE_TARGET(a, r)				\
   read_compiled_closure_target ((a), (&r))
@@ -269,21 +254,24 @@ typedef struct
   ((((SCHEME_OBJECT *) (tramp_entry)) - TRAMPOLINE_BLOCK_TO_ENTRY) +	\
    (2 + TRAMPOLINE_ENTRY_SIZE))
 
-#define FLUSH_I_CACHE() do						\
-{									\
-  IA32_CACHE_SYNCHRONIZE ();						\
-} while (0)
+#define FLUSH_I_CACHE() IA32_CACHE_SYNCHRONIZE ()
+#define FLUSH_I_CACHE_REGION(address, nwords) IA32_CACHE_SYNCHRONIZE ()
+#define PUSH_D_CACHE_REGION(address, nwords) IA32_CACHE_SYNCHRONIZE ()
 
-#define FLUSH_I_CACHE_REGION(address, nwords) do			\
+#define IA32_CACHE_SYNCHRONIZE() do					\
 {									\
-  IA32_CACHE_SYNCHRONIZE ();						\
-} while (0)
-
-#define PUSH_D_CACHE_REGION(address, nwords) do				\
-{									\
-  IA32_CACHE_SYNCHRONIZE ();						\
-} while (0)
+  if (ia32_cpuid_needed)						\
+    ia32_cache_synchronize ();						\
+} while (false)
 
+#if defined(__OS2__) && (defined(__IBMC__) || defined(__WATCOMC__))
+#  define ASM_ENTRY_POINT(name) (_System name)
+#elif defined(__WIN32__) && defined(__WATCOMC__)
+#  define ASM_ENTRY_POINT(name) (__cdecl name)
+#else
+#  define ASM_ENTRY_POINT(name) name
+#endif
+
 extern int ASM_ENTRY_POINT (i386_interface_initialize) (void);
 
 extern void ASM_ENTRY_POINT (asm_assignment_trap) (void);
@@ -345,12 +333,13 @@ extern void ASM_ENTRY_POINT (asm_serialize_cache) (void);
 extern void ASM_ENTRY_POINT (asm_short_primitive_apply) (void);
 extern void ASM_ENTRY_POINT (asm_trampoline_to_interface) (void);
 
+extern void ia32_cache_synchronize (void);
 extern void start_closure_relocation (SCHEME_OBJECT *, reloc_ref_t *);
 extern SCHEME_OBJECT read_compiled_closure_target (insn_t *, reloc_ref_t *);
 extern void start_operator_relocation (SCHEME_OBJECT *, reloc_ref_t *);
 extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *, reloc_ref_t *);
 extern void i386_reset_hook (void);
 
-#define ASM_RESET_HOOK i386_reset_hook
+extern int ia32_cpuid_needed;
 
-#endif /* not SCM_CMPINTMD_I386_H */
+#endif /* !SCM_CMPINTMD_H_INCLUDED */

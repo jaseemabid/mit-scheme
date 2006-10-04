@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.10 2006/10/02 20:03:51 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.11 2006/10/04 02:32:25 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -120,8 +120,6 @@ AC_ARG_ENABLE([debugging],
 [[  --enable-debugging       Compile with debugging support [no]]])
 AC_ARG_ENABLE([native-code],
 [[  --enable-native-code     Support native compiled code [yes]]])
-AC_ARG_ENABLE([svm],
-[[  --enable-svm             Support Scheme Virtual Machine (svm) [no]]])
 AC_ARG_WITH([openssl],
 [[  --with-openssl           Use OpenSSL crypto library if available [yes]]])
 AC_ARG_WITH([mhash],
@@ -137,14 +135,6 @@ AC_ARG_WITH([libpq],
 
 enable_debugging="${enable_debugging:-no}"
 enable_native_code="${enable_native_code:-yes}"
-enable_svm="${enable_svm:-no}"
-enable_cmpint="no"
-if test "${enable_native_code}" != "no"; then
-    enable_cmpint="yes"
-fi
-if test "${enable_svm}" != "no"; then
-    enable_cmpint="yes"
-fi
 
 dnl Substitution variables to be filled in below.
 AS_FLAGS=
@@ -873,57 +863,69 @@ return 1;
     fi
 fi
 
-dnl Add architecture-dependent customizations.
-dnl This is mostly support for native-code compilation.
-if test "${enable_cmpint}" = "yes"; then
-    AC_MSG_CHECKING([for native-code support])
-    SCM_ARCH=
-    OPTIONAL_BASES="${OPTIONAL_BASES} cmpint comutl"
-    GC_HEAD_FILES="gccode.h cmpgc.h"
-
-    if test "${enable_svm}" != "no"; then
-	test -f cmpintmd.h || ${LN_S} cmpintmd/svm1.h cmpintmd.h
-	test -f cmpintmd.c || ${LN_S} cmpintmd/svm1.c cmpintmd.c
-	OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpintmd.c svm1-interp.c"
-	OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpintmd.o svm1-interp.o"
-	GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
-    else
-	case "$host_cpu" in
-	(alpha*)
-	    SCM_ARCH=alpha
-	    ;;
-	(hppa*)
-	    SCM_ARCH=hppa
-	    GC_HEAD_FILES="${GC_HEAD_FILES} hppacach.h"
-	    ;;
-	(i?86)
-	    SCM_ARCH=i386
-	    ;;
-	(m68k|m680?0)
-	    SCM_ARCH=mc68k
-	    ;;
-	(mips*)
-	    SCM_ARCH=mips
-	    ;;
-	(vax)
-	    SCM_ARCH=vax
-	    ;;
-	esac
-	if test "${SCM_ARCH}" != ""; then
-	    AC_MSG_RESULT([yes, for ${SCM_ARCH}])
-	    test -f cmpauxmd.m4 || ${LN_S} cmpauxmd/${SCM_ARCH}.m4 cmpauxmd.m4
-	    test -f cmpintmd.h || ${LN_S} cmpintmd/${SCM_ARCH}.h cmpintmd.h
-	    test -f cmpintmd.c || ${LN_S} cmpintmd/${SCM_ARCH}.c cmpintmd.c
-	    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpintmd.c cmpauxmd.m4"
-	    OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpintmd.o cmpauxmd.o"
-	    GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
-	fi
-    fi
+AC_MSG_CHECKING([for native-code support])
+OPTIONAL_BASES="${OPTIONAL_BASES} cmpint cmpintmd comutl"
+GC_HEAD_FILES="gccode.h cmpgc.h cmpintmd-config.h cmpintmd.h"
+SCM_ARCH=none
+ECN_WARNP=no
+case "${enable_native_code}" in
+(yes)
+    case "${host_cpu}" in
+    (alpha*)
+	SCM_ARCH=alpha
+	;;
+    (hppa*)
+	SCM_ARCH=hppa
+	GC_HEAD_FILES="${GC_HEAD_FILES} hppacach.h"
+	;;
+    (i?86)
+	SCM_ARCH=i386
+	;;
+    (m68k|m680?0)
+	SCM_ARCH=mc68k
+	;;
+    (mips*)
+	SCM_ARCH=mips
+	;;
+    (vax)
+	SCM_ARCH=vax
+	;;
+    esac
+    ;;
+(c)
+    SCM_ARCH=c
+    ;;
+(svm)
+    SCM_ARCH=svm1
+    OPTIONAL_SOURCES="${OPTIONAL_SOURCES} svm1-interp.c"
+    OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} svm1-interp.o"
+    ;;
+(no|none)
+    ;;
+(*)
+    ECN_WARNP=yes
+    ;;
+esac
+if test "${SCM_ARCH}" = "none"; then
+    AC_MSG_RESULT([no])
 else
-    test -f cmpintmd.h || ${LN_S} cmpintmd/none.h cmpintmd.h
-    test -f cmpintmd.c || ${LN_S} cmpintmd/none.c cmpintmd.c
-    GC_HEAD_FILES="${GC_HEAD_FILES} cmpintmd.h"
+    AC_MSG_RESULT([yes, for ${SCM_ARCH}])
 fi
+if test "${ECN_WARNP}" = "yes"; then
+    AC_MSG_WARN([illegal --enable-native-code value: ${enable_native_code}])
+fi
+for SUFFIX in -config.h .h .c; do
+    rm -f "cmpintmd${SUFFIX}"
+    ${LN_S} "cmpintmd/${SCM_ARCH}${SUFFIX}" "cmpintmd${SUFFIX}"
+done
+for SUFFIX in .m4 .c; do
+    rm -f "cmpauxmd${SUFFIX}"
+    if test -e "cmpauxmd/${SCM_ARCH}${SUFFIX}"; then
+	${LN_S} "cmpauxmd/${SCM_ARCH}${SUFFIX}" "cmpauxmd${SUFFIX}"
+	OPTIONAL_SOURCES="${OPTIONAL_SOURCES} cmpauxmd${SUFFIX}"
+	OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} cmpauxmd.o"
+    fi
+done
 
 for base in ${OPTIONAL_BASES}; do
     OPTIONAL_SOURCES="${OPTIONAL_SOURCES} ${base}.c"

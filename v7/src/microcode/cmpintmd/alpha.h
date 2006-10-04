@@ -1,9 +1,9 @@
 /* -*- C -*-
 
-$Id: alpha.h,v 1.7.2.2 2006/09/05 03:16:34 cph Exp $
+$Id: alpha.h,v 1.7.2.3 2006/10/04 02:33:13 cph Exp $
 
 Copyright 1992,1993 Digital Equipment Corporation (D.E.C.)
-Copyright 2001,2002,2005 Massachusetts Institute of Technology
+Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
 
 This software was developed at the Digital Equipment Corporation
 Cambridge Research Laboratory.  Permission to copy this software, to
@@ -42,10 +42,9 @@ case. */
  * Specialized for the Alpha
  */
 
-#ifndef CMPINTMD_H_INCLUDED
-#define CMPINTMD_H_INCLUDED
+#ifndef SCM_CMPINTMD_H_INCLUDED
+#define SCM_CMPINTMD_H_INCLUDED
 
-#include "cmptype.h"
 
 /* Machine parameters to be set by the user. */
 
@@ -57,7 +56,7 @@ case. */
 /* Processor type.  Choose a number from the above list, or allocate your own.
  */
 
-#define COMPILER_PROCESSOR_TYPE			COMPILER_ALPHA_TYPE
+#define COMPILER_PROCESSOR_TYPE COMPILER_ALPHA_TYPE
 
 /* Size (in long words) of the contents of a floating point register if
    different from a double.  For example, an MC68881 saves registers
@@ -472,6 +471,7 @@ extern void Flush_I_Cache(void);
 #define REGBLOCK_ALLOCATE_CLOSURE		REGBLOCK_FIRST_EXTRA+3
 #define REGBLOCK_DIVQ				REGBLOCK_FIRST_EXTRA+4
 #define REGBLOCK_REMQ				REGBLOCK_FIRST_EXTRA+5
+#define COMPILER_REGBLOCK_N_TEMPS 256
 
 void *
 alpha_heap_malloc (long Size)
@@ -741,4 +741,4 @@ allocate_closure (long size, char *this_block)
 #define COMPILED_ENTRY_MAXIMUM_ARITY    COMPILED_ENTRY_FORMAT_LOW
 #define COMPILED_ENTRY_MINIMUM_ARITY    COMPILED_ENTRY_FORMAT_HIGH
 
-#endif /* CMPINTMD_H_INCLUDED */
+#endif /* !SCM_CMPINTMD_H_INCLUDED */

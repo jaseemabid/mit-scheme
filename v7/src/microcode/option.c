@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: option.c,v 1.61.2.8 2006/10/02 18:32:17 cph Exp $
+$Id: option.c,v 1.61.2.9 2006/10/04 02:32:55 cph Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,1999,2000,2001 Massachusetts Institute of Technology
@@ -264,42 +264,6 @@ compiled-code support:
 
 #ifndef DEFAULT_UTABMD_FILE
 #  define DEFAULT_UTABMD_FILE "utabmd.bin"
-#endif
-
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_SPECTRUM_TYPE)
-#  ifndef DEFAULT_SMALL_CONSTANT
-#    define DEFAULT_SMALL_CONSTANT 600
-#  endif
-#  ifndef DEFAULT_LARGE_CONSTANT
-#    define DEFAULT_LARGE_CONSTANT 1400
-#  endif
-#endif
-
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_MIPS_TYPE)
-#  ifndef DEFAULT_SMALL_CONSTANT
-#    define DEFAULT_SMALL_CONSTANT 700
-#  endif
-#  ifndef DEFAULT_LARGE_CONSTANT
-#    define DEFAULT_LARGE_CONSTANT 1500
-#  endif
-#endif
-
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_IA32_TYPE)
-#  ifndef DEFAULT_SMALL_CONSTANT
-#    define DEFAULT_SMALL_CONSTANT 600
-#  endif
-#  ifndef DEFAULT_LARGE_CONSTANT
-#    define DEFAULT_LARGE_CONSTANT 1200
-#  endif
-#endif
-
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_SVM_TYPE)
-#  ifndef DEFAULT_SMALL_CONSTANT
-#    define DEFAULT_SMALL_CONSTANT 600
-#  endif
-#  ifndef DEFAULT_LARGE_CONSTANT
-#    define DEFAULT_LARGE_CONSTANT 1200
-#  endif
 #endif
 
 #ifndef DEFAULT_SMALL_HEAP
@@ -793,15 +757,11 @@ read_band_sizes (const char * filename,
     return (0);
   if ((check_fasl_version (&h)) != FASL_FILE_FINE)
     return (0);
-#if 0
-  /* Can't check this because compiler_interface_version and
-     compiler_processor_type haven't been set yet.  */
   if ((check_fasl_cc_version ((&h),
-			      compiler_interface_version,
-			      compiler_processor_type))
+			      COMPILER_INTERFACE_VERSION,
+			      COMPILER_PROCESSOR_TYPE))
       != FASL_FILE_FINE)
     return (0);
-#endif
   (*constant_size) = (SCHEME_WORDS_TO_BLOCKS (FASLHDR_CONSTANT_SIZE (&h)));
   (*heap_size) = (SCHEME_WORDS_TO_BLOCKS (FASLHDR_HEAP_SIZE (&h)));
   return (1);
@@ -1016,7 +976,7 @@ read_command_line_options (int argc, const char ** argv)
 				 option_raw_utab,
 				 UTABMD_FILE_VARIABLE,
 				 DEFAULT_UTABMD_FILE,
-#ifdef NATIVE_CODE_IS_C
+#ifdef CC_IS_C
 				 /* FIXME: This should check if we
 				    have "microcode_utabmd"
 				    compiled */

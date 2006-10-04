@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.h,v 10.12.2.6 2006/10/02 20:11:45 cph Exp $
+$Id: cmpint.h,v 10.12.2.7 2006/10/04 02:32:19 cph Exp $
 
 Copyright 1987,1988,1989,1990,1993,2000 Massachusetts Institute of Technology
 Copyright 2002,2005,2006 Massachusetts Institute of Technology
@@ -31,14 +31,15 @@ USA.
 
 #include "config.h"
 #include "object.h"
-#include "cmptype.h"
+
+#define COMPILER_INTERFACE_VERSION 3
 
 typedef struct cc_entry_type_s cc_entry_type_t;
 typedef struct cc_entry_offset_s cc_entry_offset_t;
 
 #include "cmpintmd.h"
 
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_NONE_TYPE)
+#ifdef NO_CC_SUPPORT_P
 #  undef CC_SUPPORT_P
 #else
 #  define CC_SUPPORT_P 1
@@ -307,15 +308,7 @@ extern void store_trampoline_insns (insn_t *, byte_t);
    start of the trampoline's storage area.  */
 extern SCHEME_OBJECT * trampoline_storage (SCHEME_OBJECT *);
 
-#if (COMPILER_PROCESSOR_TYPE == COMPILER_SVM_TYPE)
-
-typedef struct
-{
-  bool scheme_p;
-  union { long interpreter_code; insn_t * new_pc; } arg;
-} utility_result_t;
-
-#else /* not (COMPILER_PROCESSOR_TYPE == COMPILER_SVM1_TYPE) */
+#ifndef UTILITY_RESULT_DEFINED
 #ifdef CMPINT_USE_STRUCS
 
 typedef struct
@@ -328,13 +321,13 @@ typedef struct
     } extra;
 } utility_result_t;
 
-#else /* not CMPINT_USE_STRUCS */
+#else
 
 typedef insn_t * utility_result_t;
 extern long C_return_value;
 
-#endif /* not CMPINT_USE_STRUCS */
-#endif /* not (COMPILER_PROCESSOR_TYPE == COMPILER_SVM1_TYPE) */
+#endif
+#endif
 
 typedef void utility_proc_t
   (utility_result_t *, unsigned long, unsigned long, unsigned long, 
@@ -349,8 +342,8 @@ extern utility_proc_t * utility_table [];
 #  define PUSH_D_CACHE_REGION(addr, nwords) FLUSH_I_CACHE_REGION(addr, nwords)
 #endif
 
-extern unsigned long compiler_interface_version;
-extern unsigned long compiler_processor_type;
+extern unsigned int compiler_interface_version;
+extern cc_arch_t compiler_processor_type;
 extern unsigned long max_trampoline;
 
 extern SCHEME_OBJECT compiler_utilities;
@@ -458,5 +451,5 @@ extern utility_proc_t comutil_interrupt_continuation_2;
 extern utility_proc_t comutil_compiled_code_bkpt;
 extern utility_proc_t comutil_compiled_closure_bkpt;
 
-#endif /* (COMPILER_PROCESSOR_TYPE != COMPILER_NONE_TYPE) */
-#endif /* not SCM_CMPINT_H */
+#endif /* !NO_CC_SUPPORT_P */
+#endif /* !SCM_CMPINT_H */
