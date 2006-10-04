@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.37.2.7 2006/10/04 05:01:02 cph Exp $
+$Id: i386.h,v 1.37.2.8 2006/10/04 19:28:29 cph Exp $
 
 Copyright 1992,1993,1994,1995,1996,2000 Massachusetts Institute of Technology
 Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -187,11 +187,8 @@ magic = ([TC_COMPILED_ENTRY | 0] - (offset + length_of_CALL_instruction))
 
 #define CMPINT_USE_STRUCS
 
-typedef byte_t insn_t;
-
 /* These next definitions must agree with "cmpauxmd/i386.m4", which is
    where the register block is allocated.  */
-
 #define COMPILER_REGBLOCK_N_FIXED 16
 /* Big enough to hold 80-bit floating-point value: */
 #define COMPILER_TEMP_SIZE 3
@@ -206,7 +203,9 @@ typedef byte_t insn_t;
 
 #define ESI_TRAMPOLINE_TO_INTERFACE_OFFSET				\
   ((COMPILER_REGBLOCK_N_FIXED + (2 * COMPILER_HOOK_SIZE))		\
-   * (sizeof (SCHEME_OBJECT)))
+   * SIZEOF_SCHEME_OBJECT)
+
+typedef byte_t insn_t;
 
 /* Number of insn_t units preceding entry address in which header
    (type and offset info) is stored.  */

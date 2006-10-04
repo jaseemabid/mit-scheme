@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.h,v 1.1.2.9 2006/10/04 05:01:19 cph Exp $
+$Id: svm1.h,v 1.1.2.10 2006/10/04 19:28:35 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -28,13 +28,11 @@ USA.
 #ifndef SCM_CMPINTMD_H_INCLUDED
 #define SCM_CMPINTMD_H_INCLUDED 1
 
-typedef byte_t insn_t;
+#define ASM_RESET_HOOK initialize_svm1
 
 #define COMPILER_REGBLOCK_N_FIXED 512
-#define COMPILER_TEMP_SIZE 1
-#define COMPILER_REGBLOCK_N_TEMPS 0
-#define COMPILER_REGBLOCK_N_HOOKS 0
-#define COMPILER_REGBLOCK_EXTRA_SIZE 0
+
+typedef byte_t insn_t;
 
 /* Number of insn_t units preceding entry address in which header
    (type and offset info) is stored.  */
@@ -49,8 +47,6 @@ typedef byte_t insn_t;
 /* Size of execution cache in SCHEME_OBJECTS.  */
 #define UUO_LINK_SIZE 2
 #define READ_UUO_TARGET(a, r) read_uuo_target (a)
-
-#define ASM_RESET_HOOK initialize_svm1
 
 #define UTILITY_RESULT_DEFINED 1
 
