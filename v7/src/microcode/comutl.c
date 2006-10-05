@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: comutl.c,v 1.33.2.3 2006/03/12 05:17:50 cph Exp $
+$Id: comutl.c,v 1.33.2.4 2006/10/05 19:37:47 cph Exp $
 
 Copyright 1987,1988,1989,1991,1993,1997 Massachusetts Institute of Technology
 Copyright 2005,2006 Massachusetts Institute of Technology
@@ -185,6 +185,22 @@ DEFINE_PRIMITIVE ("BUILTIN-INDEX->NAME", Prim_builtin_index_to_name, 1, 1, 0)
     const char * name = (builtin_index_to_name (arg_ulong_integer (1)));
     PRIMITIVE_RETURN ((name == 0) ? SHARP_F : (char_pointer_to_string (name)));
   }
+}
+
+#ifdef CC_IS_C
+   extern SCHEME_OBJECT initialize_C_compiled_block (int, const char *);
+#endif
+
+DEFINE_PRIMITIVE ("INITIALIZE-C-COMPILED-BLOCK",
+		  Prim_initialize_C_compiled_block, 1, 1,
+  "Given the tag of a compiled object, return the object.")
+{
+  PRIMITIVE_HEADER (1);
+#ifdef CC_IS_C
+  PRIMITIVE_RETURN (initialize_C_compiled_block (1, (STRING_ARG (1))));
+#else
+  PRIMITIVE_RETURN (SHARP_F);
+#endif
 }
 
 DEFINE_PRIMITIVE ("DECLARE-COMPILED-CODE-BLOCK",
