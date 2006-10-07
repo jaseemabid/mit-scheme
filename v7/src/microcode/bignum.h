@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bignum.h,v 9.33.2.2 2005/08/23 02:54:59 cph Exp $
+$Id: bignum.h,v 9.33.2.3 2006/10/07 20:50:29 cph Exp $
 
 Copyright 1986,1987,1988,1989,1992,1996 Massachusetts Institute of Technology
 Copyright 1997,2005 Massachusetts Institute of Technology
@@ -25,6 +25,9 @@ USA.
 */
 
 /* External Interface to Bignum Code */
+
+#ifndef SCM_BIGNUM_H_INCLUDED
+#define SCM_BIGNUM_H_INCLUDED 1
 
 /* The `unsigned long' type is used for the conversion procedures
    `bignum_to_long' and `long_to_bignum'.  Older implementations of C
@@ -96,3 +99,5 @@ extern void bignum_to_digit_stream
     void (*consumer) (bignum_procedure_context, long),
     bignum_procedure_context context);
 extern long bignum_max_digit_stream_radix (void);
+
+#endif /* !SCM_BIGNUM_H_INCLUDED */
