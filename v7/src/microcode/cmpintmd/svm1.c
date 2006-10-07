@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.c,v 1.1.2.2 2006/10/03 15:02:05 cph Exp $
+$Id: svm1.c,v 1.1.2.3 2006/10/07 06:03:20 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -410,9 +410,10 @@ trampoline_entry_addr (SCHEME_OBJECT * block, unsigned long index)
 	  + CC_ENTRY_HEADER_SIZE);
 }
 
-void
+bool
 store_trampoline_insns (insn_t * entry, byte_t code)
 {
   (entry[0]) = SVM1_INST_TRAP_TRAP_0;
   (entry[1]) = code;
+  return (false);
 }

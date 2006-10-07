@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.c,v 1.1.2.2 2006/10/04 19:27:56 cph Exp $
+$Id: i386.c,v 1.1.2.3 2006/10/07 06:00:42 cph Exp $
 
 Copyright 2005,2006 Massachusetts Institute of Technology
 
@@ -35,22 +35,19 @@ extern void * tospace_to_newspace (void *);
 bool
 read_cc_entry_type (cc_entry_type_t * cet, insn_t * address)
 {
-  return
-    (decode_old_style_format_word (cet, (((unsigned short *) address) [-2])));
+  return (decode_old_style_format_word (cet, (((uint16_t *) address) [-2])));
 }
 
 bool
 write_cc_entry_type (cc_entry_type_t * cet, insn_t * address)
 {
-  return
-    (encode_old_style_format_word
-     (cet, ((unsigned short * address)) - 2));
+  return (encode_old_style_format_word (cet, ((uint16_t *) address) - 2));
 }
 
 bool
 read_cc_entry_offset (cc_entry_offset_t * ceo, insn_t * address)
 {
-  unsigned short n = (((unsigned short *) address) [-1]);
+  uint16_t n = (((uint16_t *) address) [-1]);
   (ceo->offset) = (n >> 1);
   (ceo->continued_p) = ((n & 1) != 0);
   return (false);
@@ -61,7 +58,7 @@ write_cc_entry_offset (cc_entry_offset_t * ceo, insn_t * address)
 {
   if (! ((ceo->offset) < 0x4000))
     return (true);
-  (((unsigned short *) address) [-1])
+  (((uint16_t *) address) [-1])
     = (((ceo->offset) << 1) | ((ceo->continued_p) ? 1 : 0));
   return (false);
 }
@@ -199,8 +196,12 @@ write_uuo_target (SCHEME_OBJECT target, SCHEME_OBJECT * saddr)
   (* ((long *) addr)) = ((CC_ENTRY_ADDRESS (target))
 			 - ((insn_t *) (tospace_to_newspace (addr + 4))));
 }
-
+
 #define TRAMPOLINE_ENTRY_SIZE 3
+
+#define ESI_TRAMPOLINE_TO_INTERFACE_OFFSET				\
+  ((COMPILER_REGBLOCK_N_FIXED + (2 * COMPILER_HOOK_SIZE))		\
+   * SIZEOF_SCHEME_OBJECT)
 
 unsigned long
 trampoline_entry_size (unsigned long n_entries)
@@ -215,7 +216,7 @@ trampoline_entry_addr (SCHEME_OBJECT * block, unsigned long index)
 	  + CC_ENTRY_HEADER_SIZE);
 }
 
-void
+bool
 store_trampoline_insns (insn_t * entry, byte_t code)
 {
   (*entry++) = 0xB0;		/* MOV AL,code */
@@ -224,6 +225,7 @@ store_trampoline_insns (insn_t * entry, byte_t code)
   (*entry++) = 0x96;
   (* ((unsigned long *) entry)) = ESI_TRAMPOLINE_TO_INTERFACE_OFFSET;
   IA32_CACHE_SYNCHRONIZE ();
+  return (false);
 }
 
 #ifdef _MACH_UNIX

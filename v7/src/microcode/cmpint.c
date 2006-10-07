@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.13 2006/10/04 19:27:42 cph Exp $
+$Id: cmpint.c,v 1.103.2.14 2006/10/07 06:00:30 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -1848,10 +1848,10 @@ compiled_closure_objects (SCHEME_OBJECT * block)
 }
 
 bool
-decode_old_style_format_word (cc_entry_type_t * cet, unsigned short fw)
+decode_old_style_format_word (cc_entry_type_t * cet, uint16_t fw)
 {
-  unsigned short low = (fw & 0x00FF);
-  unsigned short high = ((fw & 0xFF00) >> 8);
+  uint16_t low = (fw & 0x00FF);
+  uint16_t high = ((fw & 0xFF00) >> 8);
   bool rest_p = false;
 
   if (high < 0x80)
@@ -1908,7 +1908,7 @@ decode_old_style_format_word (cc_entry_type_t * cet, unsigned short fw)
 }
 
 bool
-encode_old_style_format_word (cc_entry_type_t * cet, unsigned short * fw_r)
+encode_old_style_format_word (cc_entry_type_t * cet, uint16_t * fw_r)
 {
   unsigned int low;
   unsigned int high;
@@ -2477,8 +2477,7 @@ fill_trampoline (SCHEME_OBJECT * block,
     if (write_cc_entry_offset ((&ceo), addr))
       return (true);
   }
-  store_trampoline_insns (addr, kind);
-  return (false);
+  return (store_trampoline_insns (addr, kind));
 }
 
 SCHEME_OBJECT *

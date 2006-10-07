@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.37.2.8 2006/10/04 19:28:29 cph Exp $
+$Id: i386.h,v 1.37.2.9 2006/10/07 06:00:48 cph Exp $
 
 Copyright 1992,1993,1994,1995,1996,2000 Massachusetts Institute of Technology
 Copyright 2001,2002,2005,2006 Massachusetts Institute of Technology
@@ -185,7 +185,7 @@ magic = ([TC_COMPILED_ENTRY | 0] - (offset + length_of_CALL_instruction))
 #define ASM_RESET_HOOK i386_reset_hook
 #define FPE_RESET_TRAPS i386_interface_initialize
 
-#define CMPINT_USE_STRUCS
+#define CMPINT_USE_STRUCS 1
 
 /* These next definitions must agree with "cmpauxmd/i386.m4", which is
    where the register block is allocated.  */
@@ -200,10 +200,6 @@ magic = ([TC_COMPILED_ENTRY | 0] - (offset + length_of_CALL_instruction))
   (COMPILER_REGBLOCK_N_HOOKS * COMPILER_HOOK_SIZE)
 
 #define REGBLOCK_ALLOCATED_BY_INTERFACE true
-
-#define ESI_TRAMPOLINE_TO_INTERFACE_OFFSET				\
-  ((COMPILER_REGBLOCK_N_FIXED + (2 * COMPILER_HOOK_SIZE))		\
-   * SIZEOF_SCHEME_OBJECT)
 
 typedef byte_t insn_t;
 
@@ -246,10 +242,6 @@ typedef struct
 #define UUO_COUNT_TO_WORDS(nc) (((nc) * UUO_LINK_SIZE) + 1)
 
 #define READ_UUO_TARGET(a, r) read_uuo_target ((a), (&r))
-
-#define TRAMPOLINE_STORAGE(tramp_entry)					\
-  ((((SCHEME_OBJECT *) (tramp_entry)) - TRAMPOLINE_BLOCK_TO_ENTRY) +	\
-   (2 + TRAMPOLINE_ENTRY_SIZE))
 
 #define FLUSH_I_CACHE() IA32_CACHE_SYNCHRONIZE ()
 #define FLUSH_I_CACHE_REGION(address, nwords) IA32_CACHE_SYNCHRONIZE ()
