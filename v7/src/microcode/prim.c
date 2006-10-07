@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prim.c,v 9.45.2.3 2006/09/05 19:10:29 cph Exp $
+$Id: prim.c,v 9.45.2.4 2006/10/07 20:52:40 cph Exp $
 
 Copyright 1986,1987,1988,1989,1992,1993 Massachusetts Institute of Technology
 Copyright 1996,2004,2005,2006 Massachusetts Institute of Technology
@@ -89,7 +89,8 @@ Return the object datum corresponding to ADDRESS.")
 {
   PRIMITIVE_HEADER (1);
   PRIMITIVE_RETURN
-    (ulong_to_integer (ADDRESS_TO_DATUM (arg_ulong_integer (1))));
+    (ulong_to_integer
+     (ADDRESS_TO_DATUM ((SCHEME_OBJECT *) (arg_ulong_integer (1)))));
 }
 
 DEFINE_PRIMITIVE ("MAKE-NON-POINTER-OBJECT", Prim_make_non_ptr_object, 1, 1,

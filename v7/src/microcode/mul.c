@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: mul.c,v 9.37.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: mul.c,v 9.37.2.3 2006/10/07 20:52:33 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,2000,2005 Massachusetts Institute of Technology
@@ -31,9 +31,6 @@ USA.
    version has only been tried on machines with long = 32 bits.  This
    file is included in the appropriate os file. */
 
-extern SCHEME_OBJECT
-  Mul (SCHEME_OBJECT, SCHEME_OBJECT);
-
 #if (TYPE_CODE_LENGTH == 8)
 
 #if defined(vax) && defined(__unix__)

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.9 2006/10/03 06:45:08 cph Exp $
+$Id: extern.h,v 9.65.2.10 2006/10/07 20:52:19 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,1996,1997,2000 Massachusetts Institute of Technology
@@ -186,12 +186,9 @@ extern unsigned long heap_reserved;
 
 /* Amount of space needed when GC requested */
 extern unsigned long gc_space_needed;
-
-#ifndef HEAP_IN_LOW_MEMORY
-   extern SCHEME_OBJECT * memory_base;
-#endif
 
 /* Arithmetic utilities */
+extern SCHEME_OBJECT Mul (SCHEME_OBJECT, SCHEME_OBJECT);
 extern long fixnum_to_long (SCHEME_OBJECT);
 extern SCHEME_OBJECT double_to_fixnum (double);
 extern bool integer_to_long_p (SCHEME_OBJECT);
@@ -271,6 +268,8 @@ extern int strcmp_ci (const char *, const char *);
 extern bool interpreter_applicable_p (SCHEME_OBJECT);
 extern void add_reload_cleanup (void (*) (void));
 extern void execute_reload_cleanups (void);
+extern void clear_bit_string (SCHEME_OBJECT);
+extern void bit_string_set (SCHEME_OBJECT, long, int);
 
 /* Memory management utilities */
 extern bool object_in_constant_space_p (SCHEME_OBJECT);

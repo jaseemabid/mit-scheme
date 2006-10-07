@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.14 2006/10/07 06:00:30 cph Exp $
+$Id: cmpint.c,v 1.103.2.15 2006/10/07 20:52:13 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -2602,7 +2602,7 @@ DEFINE_SCHEME_UTILITY_2 (comutil_compiled_code_bkpt, entry_addr, state)
 	  break;
 
 	case CET_INTERNAL_CONTINUATION:
-	  to_save = (MAKE_CC_STACK_ENV (state));
+	  to_save = (MAKE_CC_STACK_ENV ((SCHEME_OBJECT *) state));
 	  break;
 
 	case CET_RETURN_TO_INTERPRETER:
@@ -2610,7 +2610,7 @@ DEFINE_SCHEME_UTILITY_2 (comutil_compiled_code_bkpt, entry_addr, state)
 	  break;
 
 	case CET_CLOSURE:
-	  to_save = (MAKE_CC_ENTRY (state));
+	  to_save = (MAKE_CC_ENTRY ((insn_t *) state));
 	  break;
 
 	default:

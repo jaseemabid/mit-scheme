@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.15 2006/10/04 02:32:49 cph Exp $
+$Id: fasload.c,v 9.96.2.16 2006/10/07 20:52:25 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -476,7 +476,8 @@ DEFINE_GC_HANDLER (handle_primitive)
 
 #define RELOCATE_OBJECT(object)						\
   (OBJECT_NEW_ADDRESS ((object),					\
-		       (relocate_address (OBJECT_ADDRESS (object)))))
+		       ((SCHEME_OBJECT *)				\
+			(relocate_address (OBJECT_ADDRESS (object))))))
 
 static
 DEFINE_GC_TUPLE_HANDLER (fasload_tuple)

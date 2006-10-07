@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: artutl.c,v 1.18.2.3 2006/10/03 06:45:02 cph Exp $
+$Id: artutl.c,v 1.18.2.4 2006/10/07 20:52:06 cph Exp $
 
 Copyright 1989,1990,1992,1995,1997,2005 Massachusetts Institute of Technology
 
@@ -26,7 +26,6 @@ USA.
 /* Arithmetic Utilities */
 
 #include "scheme.h"
-extern SCHEME_OBJECT Mul (SCHEME_OBJECT, SCHEME_OBJECT);
 
 /* Conversions between Scheme types and C types. */
 
