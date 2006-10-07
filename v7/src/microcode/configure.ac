@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.12 2006/10/07 05:58:07 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.13 2006/10/07 20:53:43 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -173,6 +173,10 @@ DLD_LDFLAGS=
 MODULE_BASES=
 MODULE_CFLAGS=-DCOMPILE_AS_MODULE
 MODULE_LDFLAGS=
+COMPILED_DEFS=
+COMPILED_SOURCES=
+COMPILED_OBJECTS=
+CMPAUXMDO="Ignore-me.o"
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -1000,11 +1004,20 @@ case ${enable_native_code} in
 	;;
     c)
 	SCM_ARCH=c
+	OPTIONAL_BASES="${OPTIONAL_BASES} unstackify compinit"
+	COMPILED_DEFS="-DCOMPILE_FOR_STATIC_LINKING"
+#	COMPILED_SOURCES="utabmd.c"
+#	for D in runtime sf cref star-parser compiler; do
+#	    COMPILED_SOURCES="${COMPILED_SOURCES} \$(wildcard ../${D}/*.c)"
+#	done
+#	for D in back base fggen fgopt machines/C rtlbase rtlgen rtlopt; do
+#	    COMPILED_SOURCES="${COMPILED_SOURCES} \$(wildcard ../compiler/${D}/*.c)"
+#	done
+	CMPAUXMDO="cmpauxmd.o"    
 	;;
     svm)
 	SCM_ARCH=svm1
-	OPTIONAL_SOURCES="${OPTIONAL_SOURCES} svm1-interp.c"
-	OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} svm1-interp.o"
+	OPTIONAL_BASES="${OPTIONAL_BASES} svm1-interp"
 	;;
     no|none)
 	;;
@@ -1012,11 +1025,20 @@ case ${enable_native_code} in
 	ECN_WARNP=yes
 	;;
 esac
-if test ${SCM_ARCH} = none; then
-    AC_MSG_RESULT([no])
-else
-    AC_MSG_RESULT([yes, for ${SCM_ARCH}])
-fi
+case ${SCM_ARCH} in
+    none)
+	AC_MSG_RESULT([no])
+	;;
+    c)
+	AC_MSG_RESULT([yes, using portable C code])
+	;;
+    svm1)
+	AC_MSG_RESULT([yes, using portable SVM code])
+	;;
+    *)
+	AC_MSG_RESULT([yes, for ${SCM_ARCH}])
+	;;
+esac
 if test ${ECN_WARNP} = yes; then
     AC_MSG_WARN([illegal --enable-native-code value: ${enable_native_code}])
 fi
@@ -1069,6 +1091,10 @@ AC_SUBST([MODULE_TARGETS])
 AC_SUBST_FILE([MODULE_RULES])
 AC_SUBST([MODULE_CFLAGS])
 AC_SUBST([MODULE_LDFLAGS])
+AC_SUBST([COMPILED_DEFS])
+AC_SUBST([COMPILED_SOURCES])
+AC_SUBST([COMPILED_OBJECTS])
+AC_SUBST([CMPAUXMDO])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
