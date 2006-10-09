@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.13 2006/10/07 20:53:43 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.14 2006/10/09 07:02:10 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -160,8 +160,8 @@ GC_HEAD_FILES=
 LIB_X11=
 M4_FLAGS=
 OPTIONAL_BASES=
-OPTIONAL_OBJECTS=
 OPTIONAL_SOURCES=
+OPTIONAL_OBJECTS=
 STATIC_LIBS=
 QUASI_STATIC_LIBS=
 STATIC_PREFIX=
@@ -171,12 +171,13 @@ PRMD5_LIBS=
 SCHEME_DEFS=
 DLD_LDFLAGS=
 MODULE_BASES=
+MODULE_TARGETS=
+MODULE_RULES=/dev/null
 MODULE_CFLAGS=-DCOMPILE_AS_MODULE
 MODULE_LDFLAGS=
-COMPILED_DEFS=
-COMPILED_SOURCES=
-COMPILED_OBJECTS=
-CMPAUXMDO="Ignore-me.o"
+LIARC_SOURCES=
+LIARC_OBJECTS=
+LIARC_RULES=/dev/null
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -1005,15 +1006,24 @@ case ${enable_native_code} in
     c)
 	SCM_ARCH=c
 	OPTIONAL_BASES="${OPTIONAL_BASES} unstackify compinit"
-	COMPILED_DEFS="-DCOMPILE_FOR_STATIC_LINKING"
-#	COMPILED_SOURCES="utabmd.c"
-#	for D in runtime sf cref star-parser compiler; do
-#	    COMPILED_SOURCES="${COMPILED_SOURCES} \$(wildcard ../${D}/*.c)"
-#	done
-#	for D in back base fggen fgopt machines/C rtlbase rtlgen rtlopt; do
-#	    COMPILED_SOURCES="${COMPILED_SOURCES} \$(wildcard ../compiler/${D}/*.c)"
-#	done
-	CMPAUXMDO="cmpauxmd.o"    
+	SCHEME_DEFS="${SCHEME_DEFS} -DCOMPILE_FOR_STATIC_LINKING"
+	LIARC_SOURCES='utabmd.c $(LIARC_SOURCES_X)'
+	LIARC_OBJECTS='utabmd.o $(LIARC_OBJECTS_X)'
+	LIARC_RULES=config-rules.liarc
+	rm -f ${LIARC_RULES}
+	echo 'cmpauxmd.o: cmpauxmd.c $(LIARC_HEAD_FILES) prims.h' \
+	     'bignum.h bitstr.h avltree.h' \
+	  >  ${LIARC_RULES}
+	echo >> ${LIARC_RULES}
+	echo '$(LIARC_OBJECTS): $(LIARC_HEAD_FILES)' >> ${LIARC_RULES}
+	echo 'compinit.o: compinit.c compinit.h $(LIARC_HEAD_FILES)' \
+	  >> ${LIARC_RULES}
+	echo 'unstackify.o: unstackify.c stackops.h $(LIARC_HEAD_FILES)' \
+	  >> ${LIARC_RULES}
+	echo >> ${LIARC_RULES}
+	echo 'compinit.h: $(LIARC_SOURCES) Makefile' >> ${LIARC_RULES}
+	echo '	rm -f $@' >> ${LIARC_RULES}
+	echo '	./make-compinit $(LIARC_SOURCES) > $@' >> ${LIARC_RULES}
 	;;
     svm)
 	SCM_ARCH=svm1
@@ -1060,11 +1070,8 @@ for base in ${OPTIONAL_BASES}; do
     OPTIONAL_OBJECTS="${OPTIONAL_OBJECTS} ${base}.o"
 done
 
-MODULE_TARGETS=
-if test -z "${MODULE_BASES}"; then
-    MODULE_RULES=/dev/null
-else
-    MODULE_RULES=config.modrules
+if test -n "${MODULE_BASES}"; then
+    MODULE_RULES=config-rules.module
     rm -f ${MODULE_RULES}
     for BASE in ${MODULE_BASES}; do
 	MODULE_TARGETS="${MODULE_TARGETS} ${BASE}.so"
@@ -1078,8 +1085,8 @@ AC_SUBST([AS_FLAGS])
 AC_SUBST([GC_HEAD_FILES])
 AC_SUBST([LIB_X11])
 AC_SUBST([M4_FLAGS])
-AC_SUBST([OPTIONAL_OBJECTS])
 AC_SUBST([OPTIONAL_SOURCES])
+AC_SUBST([OPTIONAL_OBJECTS])
 AC_SUBST([STATIC_LIBS])
 AC_SUBST([STATIC_PREFIX])
 AC_SUBST([STATIC_SUFFIX])
@@ -1091,10 +1098,9 @@ AC_SUBST([MODULE_TARGETS])
 AC_SUBST_FILE([MODULE_RULES])
 AC_SUBST([MODULE_CFLAGS])
 AC_SUBST([MODULE_LDFLAGS])
-AC_SUBST([COMPILED_DEFS])
-AC_SUBST([COMPILED_SOURCES])
-AC_SUBST([COMPILED_OBJECTS])
-AC_SUBST([CMPAUXMDO])
+AC_SUBST([LIARC_SOURCES])
+AC_SUBST([LIARC_OBJECTS])
+AC_SUBST_FILE([LIARC_RULES])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
@@ -1107,4 +1113,7 @@ chmod +x makegen-cc
 
 if test ${MODULE_RULES} != /dev/null; then
     rm -f ${MODULE_RULES}
+fi
+if test ${LIARC_RULES} != /dev/null; then
+    rm -f ${LIARC_RULES}
 fi

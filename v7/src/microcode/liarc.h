@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: liarc.h,v 1.21.2.2 2006/10/07 20:53:49 cph Exp $
+$Id: liarc.h,v 1.21.2.3 2006/10/09 07:02:25 cph Exp $
 
 Copyright 1993,1997,2000,2002,2006 Massachusetts Institute of Technology
 
@@ -38,17 +38,18 @@ USA.
 
 #include "config.h"
 #include "dstack.h"
+#include "types.h"
+#include "const.h"
 #include "object.h"
 #include "sdata.h"
-#include "types.h"
 #include "errors.h"
-#include "const.h"
+#include "stack.h"
 #include "interp.h"
+#include "outf.h"
+#include "extern.h"
 #include "prim.h"
 #include "cmpint.h"
 #include "trap.h"
-#include "outf.h"
-#include "extern.h"
 
 extern SCHEME_OBJECT * sp_register;
 
@@ -191,17 +192,27 @@ typedef unsigned long entry_count_t;
 
 #define POP_RETURN() goto pop_return
 
+#define INVOKE_PRIMITIVE_DECLS
+#define INVOKE_PRIMITIVE_TARGET
+
 #define INVOKE_PRIMITIVE(prim, nargs) do				\
 {									\
   SCHEME_OBJECT * IPdest;						\
 									\
   UNCACHE_VARIABLES ();							\
-  PRIMITIVE_APPLY (GET_VAL, (prim));					\
+  PRIMITIVE_APPLY (prim);						\
   POP_PRIMITIVE_FRAME (nargs);						\
   IPdest = (OBJECT_ADDRESS (STACK_POP ()));				\
   CACHE_VARIABLES ();							\
   JUMP (IPdest);							\
 } while (false)
+
+#define INVOKE_INTERFACE_DECLS
+#define INVOKE_INTERFACE_TARGET_0
+#define INVOKE_INTERFACE_TARGET_1
+#define INVOKE_INTERFACE_TARGET_2
+#define INVOKE_INTERFACE_TARGET_3
+#define INVOKE_INTERFACE_TARGET_4
 
 #define INVOKE_INTERFACE_0(code)					\
   INVOKE_INTERFACE_4 (code, 0, 0, 0, 0)
@@ -221,7 +232,7 @@ typedef unsigned long entry_count_t;
 									\
   UNCACHE_VARIABLES ();							\
   IICdest								\
-    = (invoke_utility (utlarg_code,					\
+    = (invoke_utility ((code),						\
 		       ((unsigned long) (one)),				\
 		       ((unsigned long) (two)),				\
 		       ((unsigned long) (three)),			\
@@ -229,9 +240,6 @@ typedef unsigned long entry_count_t;
   CACHE_VARIABLES ();							\
   JUMP (IICdest);							\
 } while (false)
-
-#define INVOKE_PRIMITIVE_CODE() do {} while (false)
-#define INVOKE_INTERFACE_CODE() do {} while (false)
 
 #define MAX_BIT_SHIFT DATUM_LENGTH
 
@@ -319,17 +327,16 @@ struct liarc_data_S
   liarc_data_proc_t * data;
 };
 
-#define DECLARE_SUBCODE(name, nentries, decl_code, code) do		\
+#define DECLARE_SUBCODE(name, nentries, code) do			\
 {									\
-  int result								\
-    = (declare_compiled_code (name, nentries, decl_code, code));	\
+  int result = (declare_compiled_code_ns (name, nentries, code));	\
   if (result != 0)							\
     return (result);							\
 } while (false)
 
-#define DECLARE_SUBDATA(name, decl_data, data) do			\
+#define DECLARE_SUBDATA(name, data) do					\
 {									\
-  int result = (declare_compiled_data (name, decl_data, data));		\
+  int result = (declare_compiled_data_ns (name, data));			\
   if (result != 0)							\
     return (result);							\
 } while (false)
@@ -356,17 +363,10 @@ struct liarc_data_S
 
 #ifndef COMPILE_FOR_DYNAMIC_LOADING
 
-#define DECLARE_COMPILED_CODE(name, nentries, decl_code, code)		\
-  extern liarc_decl_code_t decl_code;					\
-  extern liarc_code_proc_t code;
-
-#define DECLARE_COMPILED_DATA(name, decl_data, data)			\
-  extern liarc_decl_data_t decl_data;					\
-  extern liarc_data_proc_t data;
-
-#define DECLARE_DATA_OBJECT(name, data)					\
-  extern liarc_object_proc_t data;
-
+#define DECLARE_COMPILED_CODE(name, nentries, decl_code, code)
+#define DECLARE_COMPILED_DATA(name, decl_data, data)
+#define DECLARE_COMPILED_DATA_NS(name, data)
+#define DECLARE_DATA_OBJECT(name, data)
 #define DECLARE_DYNAMIC_INITIALIZATION(name)
 #define DECLARE_DYNAMIC_OBJECT_INITIALIZATION(name)
 
@@ -388,6 +388,14 @@ static int								\
 dload_initialize_data (void)						\
 {									\
   return (declare_compiled_data (name, decl_data, data));		\
+}
+
+#define DECLARE_COMPILED_DATA_NS(name, data)				\
+liarc_data_proc_t data;							\
+static int								\
+dload_initialize_data (void)						\
+{									\
+  return (declare_compiled_data_ns (name, data));			\
 }
 
 #define DECLARE_DATA_OBJECT(name, data)					\
@@ -426,14 +434,16 @@ extern SCHEME_OBJECT * invoke_utility
 extern int declare_compiled_code
   (const char *, entry_count_t, liarc_decl_code_t *, liarc_code_proc_t *);
 
+extern int declare_compiled_code_ns
+  (const char *, entry_count_t, liarc_code_proc_t *);
+
 extern int declare_compiled_data
   (const char *, liarc_decl_data_t *, liarc_data_proc_t *);
 
+extern int declare_compiled_data_ns (const char *, liarc_data_proc_t *);
 extern int declare_data_object (const char *, liarc_object_proc_t *);
 extern int declare_compiled_code_mult (unsigned, const struct liarc_code_S *);
 extern int declare_compiled_data_mult (unsigned, const struct liarc_data_S *);
-
-extern int NO_SUBBLOCKS (void);
 
 extern SCHEME_OBJECT unstackify (unsigned char *, entry_count_t);
 

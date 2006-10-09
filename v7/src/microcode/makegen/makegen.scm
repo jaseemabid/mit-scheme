@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: makegen.scm,v 1.7.2.2 2006/08/16 04:23:12 cph Exp $
+$Id: makegen.scm,v 1.7.2.3 2006/10/09 07:02:54 cph Exp $
 
 Copyright 2000,2001,2003 Massachusetts Institute of Technology
 
@@ -32,13 +32,20 @@ USA.
 
 (define (generate-makefile template deps-filename makefile)
   (let ((file-lists
-	 (map (lambda (pathname)
-		(cons (pathname-name pathname)
-		      (read-file pathname)))
-	      (list-transform-positive (directory-read "makegen/")
-		(lambda (pathname)
-		  (re-string-match "^files-.+\\.scm$"
-				   (file-namestring pathname)))))))
+	 (let ((make-list
+		(lambda (pattern proc)
+		  (map (lambda (pathname)
+			 (cons (pathname-name pathname)
+			       (proc (read-file pathname))))
+		       (keep-matching-items (directory-read "makegen/")
+			 (lambda (pathname)
+			   (re-string-match (string-append "^"
+							   pattern
+							   "\\.scm$")
+					    (file-namestring pathname))))))))
+	   (append
+	    (make-list "files-.+" (lambda (files) files))
+	    (make-list "dirs-.+" enumerate-directories)))))
     (call-with-input-file template
       (lambda (input)
 	(call-with-output-file makefile
@@ -69,6 +76,19 @@ USA.
 			   (if (char=? #\newline char)
 			       0
 			       (+ column 1))))))))))))))
+
+(define (enumerate-directories specs)
+  (map (lambda (path)
+	 (enough-namestring (pathname-new-type path #f)))
+       (append-map (lambda (spec)
+		     (delete-matching-items
+			 (directory-read
+			  (merge-pathnames
+			   "*.scm"
+			   (pathname-as-directory (car spec))))
+		       (lambda (path)
+			 (member (pathname-name path) (cdr spec)))))
+		   specs)))
 
 (define (interpret-command command column file-lists deps-filename output)
   (let ((malformed (lambda () (error "Malformed command:" command))))
@@ -89,8 +109,7 @@ USA.
 		 (write-items (map (lambda (file) (string-append file suffix))
 				   (cdr entry))
 			      column
-			      output)
-		 0))))
+			      output)))))
       (case (car command)
 	((WRITE-SOURCES)
 	 (write-suffixed ".c"))
@@ -106,10 +125,12 @@ USA.
   (maybe-update-dependencies
    deps-filename
    (sort (append-map (lambda (file-list)
-		       (map (lambda (base) (string-append base ".c"))
-			    (cdr file-list)))
+		       (if (string-prefix? "files-" (car file-list))
+			   (map (lambda (base) (string-append base ".c"))
+				(cdr file-list))
+			   '()))
 		     file-lists)
-     string<?))
+	 string<?))
   (call-with-input-file deps-filename
     (lambda (input)
       (let ((buffer (make-string 4096)))
@@ -136,7 +157,13 @@ USA.
 		    (if (pair? (cdr rules))
 			(begin
 			  (newline output)
-			  (loop (cdr rules))))))))))))
+			  (loop (cdr rules)))))))
+	    (newline output)
+	    (newline output)
+	    (let ((rule (generate-rule "liarc-gendeps.c"))
+		  (prefix "LIARC_HEAD_FILES = "))
+	      (write-string prefix output)
+	      (write-items (cddr rule) (string-length prefix) output)))))))
 
 (define (generate-rule filename)
   (parse-rule
@@ -168,7 +195,7 @@ USA.
     (cons* (string-head (car items) (- (string-length (car items)) 1))
 	   (cadr items)
 	   (sort (list-transform-negative (cddr items) pathname-absolute?)
-	     string<?))))
+		 string<?))))
 
 (define (write-rule rule port)
   (write-string (car rule) port)

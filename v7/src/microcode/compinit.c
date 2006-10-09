@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: compinit.c,v 1.6.2.2 2006/10/07 20:53:35 cph Exp $
+$Id: compinit.c,v 1.6.2.3 2006/10/09 07:02:04 cph Exp $
 
 Copyright 1993,2002,2006 Massachusetts Institute of Technology
 
@@ -28,38 +28,54 @@ USA.
 
 #undef DECLARE_COMPILED_CODE
 #undef DECLARE_COMPILED_DATA
+#undef DECLARE_COMPILED_DATA_NS
 #undef DECLARE_DATA_OBJECT
 
-#define DECLARE_COMPILED_CODE(name, nentries, decl_code, code) do	\
-{									\
-  extern int decl_code (void);						\
-  extern SCHEME_OBJECT * code (SCHEME_OBJECT *, entry_count_t);		\
-  int result								\
-    = (declare_compiled_code (name, nentries, decl_code, code));	\
-  if (result != 0)							\
-    return (result);							\
-} while (false)
+#define DECLARE_COMPILED_CODE(name, nentries, decl_code, code)		\
+extern int decl_code (void);						\
+extern SCHEME_OBJECT * code (SCHEME_OBJECT *, entry_count_t);
 
-#define DECLARE_COMPILED_DATA(name, decl_data, data) do			\
-{									\
-  extern int decl_data (void);						\
-  extern SCHEME_OBJECT * data (entry_count_t);				\
-  int result = (declare_compiled_data (name, decl_data, data));		\
-  if (result != 0)							\
-    return (result);							\
-} while (false)
+#define DECLARE_COMPILED_DATA(name, decl_data, data)			\
+extern int decl_data (void);						\
+extern SCHEME_OBJECT * data (entry_count_t);
 
-#define DECLARE_DATA_OBJECT(name, data) do				\
-{									\
-  extern SCHEME_OBJECT data (void);					\
-  int result = (declare_data_object (name, data));			\
+#define DECLARE_COMPILED_DATA_NS(name, data)				\
+extern SCHEME_OBJECT * data (entry_count_t);
+
+#define DECLARE_DATA_OBJECT(name, data)					\
+extern SCHEME_OBJECT data (void);
+
+#include "compinit.h"
+
+#undef DECLARE_COMPILED_CODE
+#undef DECLARE_COMPILED_DATA
+#undef DECLARE_COMPILED_DATA_NS
+#undef DECLARE_DATA_OBJECT
+
+#define DECLARE_COMPILED_CODE(name, nentries, decl_code, code)		\
+  result = (declare_compiled_code (name, nentries, decl_code, code));	\
   if (result != 0)							\
-    return (result);							\
-} while (false)
+    return (result);
+
+#define DECLARE_COMPILED_DATA(name, decl_data, data)			\
+  result = (declare_compiled_data (name, decl_data, data));		\
+  if (result != 0)							\
+    return (result);
+
+#define DECLARE_COMPILED_DATA_NS(name, data)				\
+  result = (declare_compiled_data_ns (name, data));			\
+  if (result != 0)							\
+    return (result);
+
+#define DECLARE_DATA_OBJECT(name, data)					\
+  result = (declare_data_object (name, data));				\
+  if (result != 0)							\
+    return (result);
 
 int
 initialize_compiled_code_blocks (void)
 {
+  int result;
 #include "compinit.h"
   return (false);
 }

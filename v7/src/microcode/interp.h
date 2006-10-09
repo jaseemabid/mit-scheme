@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: interp.h,v 9.50.2.3 2006/09/03 00:56:02 cph Exp $
+$Id: interp.h,v 9.50.2.4 2006/10/09 07:02:15 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,2000,2002,2005 Massachusetts Institute of Technology
@@ -29,6 +29,9 @@ USA.
 
 #ifndef SCM_INTERP_H
 #define SCM_INTERP_H 1
+
+#include "object.h"
+#include "stack.h"
 
 /* Note: SAVE_CONT must match the definitions in sdata.h */
 

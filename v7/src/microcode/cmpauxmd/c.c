@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.15.2.2 2006/10/07 20:54:14 cph Exp $
+$Id: c.c,v 1.15.2.3 2006/10/09 07:02:37 cph Exp $
 
 Copyright 1993,2002,2006 Massachusetts Institute of Technology
 
@@ -124,6 +124,8 @@ static compiled_block_t ** compiled_entries = 0;
 
 static SCHEME_OBJECT * copy_c_code_block_information
   (compiled_block_t *, SCHEME_OBJECT *, SCHEME_OBJECT *);
+static bool grow_compiled_blocks (void);
+static bool grow_compiled_entries (entry_count_t);
 static int declare_trampoline_block (entry_count_t);
 static SCHEME_OBJECT * trampoline_procedure (SCHEME_OBJECT *, entry_count_t);
 static compiled_block_t * find_compiled_block (const char *);
@@ -298,11 +300,7 @@ install_c_code_table (SCHEME_OBJECT * table, unsigned long length)
       if (ncopy == 0)
 	return (false);
       strcpy (ncopy, ((const char *) table));
-      if ((declare_compiled_code (ncopy,
-				  nentries,
-				  NO_SUBBLOCKS,
-				  unspecified_code))
-	  != 0)
+      if ((declare_compiled_code_ns (ncopy, nentries, unspecified_code)) != 0)
 	return (false);
       table += (BYTES_TO_WORDS (nlen + 1));
     }
@@ -311,10 +309,9 @@ install_c_code_table (SCHEME_OBJECT * table, unsigned long length)
 }
 
 int
-declare_compiled_code (const char * name,
-		       entry_count_t nentries,
-		       liarc_decl_code_t * decl_code,
-		       liarc_code_proc_t * code_proc)
+declare_compiled_code_ns (const char * name,
+			  entry_count_t nentries,
+			  liarc_code_proc_t * code_proc)
 {
   compiled_block_t * block = (find_compiled_block (name));
   if (block != 0)
@@ -337,47 +334,12 @@ declare_compiled_code (const char * name,
       entry_count_t entries_end = (entries_start + nentries);
       tree_node new_tree;
 
-      if (entries_end < entries_start)
-	/* Wrap around */
+      if ((entries_end < entries_start)	/* Wrap around */
+	  || ((max_compiled_blocks >= compiled_blocks_table_size)
+	      && (!grow_compiled_blocks ()))
+	  || ((entries_end >= compiled_entries_size)
+	      && (!grow_compiled_entries (entries_end))))
 	return (-1);
-      
-      if (max_compiled_blocks >= compiled_blocks_table_size)
-	{
-	  entry_count_t new_blocks_size
-	    = ((compiled_blocks_table_size == 0)
-	       ? 16
-	       : compiled_blocks_table_size);
-	  compiled_block_t * new_blocks;
-
-	  while (new_blocks_size <= max_compiled_blocks)
-	    new_blocks_size = ((new_blocks_size * 3) / 2);
-	  new_blocks
-	    = (lrealloc (compiled_blocks,
-			 (new_blocks_size * (sizeof (compiled_block_t)))));
-	  if (new_blocks == 0)
-	    return (-1);
-	  compiled_blocks_table_size = new_blocks_size;
-	  compiled_blocks = new_blocks;
-	}
-
-      if (entries_end >= compiled_entries_size)
-	{
-	  entry_count_t new_entries_size
-	    = ((compiled_entries_size == 0)
-	       ? 128
-	       : compiled_entries_size);
-	  compiled_block_t ** new_entries;
-
-	  while (new_entries_size <= entries_end)
-	    new_entries_size = ((new_entries_size * 3) / 2);
-	  new_entries
-	    = (lrealloc (compiled_entries,
-			 (new_entries_size * (sizeof (compiled_block_t *)))));
-	  if (new_entries == 0)
-	    return (-1);
-	  compiled_entries_size = new_entries_size;
-	  compiled_entries = new_entries;
-	}
     
       tree_error_message = 0;
       new_tree
@@ -397,24 +359,76 @@ declare_compiled_code (const char * name,
       while (max_compiled_entries < entries_end)
 	(compiled_entries[max_compiled_entries++]) = block;
     }
-  return (*decl_code) ();
+  return (0);
 }
 
+static bool
+grow_compiled_blocks (void)
+{
+  entry_count_t new_blocks_size
+    = ((compiled_blocks_table_size == 0)
+       ? 16
+       : (compiled_blocks_table_size * 2));
+  compiled_block_t * new_blocks
+    = (lrealloc (compiled_blocks,
+		 (new_blocks_size * (sizeof (compiled_block_t)))));
+  if (new_blocks == 0)
+    return (false);
+  compiled_blocks_table_size = new_blocks_size;
+  compiled_blocks = new_blocks;
+  return (true);
+}
+
+static bool
+grow_compiled_entries (entry_count_t entries_end)
+{
+  entry_count_t new_entries_size
+    = ((compiled_entries_size == 0)
+       ? 128
+       : compiled_entries_size);
+  compiled_block_t ** new_entries;
+
+  while (new_entries_size <= entries_end)
+    new_entries_size *= 2;
+  new_entries
+    = (lrealloc (compiled_entries,
+		 (new_entries_size * (sizeof (compiled_block_t *)))));
+  if (new_entries == 0)
+    return (false);
+  compiled_entries_size = new_entries_size;
+  compiled_entries = new_entries;
+  return (true);
+}
+
+int
+declare_compiled_code (const char * name,
+		       entry_count_t nentries,
+		       liarc_decl_code_t * decl_code,
+		       liarc_code_proc_t * code_proc)
+{
+  int rc = (declare_compiled_code_ns (name, nentries, code_proc));
+  return ((rc == 0) ? ((*decl_code) ()) : rc);
+}
+
+int
+declare_compiled_data_ns (const char * name, liarc_data_proc_t * data_proc)
+{
+  compiled_block_t * block = (find_compiled_block (name));
+  if ((block == 0)
+      || ((COMPILED_BLOCK_DATA_INIT_P (block))
+	  && ((COMPILED_BLOCK_DATA_PROC (block)) != data_proc)))
+    return (-1);
+  SET_COMPILED_BLOCK_DATA_PROC (block, data_proc);
+  return (0);
+}
+
 int
 declare_compiled_data (const char * name,
 		       liarc_decl_data_t * decl_data,
 		       liarc_data_proc_t * data_proc)
 {
-  compiled_block_t * block = (find_compiled_block (name));
-  if (block == 0)
-    return (-1);
-
-  if ((COMPILED_BLOCK_DATA_INIT_P (block))
-      && ((COMPILED_BLOCK_DATA_PROC (block)) != data_proc))
-    return (-1);
-
-  SET_COMPILED_BLOCK_DATA_PROC (block, data_proc);
-  return (*decl_data) ();
+  int rc = (declare_compiled_data_ns (name, data_proc));
+  return ((rc == 0) ? ((*decl_data) ()) : rc);
 }
 
 int
@@ -423,7 +437,7 @@ declare_data_object (const char * name, liarc_object_proc_t * object_proc)
   compiled_block_t * block = (find_compiled_block (name));
   if (block == 0)
     {
-      declare_compiled_code (name, 0, NO_SUBBLOCKS, unspecified_code);
+      declare_compiled_code_ns (name, 0, unspecified_code);
       block = (find_compiled_block (name));
       if (block == 0)
 	return (-1);
@@ -444,10 +458,9 @@ declare_compiled_code_mult (unsigned int nslots,
   unsigned int i = 0;
   while (i < nslots)
     {
-      int res = (declare_compiled_code (((char *) ((slots[i]) . name)),
-					((slots[i]) . nentries),
-					NO_SUBBLOCKS,
-					((slots[i]) . code)));
+      int res = (declare_compiled_code_ns (((char *) ((slots[i]) . name)),
+					   ((slots[i]) . nentries),
+					   ((slots[i]) . code)));
       if (res != 0)
 	return (res);
       i += 1;
@@ -462,9 +475,8 @@ declare_compiled_data_mult (unsigned int nslots,
   unsigned int i = 0;
   while (i < nslots)
     {
-      int res = (declare_compiled_data (((char *) ((slots[i]) . name)),
-					NO_SUBBLOCKS,
-					((slots[i]) . data)));
+      int res = (declare_compiled_data_ns (((char *) ((slots[i]) . name)),
+					   ((slots[i]) . data)));
       if (res != 0)
 	return (res);
       i += 1;
@@ -475,10 +487,9 @@ declare_compiled_data_mult (unsigned int nslots,
 static int
 declare_trampoline_block (entry_count_t nentries)
 {
-  return (declare_compiled_code ("#trampoline_code_block",
-				 nentries,
-				 NO_SUBBLOCKS,
-				 trampoline_procedure));
+  return (declare_compiled_code_ns ("#trampoline_code_block",
+				    nentries,
+				    trampoline_procedure));
 }
 
 bool
@@ -509,12 +520,6 @@ find_compiled_block (const char * name)
 {
   tree_node node = (tree_lookup (compiled_blocks_tree, name));
   return ((node == 0) ? 0 : (compiled_blocks + (node->value)));
-}
-
-int
-NO_SUBBLOCKS (void)
-{
-  return (0);
 }
 
 static SCHEME_OBJECT *

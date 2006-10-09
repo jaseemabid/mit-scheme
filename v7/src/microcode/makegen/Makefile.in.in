@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.8 2006/10/07 20:54:38 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.9 2006/10/09 07:02:48 cph Exp $
 #
 # Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
 #
@@ -60,11 +60,6 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 
 # **** END BOILERPLATE ****
 
-# **** C back end stuff (I) ****
-COMPILED_DEFS = @COMPILED_DEFS@
-COMPILED_SOURCES = @COMPILED_SOURCES@
-COMPILED_OBJECTS = $(COMPILED_SOURCES:.c=.o)
-
 # **** Tool configuration ****
 
 AUXDIR = $(libdir)/mit-scheme
@@ -75,10 +70,9 @@ AS = as
 TAR = tar
 GZIP_ENV = --best
 
-DEFS = -DMIT_SCHEME -DDEFAULT_LIBRARY_PATH=\"$(AUXDIR)\" @DEFS@ \
-	$(COMPILED_DEFS) @SCHEME_DEFS@ -I. -I$(srcdir) -I.
+DEFS = @DEFS@ @SCHEME_DEFS@ -DMIT_SCHEME -DDEFAULT_LIBRARY_PATH=\"$(AUXDIR)\"
 CFLAGS = @CFLAGS@
-CPPFLAGS = @CPPFLAGS@
+CPPFLAGS = @CPPFLAGS@ -I. -I$(srcdir)
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 M4_FLAGS = @M4_FLAGS@
@@ -90,11 +84,20 @@ LINK = $(CCLD) $(LDFLAGS) -o $@
 EXPAND = $(M4) $(M4_FLAGS)
 ASSEMBLE = $(AS) $(AS_FLAGS)
 
-# **** Configured files ****
+# **** File configuration ****
+
+STD_SOURCES = @(write-sources "files-core")@ \
+	@(write-sources "files-os-prim")@ \
+	@(write-sources "files-unix")@ \
+	$(OPTIONAL_SOURCES)
+STD_OBJECTS = @(write-objects "files-core")@ \
+	@(write-objects "files-os-prim")@ \
+	@(write-objects "files-unix")@ \
+	$(OPTIONAL_OBJECTS)
 
 GC_HEAD_FILES = @GC_HEAD_FILES@
-OPTIONAL_SOURCES = @OPTIONAL_SOURCES@ $(COMPILED_SOURCES)
-OPTIONAL_OBJECTS = @OPTIONAL_OBJECTS@ $(COMPILED_OBJECTS)
+OPTIONAL_SOURCES = @OPTIONAL_SOURCES@
+OPTIONAL_OBJECTS = @OPTIONAL_OBJECTS@
 STATIC_LIBS = @STATIC_PREFIX@ @STATIC_LIBS@ @STATIC_SUFFIX@
 X_LIBS = @LIB_X11@
 PRBFISH_LIBS = @PRBFISH_LIBS@
@@ -107,21 +110,10 @@ COMPILE_MODULE = $(COMPILE) $(MODULE_CFLAGS)
 LINK_MODULE = $(LINK) $(MODULE_LDFLAGS)
 MODULE_LIBS = -lc
 
-# **** Non-configured files ****
-
-CORE_SOURCES = @(write-sources "files-core")@
-OS_PRIM_SOURCES = @(write-sources "files-os-prim")@
-UNIX_SOURCES =  @(write-sources "files-unix")@
-
-CORE_OBJECTS = @(write-objects "files-core")@
-OS_PRIM_OBJECTS = @(write-objects "files-os-prim")@
-UNIX_OBJECTS =  @(write-objects "files-unix")@
-
-SHARED_SOURCES = $(CORE_SOURCES) $(OS_PRIM_SOURCES) $(UNIX_SOURCES) \
-	$(OPTIONAL_SOURCES)
-
-SHARED_OBJECTS = $(CORE_OBJECTS) $(OS_PRIM_OBJECTS) $(UNIX_OBJECTS) \
-	$(OPTIONAL_OBJECTS)
+LIARC_SOURCES_X = @(write-sources "dirs-liarc")@
+LIARC_OBJECTS_X = @(write-objects "dirs-liarc")@
+LIARC_SOURCES = @LIARC_SOURCES@
+LIARC_OBJECTS = @LIARC_OBJECTS@
 
 # **** Program definitions ****
 
@@ -131,8 +123,8 @@ aux_LIBS = $(MODULE_TARGETS)
 aux_DATA = utabmd.bin
 EXTRA_PROGRAMS = findprim
 
-scheme_SOURCES = $(SHARED_SOURCES) usrdef.c
-scheme_OBJECTS = $(SHARED_OBJECTS) usrdef.o
+scheme_SOURCES = $(STD_SOURCES) usrdef.c $(LIARC_SOURCES)
+scheme_OBJECTS = $(STD_OBJECTS) usrdef.o $(LIARC_OBJECTS)
 scheme_DEPENDENCIES = 
 scheme_LDFLAGS = @DLD_LDFLAGS@
 scheme_LIBS = $(STATIC_LIBS) $(X_LIBS) $(LIBS)
@@ -147,8 +139,8 @@ ALL_PROGRAMS = $(bin_PROGRAMS) $(aux_PROGRAMS)
 ALL_LIBS = $(aux_LIBS)
 ALL_DATA = $(aux_DATA)
 
-MOSTLYCLEAN_FILES = *.o cmpauxmd.s usrdef.c bchdef.c \
-	compinit.h utabmd.c utabmd.bci *.tch
+MOSTLYCLEAN_FILES = $(scheme_OBJECTS) $(findprim_OBJECTS) \
+	cmpauxmd.s usrdef.c bchdef.c compinit.h utabmd.c utabmd.bci
 
 CLEAN_FILES = $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA) $(EXTRA_PROGRAMS)
 
@@ -182,9 +174,9 @@ scheme: $(scheme_OBJECTS) $(scheme_DEPENDENCIES)
 	-rm -f $@
 	$(LINK) $(scheme_LDFLAGS) $(scheme_OBJECTS) $(scheme_LIBS)
 
-usrdef.c: $(SHARED_SOURCES) findprim Makefile
+usrdef.c: $(STD_SOURCES) findprim Makefile
 	-rm -f $@
-	./findprim $(SHARED_SOURCES) > usrdef.c
+	./findprim $(STD_SOURCES) > usrdef.c
 
 findprim: $(findprim_OBJECTS) $(findprim_DEPENDENCIES)
 	-rm -f $@
@@ -243,7 +235,6 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 	@list='$(bin_PROGRAMS)'; \
 	for p in $$list; do \
 	    if test -f $$p; then \
-		echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/."; \
 		$(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/.; \
 	    fi; \
 	done
@@ -253,7 +244,6 @@ install-auxPROGRAMS: $(aux_PROGRAMS)
 	@list='$(aux_PROGRAMS)'; \
 	for p in $$list; do \
 	    if test -f $$p; then \
-		echo "  $(INSTALL_PROGRAM) $$p $(DESTDIR)$(AUXDIR)/."; \
 		$(INSTALL_PROGRAM) $$p $(DESTDIR)$(AUXDIR)/.; \
 	    fi; \
 	done
@@ -263,7 +253,6 @@ install-auxLIBS: $(aux_LIBS)
 	@list='$(aux_LIBS)'; \
 	for p in $$list; do \
 	    if test -f $$p; then \
-		echo "  $(INSTALL_DATA) $$p $(DESTDIR)$(AUXDIR)/lib/."; \
 		$(INSTALL_DATA) $$p $(DESTDIR)$(AUXDIR)/lib/.; \
 	    fi; \
 	done
@@ -273,7 +262,6 @@ install-auxDATA: $(aux_DATA)
 	@list='$(aux_DATA)'; \
 	for p in $$list; do \
 	    if test -f $$p; then \
-		echo "  $(INSTALL_DATA) $$p $(DESTDIR)$(AUXDIR)/."; \
 		$(INSTALL_DATA) $$p $(DESTDIR)$(AUXDIR)/.; \
 	    fi; \
 	done
@@ -286,51 +274,7 @@ install-auxDATA: $(aux_DATA)
 
 @(write-dependencies)@
 
-# **** C back end stuff (II) ****
-
-@CMPAUXMDO@: cmpauxmd.c liarc.tch prims.h bignum.h bitstr.h avltree.h \
-	outf.h extern.h
-
-compinit.o: compinit.c compinit.h liarc.tch
-
-unstackify.o: unstackify.c stackops.h liarc.tch
-
-LIARC_HEAD_FILES = \
-config.h \
-confshared.h \
-cmpintmd-config.h \
-dstack.h \
-object.h \
-sdata.h \
-errors.h \
-const.h \
-interp.h \
-prim.h \
-cmpint.h \
-cmpintmd.h \
-trap.h \
-outf.h \
-extern.h \
-$(GC_HEAD_FILES)
-
-# The following includes liarc.tch in case COMPILED_SOURCES is empty,
-# to prevent grep from reading stdin.
-
-compinit.h: $(COMPILED_SOURCES) liarc.tch Makefile
-	rm -f $@
-	grep \^DECLARE_COMPILED_CODE liarc.tch $(COMPILED_SOURCES) \
-	| sed -e 's/.*:/  /' -e 's/)/);/' > $@
-	grep \^DECLARE_COMPILED_DATA liarc.tch $(COMPILED_SOURCES) \
-	| sed -e 's/.*:/  /' -e 's/)/);/' >> $@
-	grep \^DECLARE_DATA_OBJECT liarc.tch $(COMPILED_SOURCES) \
-	| sed -e 's/.*:/  /' -e 's/)/);/' >> $@
-
-foo $(COMPILED_OBJECTS): liarc.tch
-liarc.tch: liarc.h $(LIARC_HEAD_FILES)
-	rm -f $@
-	echo "touch" > $@
-
-# **** End C back end stuff (II) ***
+@LIARC_RULES@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
