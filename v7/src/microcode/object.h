@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: object.h,v 9.59.2.8 2006/09/22 17:59:23 cph Exp $
+$Id: object.h,v 9.59.2.9 2006/10/21 16:07:49 riastradh Exp $
 
 Copyright 1986,1987,1988,1989,1990,1992 Massachusetts Institute of Technology
 Copyright 1993,1995,1997,1998,2000,2001 Massachusetts Institute of Technology
@@ -326,7 +326,8 @@ extern SCHEME_OBJECT * memory_base;
 
 #define CHAR_BITS_META 		0x1
 #define CHAR_BITS_CONTROL 	0x2
-#define CHAR_BITS_CONTROL_META	0x3
+#define CHAR_BITS_SUPER		0x4
+#define CHAR_BITS_HYPER		0x8
 
 #define MAX_ASCII (1UL << ASCII_LENGTH)
 #define MAX_CODE (1UL << CODE_LENGTH)
