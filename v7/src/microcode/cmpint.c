@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.15 2006/10/07 20:52:13 cph Exp $
+$Id: cmpint.c,v 1.103.2.16 2006/10/22 22:15:32 cph Exp $
 
 Copyright 1989,1990,1991,1992,1993,1994 Massachusetts Institute of Technology
 Copyright 1995,1996,2000,2001,2002,2003 Massachusetts Institute of Technology
@@ -481,6 +481,7 @@ DEFINE_SCHEME_ENTRY (return_to_compiled_code)
       cc_entry_type_t cet;
       if ((read_cc_entry_type ((&cet), (CC_ENTRY_ADDRESS (cont))))
 	  || (! ((cet.marker == CET_CONTINUATION)
+		 || (cet.marker == CET_INTERNAL_CONTINUATION)
 		 || (cet.marker == CET_RETURN_TO_INTERPRETER))))
 	{
 	  STACK_PUSH (cont);
