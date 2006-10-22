@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.9 2006/10/09 07:02:48 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.10 2006/10/22 16:24:26 cph Exp $
 #
 # Copyright 2000,2001,2002,2003,2005,2006 Massachusetts Institute of Technology
 #
@@ -235,6 +235,7 @@ install-binPROGRAMS: $(bin_PROGRAMS)
 	@list='$(bin_PROGRAMS)'; \
 	for p in $$list; do \
 	    if test -f $$p; then \
+		echo "$(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/."; \
 		$(INSTALL_PROGRAM) $$p $(DESTDIR)$(bindir)/.; \
 	    fi; \
 	done
@@ -244,6 +245,7 @@ install-auxPROGRAMS: $(aux_PROGRAMS)
 	@list='$(aux_PROGRAMS)'; \
 	for p in $$list; do \
 	    if test -f $$p; then \
+		echo "$(INSTALL_PROGRAM) $$p $(DESTDIR)$(AUXDIR)/."; \
 		$(INSTALL_PROGRAM) $$p $(DESTDIR)$(AUXDIR)/.; \
 	    fi; \
 	done
@@ -253,6 +255,7 @@ install-auxLIBS: $(aux_LIBS)
 	@list='$(aux_LIBS)'; \
 	for p in $$list; do \
 	    if test -f $$p; then \
+		echo "$(INSTALL_DATA) $$p $(DESTDIR)$(AUXDIR)/lib/."; \
 		$(INSTALL_DATA) $$p $(DESTDIR)$(AUXDIR)/lib/.; \
 	    fi; \
 	done
@@ -262,6 +265,7 @@ install-auxDATA: $(aux_DATA)
 	@list='$(aux_DATA)'; \
 	for p in $$list; do \
 	    if test -f $$p; then \
+		echo "$(INSTALL_DATA) $$p $(DESTDIR)$(AUXDIR)/."; \
 		$(INSTALL_DATA) $$p $(DESTDIR)$(AUXDIR)/.; \
 	    fi; \
 	done
