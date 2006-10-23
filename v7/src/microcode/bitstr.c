@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bitstr.c,v 9.65.2.3 2006/10/02 18:34:25 cph Exp $
+$Id: bitstr.c,v 9.65.2.4 2006/10/23 21:48:36 riastradh Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1995,1996,1997,2000,2005 Massachusetts Institute of Technology
@@ -550,7 +550,7 @@ zero_to_bit_string (unsigned long length)
 }
 
 static SCHEME_OBJECT
-ulong_to_bit_string (unsigned long length, unsigned long number)
+ulong_to_bit_string (unsigned long number, unsigned long length)
 {
   if (number == 0)
     return (zero_to_bit_string (length));
