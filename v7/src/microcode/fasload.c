@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.16 2006/10/07 20:52:25 cph Exp $
+$Id: fasload.c,v 9.96.2.17 2006/10/25 18:13:40 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -145,8 +145,9 @@ init_fasl_file (const char * file_name, bool band_p,
 	("File has: Version %4u Architecture %4u.\n",
 	 (FASLHDR_VERSION (fh)), (FASLHDR_ARCH (fh)));
       outf_error
-	("Expected:  Version %4u Architecture %4u.\n",
-	 INPUT_FASL_VERSION,
+	("Expected:  Version between %4u and %4u Architecture %4u.\n",
+	 OLDEST_INPUT_FASL_VERSION,
+	 NEWEST_INPUT_FASL_VERSION,
 	 CURRENT_FASL_ARCH);
       signal_error_from_primitive (ERR_FASL_FILE_BAD_DATA);
     }

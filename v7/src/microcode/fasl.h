@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40.2.8 2006/10/04 02:32:43 cph Exp $
+$Id: fasl.h,v 9.40.2.9 2006/10/25 18:13:32 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1993 Massachusetts Institute of Technology
 Copyright 1994,1997,2002,2005,2006 Massachusetts Institute of Technology
@@ -105,11 +105,15 @@ typedef enum
   FASL_VERSION_STACK_END
 } fasl_version_t;
 
-/* Current parameters.  Always used on output. */
-#define CURRENT_FASL_VERSION FASL_VERSION_STACK_END
+#define OLDEST_INPUT_FASL_VERSION FASL_VERSION_C_CODE
+#define NEWEST_INPUT_FASL_VERSION FASL_VERSION_STACK_END
 
-/* Oldest recognized input version.  */
-#define INPUT_FASL_VERSION FASL_VERSION_C_CODE
+#if 0
+/* Temporarily disabled for testing.  */
+#define OUTPUT_FASL_VERSION FASL_VERSION_STACK_END
+#else
+#define OUTPUT_FASL_VERSION FASL_VERSION_C_CODE
+#endif
 
 typedef struct
 {

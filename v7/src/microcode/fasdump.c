@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.15 2006/09/09 02:36:36 cph Exp $
+$Id: fasdump.c,v 9.68.2.16 2006/10/25 18:13:20 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1996,1997,2000,2001 Massachusetts Institute of Technology
@@ -580,7 +580,7 @@ static void
 initialize_fasl_header (bool cc_p)
 {
   fh = (&fasl_header);
-  (FASLHDR_VERSION (fh)) = CURRENT_FASL_VERSION;
+  (FASLHDR_VERSION (fh)) = OUTPUT_FASL_VERSION;
   (FASLHDR_ARCH (fh)) = CURRENT_FASL_ARCH;
 
 #ifdef HEAP_IN_LOW_MEMORY
