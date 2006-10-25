@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: bitstr.c,v 9.65.2.4 2006/10/23 21:48:36 riastradh Exp $
+$Id: bitstr.c,v 9.65.2.5 2006/10/25 02:12:44 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1995,1996,1997,2000,2005 Massachusetts Institute of Technology
@@ -550,7 +550,7 @@ zero_to_bit_string (unsigned long length)
 }
 
 static SCHEME_OBJECT
-ulong_to_bit_string (unsigned long number, unsigned long length)
+ulong_to_bit_string (unsigned long length, unsigned long number)
 {
   if (number == 0)
     return (zero_to_bit_string (length));
@@ -661,7 +661,7 @@ error is signalled.")
       if (!FIXNUM_TO_ULONG_P (object))
 	error_bad_range_arg (2);
       PRIMITIVE_RETURN
-	(ulong_to_bit_string ((FIXNUM_TO_ULONG (object)), length));
+	(ulong_to_bit_string (length, (FIXNUM_TO_ULONG (object))));
     }
   if (BIGNUM_P (object))
     PRIMITIVE_RETURN (bignum_to_bit_string (length, object));
