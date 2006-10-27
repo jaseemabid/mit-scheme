@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.14 2006/10/09 07:02:10 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.15 2006/10/27 20:55:33 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -1075,7 +1075,7 @@ if test -n "${MODULE_BASES}"; then
     rm -f ${MODULE_RULES}
     for BASE in ${MODULE_BASES}; do
 	MODULE_TARGETS="${MODULE_TARGETS} ${BASE}.so"
-	echo > ${MODULE_RULES}
+	echo >> ${MODULE_RULES}
 	echo ${BASE}.o: ${BASE}.c >> ${MODULE_RULES}
 	echo "	" '$(COMPILE_MODULE)' -c '$*.c' >> ${MODULE_RULES}
     done
