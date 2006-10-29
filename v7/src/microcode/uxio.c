@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxio.c,v 1.53.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: uxio.c,v 1.53.2.3 2006/10/29 16:44:03 riastradh Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,2000,2001,2003 Massachusetts Institute of Technology
@@ -677,7 +677,7 @@ OS_test_select_descriptor (int fd, int blockp, unsigned int mode)
 	(nfds,
 	 ((OS_process_any_status_change ())
 	  ? ((errno = EINTR), (-1))
-	  : (UX_select (1,
+	  : (UX_select ((fd + 1),
 			(&readable),
 			(&writeable),
 			0,
