@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: ux.h,v 1.78.2.3 2006/09/22 18:02:01 cph Exp $
+$Id: ux.h,v 1.78.2.4 2006/10/29 17:22:31 riastradh Exp $
 
 Copyright 1990,1991,1992,1993,1994,1995 Massachusetts Institute of Technology
 Copyright 1996,1997,1998,1999,2000,2003 Massachusetts Institute of Technology
@@ -715,10 +715,11 @@ extern int UX_terminal_set_state (int, Ttty_state *);
 #  define EMULATE_TCSETPGRP
 #endif
 
-/* setsid is apparently broken in Max OSX.  */
+/* In Darwin, setsid doesn't work in vforked processes,
+   so force the use of fork instead. */
 #ifdef __APPLE__
-#  undef UX_setsid
-#  define UX_setsid() (setsid (), 0)
+#  undef UX_vfork
+#  define UX_vfork fork
 #endif
 
 #ifdef HAVE_SIGACTION
