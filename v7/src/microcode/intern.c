@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: intern.c,v 9.61.2.2 2005/08/23 02:55:10 cph Exp $
+$Id: intern.c,v 9.61.2.3 2006/10/30 06:02:18 cph Exp $
 
 Copyright 1987,1988,1989,1992,1994,1996 Massachusetts Institute of Technology
 Copyright 2000,2004,2005 Massachusetts Institute of Technology
@@ -30,22 +30,21 @@ USA.
 #include "prims.h"
 #include "trap.h"
 
-#define STRING_HASH_BITS 16
+/* The FNV hash, short for Fowler/Noll/Vo in honor of its creators.  */
 
-static unsigned long
-string_hash (unsigned long length, const char * string)
+static uint32_t
+string_hash (uint32_t length, const char * string)
 {
   const unsigned char * scan = ((const unsigned char *) string);
   const unsigned char * end = (scan + length);
-  unsigned long result = 0;
+  uint32_t result = 2166136261;
   while (scan < end)
-    {
-      result <<= 1;
-      result |= (result >> STRING_HASH_BITS);
-      result ^= (*scan++);
-      result &= ((1 << STRING_HASH_BITS) - 1);
-    }
+    result = ((result * 16777619) + (*scan++));
+#if (BIGGEST_FIXNUM >= 0xFFFFFFFF)
   return (result);
+#else
+  return (result & ((uint32_t) BIGGEST_FIXNUM));
+#endif
 }
 
 static SCHEME_OBJECT *
