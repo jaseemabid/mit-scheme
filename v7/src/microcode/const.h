@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: const.h,v 9.52.2.4 2006/09/05 19:17:11 cph Exp $
+$Id: const.h,v 9.52.2.5 2006/10/30 05:51:20 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1997,2000,2002,2004 Massachusetts Institute of Technology
@@ -39,7 +39,7 @@ USA.
 #endif
 
 /* Interning hash table */
-#define OBARRAY_SIZE 3001
+#define OBARRAY_SIZE 32771
 
 /* Cells between constant and stack before overflow occurs.  */
 #ifndef STACK_GUARD_SIZE
