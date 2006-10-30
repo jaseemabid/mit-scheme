@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: intern.c,v 9.61.2.4 2006/10/30 06:04:45 cph Exp $
+$Id: intern.c,v 9.61.2.5 2006/10/30 06:05:08 cph Exp $
 
 Copyright 1987,1988,1989,1992,1994,1996 Massachusetts Institute of Technology
 Copyright 2000,2004,2005,2006 Massachusetts Institute of Technology
@@ -37,7 +37,7 @@ string_hash (uint32_t length, const char * string)
 {
   const unsigned char * scan = ((const unsigned char *) string);
   const unsigned char * end = (scan + length);
-  uint32_t result = 2166136261UL;
+  uint32_t result = 2166136261U;
   while (scan < end)
     result = ((result * 16777619) + (*scan++));
 #if (BIGGEST_FIXNUM >= 0xFFFFFFFF)
