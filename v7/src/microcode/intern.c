@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: intern.c,v 9.61.2.3 2006/10/30 06:02:18 cph Exp $
+$Id: intern.c,v 9.61.2.4 2006/10/30 06:04:45 cph Exp $
 
 Copyright 1987,1988,1989,1992,1994,1996 Massachusetts Institute of Technology
-Copyright 2000,2004,2005 Massachusetts Institute of Technology
+Copyright 2000,2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -37,7 +37,7 @@ string_hash (uint32_t length, const char * string)
 {
   const unsigned char * scan = ((const unsigned char *) string);
   const unsigned char * end = (scan + length);
-  uint32_t result = 2166136261;
+  uint32_t result = 2166136261UL;
   while (scan < end)
     result = ((result * 16777619) + (*scan++));
 #if (BIGGEST_FIXNUM >= 0xFFFFFFFF)
