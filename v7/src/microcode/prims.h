@@ -1,9 +1,10 @@
 /* -*-C-*-
 
-$Id: prims.h,v 9.52.2.2 2005/08/23 02:55:12 cph Exp $
+$Id: prims.h,v 9.52.2.3 2006/11/15 07:54:03 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1995,2001,2002,2005 Massachusetts Institute of Technology
+Copyright 2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -88,6 +89,8 @@ extern long arg_index_integer (int, long);
 extern long arg_integer_in_range (int, long, long);
 extern unsigned long arg_ulong_integer (int);
 extern unsigned long arg_ulong_index_integer (int, unsigned long);
+extern unsigned long arg_ulong_integer_in_range
+  (int, unsigned long, unsigned long);
 extern double arg_real_number (int);
 extern double arg_real_in_range (int, double, double);
 extern long arg_ascii_char (int);

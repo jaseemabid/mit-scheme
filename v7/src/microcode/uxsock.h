@@ -1,9 +1,9 @@
 /* -*-C-*-
 
-$Id: uxsock.h,v 1.12.2.2 2005/08/23 02:55:13 cph Exp $
+$Id: uxsock.h,v 1.12.2.3 2006/11/15 07:55:22 cph Exp $
 
 Copyright 1990,1992,1993,1997,1998,1999 Massachusetts Institute of Technology
-Copyright 2001,2005 Massachusetts Institute of Technology
+Copyright 2001,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -30,6 +30,7 @@ USA.
 #include "osio.h"
 
 extern Tchannel OS_open_tcp_stream_socket (void *, unsigned int);
+extern void OS_shutdown_socket (Tchannel, unsigned long);
 extern int OS_get_service_by_name (const char *, const char *);
 extern unsigned long OS_get_service_by_number (const unsigned long);
 extern unsigned int OS_host_address_length (void);

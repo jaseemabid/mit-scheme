@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: utils.c,v 9.87.2.8 2006/10/04 02:33:01 cph Exp $
+$Id: utils.c,v 9.87.2.9 2006/11/15 07:54:50 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1995,1996,1997 Massachusetts Institute of Technology
@@ -418,6 +418,17 @@ arg_ulong_index_integer (int arg_number, unsigned long upper_limit)
 {
   unsigned long result = (arg_ulong_integer (arg_number));
   if (result >= upper_limit)
+    error_bad_range_arg (arg_number);
+  return (result);
+}
+
+unsigned long
+arg_ulong_integer_in_range (int arg_number,
+			    unsigned long lower_limit,
+			    unsigned long upper_limit)
+{
+  unsigned long result = (arg_ulong_integer (arg_number));
+  if (! ((result >= lower_limit) && (result < upper_limit)))
     error_bad_range_arg (arg_number);
   return (result);
 }
