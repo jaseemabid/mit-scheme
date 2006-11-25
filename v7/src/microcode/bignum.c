@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: bignum.c,v 9.52.2.3 2006/09/22 17:56:52 cph Exp $
+$Id: bignum.c,v 9.52.2.4 2006/11/25 05:08:59 cph Exp $
 
 Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
 Copyright 1992,1993,1994,1996,1997,2000 Massachusetts Institute of Technology
-Copyright 2004,2005 Massachusetts Institute of Technology
+Copyright 2004,2005,2006 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
@@ -550,7 +550,7 @@ double_to_bignum (double x)
     }
     while (start < scan)
       {
-	if ((significand == 0)  || (n_valid_bits <= 0))
+	if ((significand == 0)  || (n_valid_bits == 0))
 	  {
 	    while (start < scan)
 	      (*--scan) = 0;

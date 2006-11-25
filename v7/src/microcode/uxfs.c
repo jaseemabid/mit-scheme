@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxfs.c,v 1.25.2.3 2006/11/15 07:52:28 cph Exp $
+$Id: uxfs.c,v 1.25.2.4 2006/11/25 05:09:19 cph Exp $
 
 Copyright 1990,1991,1992,1995,1996,1997 Massachusetts Institute of Technology
 Copyright 1998,1999,2000,2001,2002,2005 Massachusetts Institute of Technology
@@ -469,7 +469,7 @@ OS_file_touch (const char * filename)
     struct stat file_status;
     STD_VOID_SYSTEM_CALL (syscall_fstat, (UX_fstat (fd, (&file_status))));
     if (((file_status . st_mode) & S_IFMT) != S_IFREG)
-      error_system_call (errno, syscall_open);
+      return (-1);
     /* CASE 3: file length of 0 needs special treatment. */
     if ((file_status . st_size) == 0)
       {
