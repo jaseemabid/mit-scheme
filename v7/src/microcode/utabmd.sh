@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Id: utabmd.sh,v 1.5.2.2 2006/08/16 04:23:12 cph Exp $
+# $Id: utabmd.sh,v 1.5.2.3 2006/12/28 15:23:38 cph Exp $
 #
 # Copyright 2002,2003,2006 Massachusetts Institute of Technology
 #
@@ -22,6 +22,6 @@
 # 02110-1301, USA.
 
 if [ -z "${SCHEME_COMPILER}" ]; then
-    SCHEME_COMPILER="scheme --compiler"
+    SCHEME_COMPILER="scheme --compiler --heap 3000"
 fi
 echo '(sf "utabmd")' | ${SCHEME_COMPILER}
