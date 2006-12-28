@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: confshared.h,v 11.8.2.7 2006/12/27 22:27:38 cph Exp $
+$Id: confshared.h,v 11.8.2.8 2006/12/28 00:08:39 cph Exp $
 
 Copyright 2000,2002,2003,2005,2006 Massachusetts Institute of Technology
 
@@ -620,17 +620,16 @@ extern void win32_stack_reset (void);
 #  include "Error: confshared.h: Unknown configuration."
 #endif
 
-#ifdef CC_SUPPORT_P
-#  ifndef PC_ZERO_BITS
-#    ifdef CC_IS_NATIVE
-#      include "Error: confshared.h: Unknown PC alignment."
-#    else
-#      define PC_ZERO_BITS 0
-#    endif
+#ifndef PC_ZERO_BITS
+#  ifdef CC_IS_NATIVE
+#    include "Error: confshared.h: Unknown PC alignment."
+#  else
+#    define PC_ZERO_BITS 0
 #  endif
-#  define PC_ALIGNED_P(pc)						\
-    ((((unsigned long) (pc)) & ((1 << PC_ZERO_BITS) - 1)) == 0)
 #endif
+
+#define PC_ALIGNED_P(pc)						\
+  ((((unsigned long) (pc)) & ((1 << PC_ZERO_BITS) - 1)) == 0)
 
 /* Virtually all machines have 8-bit characters these days, so don't
    explicitly specify this value unless it is different.  */
