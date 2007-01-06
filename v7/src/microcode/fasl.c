@@ -1,8 +1,10 @@
 /* -*-C-*-
 
-$Id: fasl.c,v 1.1.2.6 2006/10/25 18:13:26 cph Exp $
+$Id: fasl.c,v 1.1.2.7 2007/01/06 00:09:57 cph Exp $
 
-Copyright 2006 Massachusetts Institute of Technology
+Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
+    1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+    2006, 2007 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

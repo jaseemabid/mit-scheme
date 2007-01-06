@@ -1,8 +1,10 @@
 ### -*-Midas-*-
 ###
-### $Id: vax.m4,v 1.7.2.2 2005/08/23 04:15:28 cph Exp $
+### $Id: vax.m4,v 1.7.2.3 2007/01/06 00:10:00 cph Exp $
 ###
-### Copyright 1991,1993,2000,2002 Massachusetts Institute of Technology
+### Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993,
+###     1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
+###     2004, 2005, 2006, 2007 Massachusetts Institute of Technology
 ###
 ### This file is part of MIT/GNU Scheme.
 ###

@@ -1,10 +1,10 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.11 2006/09/08 17:17:15 cph Exp $
+$Id: gccode.h,v 9.60.2.12 2007/01/06 00:09:57 cph Exp $
 
-Copyright 1986,1987,1988,1989,1991,1992 Massachusetts Institute of Technology
-Copyright 1993,1995,1997,2000,2001,2002 Massachusetts Institute of Technology
-Copyright 2005,2006 Massachusetts Institute of Technology
+Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
+    1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+    2006, 2007 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

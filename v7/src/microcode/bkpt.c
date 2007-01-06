@@ -1,9 +1,10 @@
 /* -*-C-*-
 
-$Id: bkpt.c,v 9.34.2.2 2005/08/23 02:54:59 cph Exp $
+$Id: bkpt.c,v 9.34.2.3 2007/01/06 00:09:57 cph Exp $
 
-Copyright 1986,1987,1988,1989,1990,1991 Massachusetts Institute of Technology
-Copyright 1992,1993,2002,2005 Massachusetts Institute of Technology
+Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
+    1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+    2006, 2007 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 

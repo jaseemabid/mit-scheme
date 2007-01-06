@@ -1,7 +1,9 @@
 @echo off
-rem $Id: wconfig.bat,v 1.4.2.1 2005/08/23 04:15:28 cph Exp $
+rem $Id: wconfig.bat,v 1.4.2.2 2007/01/06 00:10:00 cph Exp $
 rem
-rem Copyright 1995,1996 Massachusetts Institute of Technology
+rem Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993,
+rem     1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
+rem     2004, 2005, 2006, 2007 Massachusetts Institute of Technology
 rem
 rem This file is part of MIT/GNU Scheme.
 rem
@@ -20,7 +22,7 @@ rem along with MIT/GNU Scheme; if not, write to the Free Software
 rem Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 rem 02110-1301, USA.
 rem
-rem MIT/GNU Scheme microcode configuration script for Win32 / Watcom C
+rem Microcode configuration script for Win32 / Watcom C
 rem
 copy cmpintmd\i386.h cmpintmd.h
 copy cmpauxmd\i386-ntw.asm cmpauxmd.asm

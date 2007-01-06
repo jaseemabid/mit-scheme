@@ -1,9 +1,10 @@
 /* -*-C-*-
 
-$Id: comutl.c,v 1.33.2.4 2006/10/05 19:37:47 cph Exp $
+$Id: comutl.c,v 1.33.2.5 2007/01/06 00:09:57 cph Exp $
 
-Copyright 1987,1988,1989,1991,1993,1997 Massachusetts Institute of Technology
-Copyright 2005,2006 Massachusetts Institute of Technology
+Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
+    1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+    2006, 2007 Massachusetts Institute of Technology
 
 This file is part of MIT/GNU Scheme.
 
