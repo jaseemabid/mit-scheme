@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.18 2007/01/09 03:52:25 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.19 2007/01/09 03:56:42 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -1079,7 +1079,6 @@ fi
 
 AC_SUBST([AS_FLAGS])
 AC_SUBST([GC_HEAD_FILES])
-AC_SUBST([LIB_X11])
 AC_SUBST([M4_FLAGS])
 AC_SUBST([OPTIONAL_SOURCES])
 AC_SUBST([OPTIONAL_OBJECTS])
