@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: makegen.scm,v 1.7.2.4 2007/01/06 00:10:00 cph Exp $
+$Id: makegen.scm,v 1.7.2.5 2007/01/09 03:52:25 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -32,34 +32,20 @@ USA.
 (load-option 'REGULAR-EXPRESSION)
 (load-option 'SYNCHRONOUS-SUBPROCESS)
 
-(define (generate-makefile template deps-filename makefile)
+(define (generate-makefile)
   (let ((file-lists
-	 (let ((make-list
-		(lambda (pattern proc)
-		  (map (lambda (pathname)
-			 (cons (pathname-name pathname)
-			       (proc (read-file pathname))))
-		       (keep-matching-items (directory-read "makegen/")
-			 (lambda (pathname)
-			   (re-string-match (string-append "^"
-							   pattern
-							   "\\.scm$")
-					    (file-namestring pathname))))))))
-	   (append
-	    (make-list "files-.+" (lambda (files) files))
-	    (make-list "dirs-.+" enumerate-directories)))))
-    (call-with-input-file template
+	 (map (lambda (pathname)
+		(cons (pathname-name pathname)
+		      (read-file pathname)))
+	      (keep-matching-items (directory-read "makegen/")
+		(lambda (pathname)
+		  (re-string-match "^files-.+\\.scm$"
+				   (file-namestring pathname)))))))
+    (call-with-input-file "makegen/Makefile.in.in"
       (lambda (input)
-	(call-with-output-file makefile
+	(call-with-output-file "Makefile.in"
 	  (lambda (output)
-	    (write-string "# This file automatically generated from " output)
-	    (write-string (file-namestring template) output)
-	    (newline output)
-	    (write-string "# on " output)
-	    (write-string (universal-time->string (get-universal-time)) output)
-	    (write-string "." output)
-	    (newline output)
-	    (newline output)
+	    (write-header output)
 	    (let loop ((column 0))
 	      (let ((char (read-char input)))
 		(if (not (eof-object? char))
@@ -69,30 +55,42 @@ USA.
 			  (if (eqv? #\@ (peek-char input))
 			      (read-char input)
 			      (error "Missing @ at end of command:" command))
-			  (loop (interpret-command command column
-						   file-lists deps-filename
+			  (loop (interpret-command command column file-lists
 						   output)))
 			(begin
 			  (write-char char output)
 			  (loop
 			   (if (char=? #\newline char)
 			       0
-			       (+ column 1))))))))))))))
-
-(define (enumerate-directories specs)
-  (map (lambda (path)
-	 (enough-namestring (pathname-new-type path #f)))
-       (append-map (lambda (spec)
-		     (delete-matching-items
-			 (directory-read
-			  (merge-pathnames
-			   "*.scm"
-			   (pathname-as-directory (car spec))))
-		       (lambda (path)
-			 (member (pathname-name path) (cdr spec)))))
-		   specs)))
+			       (+ column 1)))))))))))))
+  (call-with-output-file "liarc-rules-1"
+    (lambda (output)
+      (write-header output)
+      (write-rule "LIARC_HEAD_FILES"
+		  "="
+		  (cddr (generate-rule "liarc-gendeps.c"))
+		  output)
+      (newline output)
+      (newline output)
+      (let ((files
+	     (cons "utabmd"
+		   (enumerate-directories
+		    (read-file "makegen/dirs-liarc.scm")))))
+	(write-rule "LIARC_SOURCES" "=" (files+suffix files ".c") output)
+	(newline output)
+	(newline output)
+	(write-rule "LIARC_OBJECTS" "=" (files+suffix files ".o") output)
+	(newline output)))))
 
-(define (interpret-command command column file-lists deps-filename output)
+(define (write-header output)
+  (write-string "# This file automatically generated at " output)
+  (write-string (universal-time->local-iso8601-string (get-universal-time))
+		output)
+  (write-string "." output)
+  (newline output)
+  (newline output))
+
+(define (interpret-command command column file-lists output)
   (let ((malformed (lambda () (error "Malformed command:" command))))
     (if (not (and (pair? command)
 		  (symbol? (car command))
@@ -108,8 +106,7 @@ USA.
 	       (let ((entry (assoc (cadr command) file-lists)))
 		 (if (not entry)
 		     (malformed))
-		 (write-items (map (lambda (file) (string-append file suffix))
-				   (cdr entry))
+		 (write-items (files+suffix (cdr entry) suffix)
 			      column
 			      output)))))
       (case (car command)
@@ -119,18 +116,64 @@ USA.
 	 (write-suffixed ".o"))
 	((WRITE-DEPENDENCIES)
 	 (guarantee-nargs 0)
-	 (write-dependencies file-lists deps-filename output))
+	 (write-dependencies file-lists "Makefile.deps" output))
 	(else
 	 (error "Unknown command:" command)))))))
+
+(define (enumerate-directories specs)
+  (map (lambda (path)
+	 (enough-namestring (pathname-new-type path #f)))
+       (append-map (lambda (spec)
+		     (let ((dir (pathname-as-directory (car spec))))
+		       (if (file-directory? dir)
+			   (delete-matching-items
+			       (directory-read (merge-pathnames "*.scm" dir))
+			     (lambda (path)
+			       (member (pathname-name path) (cdr spec))))
+			   (begin
+			     (warn "Can't read directory:" dir)
+			     '()))))
+		   specs)))
+
+(define (files+suffix files suffix)
+  (map (lambda (file)
+	 (string-append file suffix))
+       files))
+
+(define (write-rule lhs op rhs port)
+  (write-string lhs port)
+  (write-string " " port)
+  (write-string op port)
+  (write-string " " port)
+  (write-items rhs (+ (string-length lhs) (string-length op) 2) port))
+
+(define (write-items items start-column port)
+  (let loop ((items* items) (column start-column))
+    (if (pair? items*)
+	(let ((column
+	       (if (eq? items* items)
+		   column
+		   (begin
+		     (write-string " " port)
+		     (+ column 1))))
+	      (delta (string-length (car items*))))
+	  (let ((new-column (+ column delta)))
+	    (if (>= new-column 78)
+		(begin
+		  (write-string "\\\n\t" port)
+		  (write-string (car items*) port)
+		  (loop (cdr items*) (+ 8 delta)))
+		(begin
+		  (write-string (car items*) port)
+		  (loop (cdr items*) new-column)))))
+	column)))
 
 (define (write-dependencies file-lists deps-filename output)
   (maybe-update-dependencies
    deps-filename
    (sort (append-map (lambda (file-list)
-		       (if (string-prefix? "files-" (car file-list))
-			   (map (lambda (base) (string-append base ".c"))
-				(cdr file-list))
-			   '()))
+		       (map (lambda (base) (string-append base ".c"))
+			    (cdr file-list)))
 		     file-lists)
 	 string<?))
   (call-with-input-file deps-filename
@@ -155,17 +198,12 @@ USA.
 	    (let loop ((rules rules))
 	      (if (pair? rules)
 		  (begin
-		    (write-rule (car rules) output)
+		    (write-rule (caar rules) ":" (cdar rules) output)
 		    (if (pair? (cdr rules))
 			(begin
 			  (newline output)
 			  (loop (cdr rules)))))))
-	    (newline output)
-	    (newline output)
-	    (let ((rule (generate-rule "liarc-gendeps.c"))
-		  (prefix "LIARC_HEAD_FILES = "))
-	      (write-string prefix output)
-	      (write-items (cddr rule) (string-length prefix) output)))))))
+	    (newline output))))))
 
 (define (generate-rule filename)
   (parse-rule
@@ -198,29 +236,3 @@ USA.
 	   (cadr items)
 	   (sort (list-transform-negative (cddr items) pathname-absolute?)
 		 string<?))))
-
-(define (write-rule rule port)
-  (write-string (car rule) port)
-  (write-string ": " port)
-  (write-items (cdr rule) (+ (string-length (car rule)) 2) port))
-
-(define (write-items items start-column port)
-  (let loop ((items* items) (column start-column))
-    (if (pair? items*)
-	(let ((column
-	       (if (eq? items* items)
-		   column
-		   (begin
-		     (write-string " " port)
-		     (+ column 1))))
-	      (delta (string-length (car items*))))
-	  (let ((new-column (+ column delta)))
-	    (if (>= new-column 78)
-		(begin
-		  (write-string "\\\n\t" port)
-		  (write-string (car items*) port)
-		  (loop (cdr items*) (+ 8 delta)))
-		(begin
-		  (write-string (car items*) port)
-		  (loop (cdr items*) new-column)))))
-	column)))

@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.12 2007/01/08 05:39:29 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.13 2007/01/09 03:52:25 cph Exp $
 #
 # Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
 #     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
@@ -101,21 +101,20 @@ GC_HEAD_FILES = @GC_HEAD_FILES@
 OPTIONAL_SOURCES = @OPTIONAL_SOURCES@
 OPTIONAL_OBJECTS = @OPTIONAL_OBJECTS@
 STATIC_LIBS = @STATIC_PREFIX@ @STATIC_LIBS@ @STATIC_SUFFIX@
-X_LIBS = @LIB_X11@
 PRBFISH_LIBS = @PRBFISH_LIBS@
 PRMD5_LIBS = @PRMD5_LIBS@
 
 MODULE_TARGETS = @MODULE_TARGETS@
+MODULE_OBJECTS = @MODULE_OBJECTS@
 MODULE_CFLAGS = @MODULE_CFLAGS@
 MODULE_LDFLAGS = @MODULE_LDFLAGS@
 COMPILE_MODULE = $(COMPILE) $(MODULE_CFLAGS)
 LINK_MODULE = $(LINK) $(MODULE_LDFLAGS)
 MODULE_LIBS = -lc
 
-LIARC_SOURCES_X = @(write-sources "dirs-liarc")@
-LIARC_OBJECTS_X = @(write-objects "dirs-liarc")@
-LIARC_SOURCES = @LIARC_SOURCES@
-LIARC_OBJECTS = @LIARC_OBJECTS@
+# **** Rules for C back end (part 1) ****
+
+@LIARC_RULES_1@
 
 # **** Program definitions ****
 
@@ -129,7 +128,7 @@ scheme_SOURCES = $(STD_SOURCES) usrdef.c $(LIARC_SOURCES)
 scheme_OBJECTS = $(STD_OBJECTS) usrdef.o $(LIARC_OBJECTS)
 scheme_DEPENDENCIES = 
 scheme_LDFLAGS = @DLD_LDFLAGS@
-scheme_LIBS = $(STATIC_LIBS) $(X_LIBS) $(LIBS)
+scheme_LIBS = $(STATIC_LIBS) $(LIBS)
 
 findprim_SOURCES = findprim.c
 findprim_OBJECTS = findprim.o
@@ -141,7 +140,7 @@ ALL_PROGRAMS = $(bin_PROGRAMS) $(aux_PROGRAMS)
 ALL_LIBS = $(aux_LIBS)
 ALL_DATA = $(aux_DATA)
 
-MOSTLYCLEAN_FILES = $(scheme_OBJECTS) $(findprim_OBJECTS) \
+MOSTLYCLEAN_FILES = $(scheme_OBJECTS) $(findprim_OBJECTS) $(MODULE_OBJECTS) \
 	cmpauxmd.s usrdef.c bchdef.c compinit.h utabmd.c utabmd.bci
 
 CLEAN_FILES = $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA) $(EXTRA_PROGRAMS)
@@ -150,12 +149,13 @@ DISTCLEAN_FILES = Makefile config.h config.cache config.log config.status \
 	cmpauxmd.m4 cmpauxmd.c cmpintmd-config.h cmpintmd.h cmpintmd.c \
 	makegen-cc
 
-MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps config.h.in configure TAGS
+MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps liarc-rules-1 \
+	config.h.in configure TAGS
 
 # **** Implicit rules ****
 
 .SUFFIXES:
-.SUFFIXES: .s .c .o .m4
+.SUFFIXES: .c .o .s .m4
 
 .c.o:
 	$(COMPILE) -o $*.o -c $*.c
@@ -280,7 +280,9 @@ install-auxDATA: $(aux_DATA)
 
 @(write-dependencies)@
 
-@LIARC_RULES@
+# **** Rules for C back end (part 2) ****
+
+@LIARC_RULES_2@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

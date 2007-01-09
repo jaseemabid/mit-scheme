@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.17 2007/01/06 00:09:57 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.18 2007/01/09 03:52:25 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -162,7 +162,6 @@ AC_ARG_WITH([libpq],
 dnl Substitution variables to be filled in below.
 AS_FLAGS=
 GC_HEAD_FILES=
-LIB_X11=
 M4_FLAGS=
 OPTIONAL_BASES=
 OPTIONAL_SOURCES=
@@ -177,12 +176,12 @@ SCHEME_DEFS=
 DLD_LDFLAGS=
 MODULE_BASES=
 MODULE_TARGETS=
+MODULE_OBJECTS=
 MODULE_RULES=/dev/null
 MODULE_CFLAGS=-DCOMPILE_AS_MODULE
 MODULE_LDFLAGS=
-LIARC_SOURCES=
-LIARC_OBJECTS=
-LIARC_RULES=/dev/null
+LIARC_RULES_1=/dev/null
+LIARC_RULES_2=/dev/null
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -929,10 +928,16 @@ if test ${enable_valgrind_mode} != no; then
 fi
 
 dnl Add support for X if present.
-if test "${no_x}" = yes; then
-    LIB_X11=
-else
-    LIB_X11=-lX11
+if test "${no_x}" != yes; then
+    if test "x${x_includes}" != x; then
+	FOO=-I`echo ${x_includes} | sed -e "s/:/ -I/g"`
+	CFLAGS="${CFLAGS} ${FOO}"
+    fi
+    if test "x${x_libraries}" != x; then
+	FOO=-L`echo ${x_libraries} | sed -e "s/:/ -L/g"`
+	LIBS="${LIBS} ${FOO}"
+    fi
+    LIBS="${LIBS} -lX11"
     OPTIONAL_BASES="${OPTIONAL_BASES} x11base x11term x11graph x11color"
 fi
 
@@ -1012,23 +1017,8 @@ case ${enable_native_code} in
 	SCM_ARCH=c
 	OPTIONAL_BASES="${OPTIONAL_BASES} unstackify compinit"
 	SCHEME_DEFS="${SCHEME_DEFS} -DCOMPILE_FOR_STATIC_LINKING"
-	LIARC_SOURCES='utabmd.c $(LIARC_SOURCES_X)'
-	LIARC_OBJECTS='utabmd.o $(LIARC_OBJECTS_X)'
-	LIARC_RULES=config-rules.liarc
-	rm -f ${LIARC_RULES}
-	echo 'cmpauxmd.o: cmpauxmd.c $(LIARC_HEAD_FILES) prims.h' \
-	     'bignum.h bitstr.h avltree.h' \
-	  >  ${LIARC_RULES}
-	echo >> ${LIARC_RULES}
-	echo '$(LIARC_OBJECTS): $(LIARC_HEAD_FILES)' >> ${LIARC_RULES}
-	echo 'compinit.o: compinit.c compinit.h $(LIARC_HEAD_FILES)' \
-	  >> ${LIARC_RULES}
-	echo 'unstackify.o: unstackify.c stackops.h $(LIARC_HEAD_FILES)' \
-	  >> ${LIARC_RULES}
-	echo >> ${LIARC_RULES}
-	echo 'compinit.h: $(LIARC_SOURCES) Makefile' >> ${LIARC_RULES}
-	echo '	rm -f $@' >> ${LIARC_RULES}
-	echo '	./make-compinit $(LIARC_SOURCES) > $@' >> ${LIARC_RULES}
+	LIARC_RULES_1=liarc-rules-1
+	LIARC_RULES_2=makegen/liarc-rules-2
 	;;
     svm)
 	SCM_ARCH=svm1
@@ -1080,6 +1070,7 @@ if test -n "${MODULE_BASES}"; then
     rm -f ${MODULE_RULES}
     for BASE in ${MODULE_BASES}; do
 	MODULE_TARGETS="${MODULE_TARGETS} ${BASE}.so"
+	MODULE_OBJECTS="${MODULE_OBJECTS} ${BASE}.o"
 	echo >> ${MODULE_RULES}
 	echo ${BASE}.o: ${BASE}.c >> ${MODULE_RULES}
 	echo "	" '$(COMPILE_MODULE)' -c '$*.c' >> ${MODULE_RULES}
@@ -1100,12 +1091,12 @@ AC_SUBST([PRMD5_LIBS])
 AC_SUBST([SCHEME_DEFS])
 AC_SUBST([DLD_LDFLAGS])
 AC_SUBST([MODULE_TARGETS])
+AC_SUBST([MODULE_OBJECTS])
 AC_SUBST_FILE([MODULE_RULES])
 AC_SUBST([MODULE_CFLAGS])
 AC_SUBST([MODULE_LDFLAGS])
-AC_SUBST([LIARC_SOURCES])
-AC_SUBST([LIARC_OBJECTS])
-AC_SUBST_FILE([LIARC_RULES])
+AC_SUBST_FILE([LIARC_RULES_1])
+AC_SUBST_FILE([LIARC_RULES_2])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
@@ -1118,7 +1109,4 @@ chmod +x makegen-cc
 
 if test ${MODULE_RULES} != /dev/null; then
     rm -f ${MODULE_RULES}
-fi
-if test ${LIARC_RULES} != /dev/null; then
-    rm -f ${LIARC_RULES}
 fi
