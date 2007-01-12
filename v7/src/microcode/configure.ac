@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.21 2007/01/12 02:14:35 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.22 2007/01/12 03:14:40 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -624,7 +624,7 @@ if test "${with_mcrypt}" != no; then
 	[
 	AC_DEFINE([HAVE_MCRYPT_H], [1],
 	    [Define to 1 if you have the <mcrypt.h> header file.])
-	AC_CHECK_LIB([tdl], [lt_dlinit], [mc_libs=-lltdl], [mc_libs=])
+	AC_CHECK_LIB([ltdl], [lt_dlinit], [mc_libs=-lltdl], [mc_libs=])
 	AC_CHECK_LIB([mcrypt], [mcrypt_generic_init],
 	    [
 	    AC_DEFINE([HAVE_LIBMCRYPT], [1],
@@ -673,9 +673,7 @@ if test "${with_db_4}" != no; then
 		[Define to 1 if you have the `db-4' library (-ldb-4).])
 	    MODULE_LIBS="-ldb-4 ${MODULE_LIBS}"
 	    MODULE_BASES="${MODULE_BASES} prdb4"
-	    ],
-	    [],
-	    [#include <db.h>])
+	    ])
 	])
 fi
 
