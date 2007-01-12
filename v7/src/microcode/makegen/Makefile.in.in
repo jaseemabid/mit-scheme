@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.14 2007/01/12 02:14:35 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.15 2007/01/12 02:53:28 cph Exp $
 #
 # Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
 #     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
@@ -144,8 +144,8 @@ MOSTLYCLEAN_FILES = *.o cmpauxmd.s usrdef.c compinit.h utabmd.c utabmd.bci
 CLEAN_FILES = $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA) $(EXTRA_PROGRAMS)
 
 DISTCLEAN_FILES = Makefile config.h config.cache config.log config.status \
-	cmpauxmd.m4 cmpauxmd.c cmpintmd-config.h cmpintmd.h cmpintmd.c \
-	makegen-cc
+	cmpauxmd.m4 cmpauxmd.c cmpintmd.h makegen-cc \
+	cmpintmd-config.h cmpintmd.c
 
 MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps liarc-rules-1 \
 	config.h.in configure TAGS
