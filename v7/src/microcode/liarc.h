@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: liarc.h,v 1.21.2.4 2007/01/06 00:09:57 cph Exp $
+$Id: liarc.h,v 1.21.2.5 2007/01/12 06:27:39 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -28,12 +28,6 @@ USA.
 #ifndef SCM_LIARC_H_INCLUDED
 #define SCM_LIARC_H_INCLUDED 1
 
-#ifndef COMPILE_FOR_STATIC_LINKING
-#  ifndef COMPILE_FOR_DYNAMIC_LOADING
-#    define COMPILE_FOR_DYNAMIC_LOADING 1
-#  endif
-#endif
-
 #ifndef MIT_SCHEME
 #  define MIT_SCHEME
 #endif
@@ -55,6 +49,12 @@ USA.
 
 extern SCHEME_OBJECT * sp_register;
 
+#ifndef COMPILE_FOR_STATIC_LINKING
+#  ifndef COMPILE_FOR_DYNAMIC_LOADING
+#    define COMPILE_FOR_DYNAMIC_LOADING 1
+#  endif
+#endif
+
 #ifdef __GNUC__
 /* Add attributes to avoid warnings from -Wall for unreferenced labels */
 #  define DEFLABEL(name) name : __attribute__((unused))
