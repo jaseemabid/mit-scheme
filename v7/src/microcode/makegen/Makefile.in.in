@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.13 2007/01/09 03:52:25 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.14 2007/01/12 02:14:35 cph Exp $
 #
 # Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
 #     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
@@ -105,7 +105,6 @@ PRBFISH_LIBS = @PRBFISH_LIBS@
 PRMD5_LIBS = @PRMD5_LIBS@
 
 MODULE_TARGETS = @MODULE_TARGETS@
-MODULE_OBJECTS = @MODULE_OBJECTS@
 MODULE_CFLAGS = @MODULE_CFLAGS@
 MODULE_LDFLAGS = @MODULE_LDFLAGS@
 COMPILE_MODULE = $(COMPILE) $(MODULE_CFLAGS)
@@ -140,8 +139,7 @@ ALL_PROGRAMS = $(bin_PROGRAMS) $(aux_PROGRAMS)
 ALL_LIBS = $(aux_LIBS)
 ALL_DATA = $(aux_DATA)
 
-MOSTLYCLEAN_FILES = $(scheme_OBJECTS) $(findprim_OBJECTS) $(MODULE_OBJECTS) \
-	cmpauxmd.s usrdef.c bchdef.c compinit.h utabmd.c utabmd.bci
+MOSTLYCLEAN_FILES = *.o cmpauxmd.s usrdef.c compinit.h utabmd.c utabmd.bci
 
 CLEAN_FILES = $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA) $(EXTRA_PROGRAMS)
 

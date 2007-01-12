@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.20 2007/01/11 21:06:49 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.21 2007/01/12 02:14:35 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -181,7 +181,6 @@ DLD_LDFLAGS=
 MODULE_BASES=
 MODULE_LIBS=
 MODULE_TARGETS=
-MODULE_OBJECTS=
 MODULE_RULES=/dev/null
 MODULE_CFLAGS="-DCOMPILE_AS_MODULE"
 MODULE_LDFLAGS=
@@ -886,7 +885,6 @@ if test "x${MODULE_BASES}" != x; then
     rm -f ${MODULE_RULES}
     for BASE in ${MODULE_BASES}; do
 	MODULE_TARGETS="${MODULE_TARGETS} ${BASE}.so"
-	MODULE_OBJECTS="${MODULE_OBJECTS} ${BASE}.o"
 	echo >> ${MODULE_RULES}
 	echo ${BASE}.o: ${BASE}.c >> ${MODULE_RULES}
 	echo "	" '$(COMPILE_MODULE)' -c '$*.c' >> ${MODULE_RULES}
@@ -906,7 +904,6 @@ AC_SUBST([PRMD5_LIBS])
 AC_SUBST([SCHEME_DEFS])
 AC_SUBST([DLD_LDFLAGS])
 AC_SUBST([MODULE_TARGETS])
-AC_SUBST([MODULE_OBJECTS])
 AC_SUBST_FILE([MODULE_RULES])
 AC_SUBST([MODULE_CFLAGS])
 AC_SUBST([MODULE_LDFLAGS])
