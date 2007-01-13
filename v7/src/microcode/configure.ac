@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.22 2007/01/12 03:14:40 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.23 2007/01/13 07:12:42 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -667,13 +667,24 @@ if test "${with_db_4}" != no; then
 	[
 	AC_DEFINE([HAVE_DB_H], [1],
 	    [Define to 1 if you have the <db.h> header file.])
-	AC_CHECK_LIB([db-4], [db_create],
+	AC_MSG_CHECKING([for db_create in -ldb-4])
+	save_LIBS=${LIBS}
+	LIBS="${LIBS} -ldb-4"
+	AC_LINK_IFELSE(
+	    [AC_LANG_PROGRAM(
+		[[#include <db.h>]],
+		[[db_create (0, 0, 0)]])],
 	    [
+	    AC_MSG_RESULT([yes])
 	    AC_DEFINE([HAVE_LIBDB_4], [1], 
 		[Define to 1 if you have the `db-4' library (-ldb-4).])
 	    MODULE_LIBS="-ldb-4 ${MODULE_LIBS}"
 	    MODULE_BASES="${MODULE_BASES} prdb4"
+	    ],
+	    [
+	    AC_MSG_RESULT([no])
 	    ])
+	LIBS=${save_LIBS}
 	])
 fi
 
