@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.27 2007/01/22 06:38:50 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.28 2007/01/22 08:12:17 riastradh Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -315,15 +315,15 @@ AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T
 
-AC_TYPE_INT8_T
-AC_TYPE_INT16_T
-AC_TYPE_INT32_T
-AC_TYPE_INTPTR_T
+#AC_TYPE_INT8_T
+#AC_TYPE_INT16_T
+#AC_TYPE_INT32_T
+#AC_TYPE_INTPTR_T
 
-AC_TYPE_UINT8_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINTPTR_T
+#AC_TYPE_UINT8_T
+#AC_TYPE_UINT16_T
+#AC_TYPE_UINT32_T
+#AC_TYPE_UINTPTR_T
 
 AC_CHECK_SIZEOF([char])
 AC_CHECK_SIZEOF([short])
