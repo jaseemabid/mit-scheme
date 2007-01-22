@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.30 2007/01/22 14:31:17 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.31 2007/01/22 14:34:37 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -315,24 +315,6 @@ AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T
 
-AC_CHECK_SIZEOF([char])
-AC_CHECK_SIZEOF([short])
-AC_CHECK_SIZEOF([int])
-AC_CHECK_SIZEOF([long])
-AC_CHECK_SIZEOF([unsigned char])
-AC_CHECK_SIZEOF([unsigned short])
-AC_CHECK_SIZEOF([unsigned int])
-AC_CHECK_SIZEOF([unsigned long])
-AC_CHECK_SIZEOF([void *])
-
-if test ${ac_cv_sizeof_char} -ne 1; then
-    AC_MSG_ERROR([SIZEOF_CHAR is not 1])
-fi
-
-if test ${ac_cv_sizeof_unsigned_char} -ne 1; then
-    AC_MSG_ERROR([SIZEOF_UNSIGNED_CHAR is not 1])
-fi
-
 dnl These macros are too new; we'll handle this by hand for now.
 
 dnl AC_TYPE_INT8_T
@@ -343,8 +325,6 @@ dnl AC_TYPE_UINT8_T
 dnl AC_TYPE_UINT16_T
 dnl AC_TYPE_UINT32_T
 dnl AC_TYPE_UINTPTR_T
-dnl AC_CHECK_SIZEOF([intptr_t])
-dnl AC_CHECK_SIZEOF([uintptr_t])
 
 define([SCM_STDINT_MSG], [Define replacement if no <stdint.h>.])dnl
 
@@ -366,15 +346,31 @@ AC_CHECK_TYPE([uint16_t],,
 AC_CHECK_TYPE([uint32_t],,
     [AC_DEFINE_UNQUOTED([uint32_t], [unsigned int], SCM_STDINT_MSG)])
 
-AC_CHECK_TYPE([intptr_t],
-    [AC_CHECK_SIZEOF([intptr_t])],
-    [AC_DEFINE_UNQUOTED([intptr_t], [long], SCM_STDINT_MSG)
-     AC_DEFINE_UNQUOTED([SIZEOF_INTPTR_T], [SIZEOF_LONG])])
+AC_CHECK_TYPE([intptr_t],,
+    [AC_DEFINE_UNQUOTED([intptr_t], [long], SCM_STDINT_MSG)])
 
-AC_CHECK_TYPE([uintptr_t],
-    [AC_CHECK_SIZEOF([uintptr_t])],
-    [AC_DEFINE_UNQUOTED([uintptr_t], [unsigned long], SCM_STDINT_MSG)
-     AC_DEFINE_UNQUOTED([SIZEOF_UINTPTR_T], [SIZEOF_UNSIGNED_LONG])])
+AC_CHECK_TYPE([uintptr_t],,
+    [AC_DEFINE_UNQUOTED([uintptr_t], [unsigned long], SCM_STDINT_MSG)])
+
+AC_CHECK_SIZEOF([char])
+AC_CHECK_SIZEOF([short])
+AC_CHECK_SIZEOF([int])
+AC_CHECK_SIZEOF([long])
+AC_CHECK_SIZEOF([unsigned char])
+AC_CHECK_SIZEOF([unsigned short])
+AC_CHECK_SIZEOF([unsigned int])
+AC_CHECK_SIZEOF([unsigned long])
+AC_CHECK_SIZEOF([void *])
+AC_CHECK_SIZEOF([intptr_t])
+AC_CHECK_SIZEOF([uintptr_t])
+
+if test ${ac_cv_sizeof_char} -ne 1; then
+    AC_MSG_ERROR([SIZEOF_CHAR is not 1])
+fi
+
+if test ${ac_cv_sizeof_unsigned_char} -ne 1; then
+    AC_MSG_ERROR([SIZEOF_UNSIGNED_CHAR is not 1])
+fi
 
 AC_CHECK_TYPE([nlink_t],
     [],
