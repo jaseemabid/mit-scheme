@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.28 2007/01/22 08:12:17 riastradh Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.29 2007/01/22 14:24:24 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -177,7 +177,7 @@ STATIC_SUFFIX=
 PRBFISH_LIBS=
 PRMD5_LIBS=
 SCHEME_DEFS=
-DLD_LDFLAGS=
+SCHEME_LDFLAGS=
 MODULE_BASES=
 MODULE_LIBS=
 MODULE_TARGETS=
@@ -779,7 +779,7 @@ freebsd*)
     M4_FLAGS="${M4_FLAGS} -P SUPPRESS_LEADING_UNDERSCORE,1"
     ;;
 darwin*)
-    LDFLAGS="${LDFLAGS} -Wl,-pagezero_size,04000000"
+    SCHEME_LDFLAGS="${SCHEME_LDFLAGS} -Wl,-pagezero_size,04000000"
     MODULE_LDFLAGS="${MODULE_LDFLAGS} -dynamiclib -flat_namespace -undefined suppress"
     ;;
 netbsd*)
@@ -803,7 +803,7 @@ if test ${DO_GCC_TESTS} = yes; then
 	STATIC_PREFIX="-Xlinker -Bstatic"
 	STATIC_SUFFIX="-Xlinker -Bdynamic"
     fi
-    DLD_LDFLAGS="${DLD_LDFLAGS} -export-dynamic"
+    SCHEME_LDFLAGS="${SCHEME_LDFLAGS} -export-dynamic"
     MODULE_CFLAGS="${MODULE_CFLAGS} -fPIC"
     MODULE_LDFLAGS="${MODULE_LDFLAGS} -shared"
     AC_MSG_CHECKING([for ELF binaries])
@@ -934,7 +934,7 @@ AC_SUBST([STATIC_SUFFIX])
 AC_SUBST([PRBFISH_LIBS])
 AC_SUBST([PRMD5_LIBS])
 AC_SUBST([SCHEME_DEFS])
-AC_SUBST([DLD_LDFLAGS])
+AC_SUBST([SCHEME_LDFLAGS])
 AC_SUBST([MODULE_TARGETS])
 AC_SUBST_FILE([MODULE_RULES])
 AC_SUBST([MODULE_CFLAGS])

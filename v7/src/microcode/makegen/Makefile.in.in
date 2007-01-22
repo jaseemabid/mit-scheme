@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.17 2007/01/12 06:29:56 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.18 2007/01/22 14:23:43 cph Exp $
 #
 # Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
 #     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
@@ -126,7 +126,7 @@ EXTRA_PROGRAMS = findprim
 scheme_SOURCES = $(STD_SOURCES) usrdef.c $(LIARC_SOURCES)
 scheme_OBJECTS = $(STD_OBJECTS) usrdef.o $(LIARC_OBJECTS)
 scheme_DEPENDENCIES = 
-scheme_LDFLAGS = @DLD_LDFLAGS@
+scheme_LDFLAGS = @SCHEME_LDFLAGS@
 scheme_LIBS = $(STATIC_LIBS) $(LIBS)
 
 findprim_SOURCES = findprim.c
