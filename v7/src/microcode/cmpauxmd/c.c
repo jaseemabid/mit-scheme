@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.15.2.5 2007/01/22 06:02:57 cph Exp $
+$Id: c.c,v 1.15.2.6 2007/01/22 06:41:43 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -229,7 +229,7 @@ void
 export_c_code_table (SCHEME_OBJECT * start)
 {
   compiled_block_t * block = compiled_blocks;
-  compiled_block_t * end = (scan + max_compiled_blocks);
+  compiled_block_t * end = (block + max_compiled_blocks);
 
   (*start++) = (LONG_TO_FIXNUM (initial_entry_number));
   while (block < end)
@@ -353,6 +353,16 @@ grow_compiled_blocks (void)
 		 (new_blocks_size * (sizeof (compiled_block_t)))));
   if (new_blocks == 0)
     return (false);
+  if (new_blocks != compiled_blocks)
+    {
+      compiled_block_t ** scan = compiled_entries;
+      compiled_block_t ** end = (scan + max_compiled_entries);
+      while (scan < end)
+	{
+	  (*scan) = (((*scan) - compiled_blocks) + new_blocks);
+	  scan += 1;
+	}
+    }
   compiled_blocks_table_size = new_blocks_size;
   compiled_blocks = new_blocks;
   return (true);
