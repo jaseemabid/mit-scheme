@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.24 2007/01/13 07:56:00 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.25 2007/01/22 04:20:12 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -438,14 +438,14 @@ if test ${have_timezone_info} = no; then
 	[SCM_INC_TIME])
 fi
 
-if test -n ${val_tm_gmtoff}; then
+if test -n "${val_tm_gmtoff}"; then
     AC_DEFINE([HAVE_TM_GMTOFF], [1],
 	[Define if `struct tm' has the `tm_gmtoff' member.])
     AC_DEFINE_UNQUOTED([TM_GMTOFF], [${val_tm_gmtoff}],
 	[Define to name of `tm_gmtoff' member if available.])
 fi
 
-if test -n ${val_timezone}; then
+if test -n "${val_timezone}"; then
     AC_DEFINE([HAVE_TIMEZONE], [1],
 	[Define if timezone variable is available.])
     AC_DEFINE_UNQUOTED([TIMEZONE], [${val_timezone}],
@@ -932,7 +932,7 @@ AC_OUTPUT
 # Make custom compilation program for "makegen.scm".
 rm -f makegen-cc
 echo "#!/bin/sh" > makegen-cc
-echo exec gcc -MM -DMIT_SCHEME ${CPPFLAGS} '"${1}"' >> makegen-cc
+echo exec gcc -MM -MG -DMIT_SCHEME ${CPPFLAGS} '"${1}"' >> makegen-cc
 chmod +x makegen-cc
 
 if test ${MODULE_RULES} != /dev/null; then
