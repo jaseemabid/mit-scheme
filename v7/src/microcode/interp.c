@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: interp.c,v 9.102.2.7 2007/01/06 00:09:57 cph Exp $
+$Id: interp.c,v 9.102.2.8 2007/01/22 08:43:42 riastradh Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -33,7 +33,7 @@ USA.
 #include "winder.h"
 #include "history.h"
 
-extern void * obstack_chunk_alloc (unsigned int);
+extern void * obstack_chunk_alloc (size_t);
 #define obstack_chunk_free free
 extern void preserve_signal_mask (void);
 
