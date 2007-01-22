@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.15.2.4 2007/01/06 00:10:00 cph Exp $
+$Id: c.c,v 1.15.2.5 2007/01/22 06:02:57 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -124,8 +124,6 @@ static compiled_block_t ** compiled_entries = 0;
 #define COMPILED_BLOCK_DATA_ONLY_P(block) (_CBFT (block, _CBF_DATA_ONLY))
 #define COMPILED_BLOCK_DATA_INIT_P(block) (_CBFT (block, _CBF_DATA_INIT))
 
-static SCHEME_OBJECT * copy_c_code_block_information
-  (compiled_block_t *, SCHEME_OBJECT *, SCHEME_OBJECT *);
 static bool grow_compiled_blocks (void);
 static bool grow_compiled_entries (entry_count_t);
 static int declare_trampoline_block (entry_count_t);
@@ -211,61 +209,40 @@ initialize_subblock (const char * name)
        (COMPILED_BLOCK_FIRST_ENTRY (block)))));
 }
 
-SCHEME_OBJECT *
-cons_c_code_table (SCHEME_OBJECT * start, SCHEME_OBJECT * limit,
-		   unsigned long * length)
+unsigned long
+c_code_table_export_length (unsigned long * n_blocks_r)
 {
-  unsigned long count;
+  compiled_block_t * block = compiled_blocks;
+  compiled_block_t * end = (block + max_compiled_blocks);
+  unsigned long n = 1;
 
-  (*length) = max_compiled_blocks;
-
-  if (start < limit)
-    (*start++) = (LONG_TO_FIXNUM (initial_entry_number));
-
-  for (count = 0;
-       ((count < max_compiled_blocks) && (start < limit));
-       count += 1)
-    start
-      = (copy_c_code_block_information
-	 ((compiled_blocks + count), start, limit));
-
-  return (start);
-}
-
-static SCHEME_OBJECT *
-copy_c_code_block_information (compiled_block_t * block,
-			       SCHEME_OBJECT * start,
-			       SCHEME_OBJECT * limit)
-{
-  char * cstart;
-  char * climit;
-  const char * src;
-  char * dest;
-
-  if (start < limit)
-    (*start++) = (LONG_TO_UNSIGNED_FIXNUM (COMPILED_BLOCK_NENTRIES (block)));
-
-  cstart = ((char *) start);
-  climit = ((char *) limit);
-  src = (COMPILED_BLOCK_NAME (block));
-  dest = cstart;
-
-  while (dest < climit)
+  while (block < end)
     {
-      const char c = (*src++);
-      (*dest++) = c;
-      if (c == '\0')
-	break;
+      n += (1 + (BYTES_TO_WORDS ((strlen (COMPILED_BLOCK_NAME (block))) + 1)));
+      block += 1;
     }
-  if (dest >= climit)
-    while ((*src++) != '\0')
-      dest += 1;
-
-  return (start + (BYTES_TO_WORDS (dest - cstart)));
+  (*n_blocks_r) = max_compiled_blocks;
+  return (n);
 }
-
+
+void
+export_c_code_table (SCHEME_OBJECT * start)
+{
+  compiled_block_t * block = compiled_blocks;
+  compiled_block_t * end = (scan + max_compiled_blocks);
+
+  (*start++) = (LONG_TO_FIXNUM (initial_entry_number));
+  while (block < end)
+    {
+      (*start++) = (LONG_TO_UNSIGNED_FIXNUM (COMPILED_BLOCK_NENTRIES (block)));
+      strcpy (((char *) start), (COMPILED_BLOCK_NAME (block)));
+      start += (BYTES_TO_WORDS ((strlen (COMPILED_BLOCK_NAME (block))) + 1));
+      block += 1;
+    }
+}
+
 bool
-install_c_code_table (SCHEME_OBJECT * table, unsigned long length)
+import_c_code_table (SCHEME_OBJECT * table, unsigned long n_blocks)
 {
   long dumped_initial_entry_number = (FIXNUM_TO_LONG (*table++));
   unsigned long count;
@@ -293,18 +270,18 @@ install_c_code_table (SCHEME_OBJECT * table, unsigned long length)
   if ((declare_trampoline_block (initial_entry_number)) != 0)
     return (false);
 
-  for (count = 0; (count < length); count += 1)
+  for (count = 0; (count < n_blocks); count += 1)
     {
       unsigned long nentries = (FIXNUM_TO_ULONG (*table++));
-      unsigned int nlen = (strlen ((const char *) table));
-      char * ncopy = (malloc (nlen + 1));
+      size_t nb = ((strlen ((const char *) table)) + 1);
+      char * ncopy = (malloc (nb));
 
       if (ncopy == 0)
 	return (false);
       strcpy (ncopy, ((const char *) table));
       if ((declare_compiled_code_ns (ncopy, nentries, unspecified_code)) != 0)
 	return (false);
-      table += (BYTES_TO_WORDS (nlen + 1));
+      table += (BYTES_TO_WORDS (nb));
     }
 
   return (true);

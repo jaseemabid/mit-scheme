@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.h,v 1.9.2.3 2007/01/06 00:10:00 cph Exp $
+$Id: c.h,v 1.9.2.4 2007/01/22 06:03:01 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -165,8 +165,9 @@ extern long C_return_value;
 extern void initialize_C_interface (void);
 extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *);
 extern SCHEME_OBJECT read_compiled_closure_target (insn_t *);
-extern SCHEME_OBJECT * cons_c_code_table
-  (SCHEME_OBJECT *, SCHEME_OBJECT *, unsigned long *);
-extern bool install_c_code_table (SCHEME_OBJECT *, unsigned long);
+
+extern unsigned long c_code_table_export_length (unsigned long *);
+extern void export_c_code_table (SCHEME_OBJECT *);
+extern bool import_c_code_table (SCHEME_OBJECT *, unsigned long);
 
 #endif /* !SCM_CMPINTMD_H_INCLUDED */

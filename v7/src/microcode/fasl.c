@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.c,v 1.1.2.7 2007/01/06 00:09:57 cph Exp $
+$Id: fasl.c,v 1.1.2.8 2007/01/22 06:02:45 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -189,6 +189,11 @@ encode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
   (raw[FASL_OFFSET_PRIM_SIZE])
     = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_PRIMITIVE_TABLE_SIZE (h))));
 
+  (raw[FASL_OFFSET_C_LENGTH])
+    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_N_C_CODE_BLOCKS (h))));
+  (raw[FASL_OFFSET_C_SIZE])
+    = (MAKE_OBJECT (TC_BROKEN_HEART, (FASLHDR_C_CODE_TABLE_SIZE (h))));
+
   (raw[FASL_OFFSET_UT_BASE]) = (FASLHDR_UTILITIES_VECTOR (h));
 }
 
@@ -257,6 +262,11 @@ decode_fasl_header (SCHEME_OBJECT * raw, fasl_header_t * h)
       = (OBJECT_DATUM (raw[FASL_OFFSET_PRIM_LENGTH]));
     (FASLHDR_PRIMITIVE_TABLE_SIZE (h))
       = (OBJECT_DATUM (raw[FASL_OFFSET_PRIM_SIZE]));
+
+    (FASLHDR_N_C_CODE_BLOCKS (h))
+      = (OBJECT_DATUM (raw[FASL_OFFSET_C_LENGTH]));
+    (FASLHDR_C_CODE_TABLE_SIZE (h))
+      = (OBJECT_DATUM (raw[FASL_OFFSET_C_SIZE]));
 
     {
       SCHEME_OBJECT ruv = (raw[FASL_OFFSET_UT_BASE]);

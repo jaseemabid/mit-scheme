@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.h,v 9.40.2.10 2007/01/06 00:09:57 cph Exp $
+$Id: fasl.h,v 9.40.2.11 2007/01/22 06:02:49 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -62,10 +62,10 @@ USA.
 
 #if 0
 #define FASL_OFFSET_CHECK_SUM	12	/* Header and data checksum. */
-#define FASL_OFFSET_C_LENGTH	13	/* # of entries in the C code table */
-#define FASL_OFFSET_C_SIZE	14	/* # of words in the C code table */
 #endif
 
+#define FASL_OFFSET_C_LENGTH	13	/* # of entries in the C code table */
+#define FASL_OFFSET_C_SIZE	14	/* # of words in the C code table */
 #define FASL_OFFSET_MEM_BASE	15	/* Saved value of memory_base */
 #define FASL_OFFSET_STACK_SIZE	16	/* # of words in stack area */
 #define FASL_OFFSET_HEAP_RSVD   17	/* value of heap_reserved */
@@ -134,6 +134,8 @@ typedef struct
   SCHEME_OBJECT * stack_end;
   unsigned long n_primitives;
   unsigned long primitive_table_size;
+  unsigned long n_c_code_blocks;
+  unsigned long c_code_table_size;
   SCHEME_OBJECT utilities_vector;
   SCHEME_OBJECT * utilities_start;
   SCHEME_OBJECT * utilities_end;
@@ -155,6 +157,8 @@ typedef struct
 #define FASLHDR_STACK_END(h) ((h)->stack_end)
 #define FASLHDR_N_PRIMITIVES(h) ((h)->n_primitives)
 #define FASLHDR_PRIMITIVE_TABLE_SIZE(h) ((h)->primitive_table_size)
+#define FASLHDR_N_C_CODE_BLOCKS(h) ((h)->n_c_code_blocks)
+#define FASLHDR_C_CODE_TABLE_SIZE(h) ((h)->c_code_table_size)
 #define FASLHDR_UTILITIES_VECTOR(h) ((h)->utilities_vector)
 #define FASLHDR_UTILITIES_START(h) ((h)->utilities_start)
 #define __FASLHDR_UTILITIES_END(h) ((h)->utilities_end)

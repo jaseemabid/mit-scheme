@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.17 2007/01/06 00:09:57 cph Exp $
+$Id: fasdump.c,v 9.68.2.18 2007/01/22 06:02:41 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -512,6 +512,9 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
 {
   SCHEME_OBJECT * to = Free;
   SCHEME_OBJECT * prim_table_start;
+#ifdef CC_IS_C
+  SCHEME_OBJECT * c_code_table_start;
+#endif
   bool result;
   PRIMITIVE_HEADER (2);
 
@@ -542,6 +545,14 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
   (FASLHDR_N_PRIMITIVES (fh)) = MAX_PRIMITIVE;
   (FASLHDR_PRIMITIVE_TABLE_SIZE (fh)) = (primitive_table_export_length ());
   to += (FASLHDR_PRIMITIVE_TABLE_SIZE (fh));
+
+#ifdef CC_IS_C
+  c_code_table_start = to;
+  (FASLHDR_C_CODE_TABLE_SIZE (fh))
+    = (c_code_table_export_length (& (FASLHDR_N_C_CODE_BLOCKS (fh))));
+  to += (FASLHDR_C_CODE_TABLE_SIZE (fh));
+#endif
+
   if (to > heap_end)
     result = false;
   else
@@ -552,6 +563,9 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
       fasl_file_handle_t handle;
 
       export_primitive_table (prim_table_start);
+#ifdef CC_IS_C
+      export_c_code_table (c_code_table_start);
+#endif
 
       while (!FLOATING_ALIGNED_P (faligned_heap))
 	faligned_heap += 1;
@@ -605,6 +619,8 @@ initialize_fasl_header (bool cc_p)
       (FASLHDR_CC_ARCH (fh)) = COMPILER_NONE_TYPE;
       (FASLHDR_UTILITIES_VECTOR (fh)) = SHARP_F;
     }
+  (FASLHDR_N_C_CODE_BLOCKS (fh)) = 0;
+  (FASLHDR_C_CODE_TABLE_SIZE (fh)) = 0;
 }
 
 static bool
