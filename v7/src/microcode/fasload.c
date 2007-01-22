@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.19 2007/01/22 06:02:53 cph Exp $
+$Id: fasload.c,v 9.96.2.20 2007/01/22 06:06:37 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -384,8 +384,8 @@ load_file (fasl_file_handle_t handle)
       read_from_file (raw_table, (FASLHDR_C_CODE_TABLE_SIZE (fh)), handle);
       if (!import_c_code_table (raw_table, (FASLHDR_N_C_CODE_BLOCKS (fh))))
 	signal_error_from_primitive (ERR_FASLOAD_COMPILED_MISMATCH);
-#endif
     }
+#endif
 
   if ((!FASLHDR_BAND_P (fh))
       && ((FASLHDR_UTILITIES_VECTOR (fh)) != SHARP_F)
