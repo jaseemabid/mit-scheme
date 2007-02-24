@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: memmag.c,v 9.71.2.10 2007/02/10 19:16:43 riastradh Exp $
+$Id: memmag.c,v 9.71.2.11 2007/02/24 17:28:18 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -257,7 +257,9 @@ the primitive GC daemons before returning.")
 
   Will_Push (CONTINUATION_SIZE);
   SET_RC (RC_NORMAL_GC_DONE);
-  SET_EXP (LONG_TO_FIXNUM (HEAP_AVAILABLE - gc_space_needed));
+  SET_EXP (ULONG_TO_FIXNUM ((HEAP_AVAILABLE > gc_space_needed)
+			    ? (HEAP_AVAILABLE - gc_space_needed)
+			    : 0));
   SAVE_CONT ();
   Pushed ();
 

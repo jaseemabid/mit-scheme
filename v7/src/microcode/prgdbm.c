@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prgdbm.c,v 1.6.2.3 2007/01/06 00:09:57 cph Exp $
+$Id: prgdbm.c,v 1.6.2.4 2007/02/24 17:28:26 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -30,7 +30,10 @@ USA.
 #include "scheme.h"
 #include "prims.h"
 #include "os.h"
-#include <gdbm.h>
+
+#ifdef HAVE_GDBM_H
+#  include <gdbm.h>
+#endif
 
 /* Allocation Tables */
 
