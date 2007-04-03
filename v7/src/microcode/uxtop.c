@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: uxtop.c,v 1.30.2.5 2007/01/06 00:09:58 cph Exp $
+$Id: uxtop.c,v 1.30.2.6 2007/04/03 03:59:05 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -189,10 +189,10 @@ OS_error_code_to_syserr (int code)
     {
     case E2BIG:		return (syserr_arg_list_too_long);
     case EACCES:	return (syserr_permission_denied);
-    case EAGAIN:	return (syserr_resource_temporarily_unavailable);
 #ifdef EADDRINUSE
     case EADDRINUSE:	return (syserr_address_in_use);
 #endif
+    case EAGAIN:	return (syserr_resource_temporarily_unavailable);
     case EBADF:		return (syserr_bad_file_descriptor);
     case EBUSY:		return (syserr_resource_busy);
     case ECHILD:	return (syserr_no_child_processes);
@@ -297,7 +297,10 @@ syserr_to_error_code (enum syserr_names syserr)
 const char *
 OS_error_code_to_message (unsigned int syserr)
 {
-  return (strerror (syserr_to_error_code ((enum syserr_names) syserr)));
+  return
+    ((syserr == 0)
+     ? 0
+     : (strerror (syserr_to_error_code ((enum syserr_names) syserr))));
 }
 
 #else /* not HAVE_STRERROR */
