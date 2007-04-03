@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: term.c,v 1.20.2.4 2007/01/06 00:09:58 cph Exp $
+$Id: term.c,v 1.20.2.5 2007/04/03 05:27:44 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -286,9 +286,9 @@ edwin_auto_save (void)
 	{
 	  SCHEME_OBJECT group = (PAIR_CAR (entry));
 	  char * namestring = (STRING_POINTER (PAIR_CDR (entry)));
-	  SCHEME_OBJECT text = (GROUP_TEXT (group));
-	  unsigned char * start = (STRING_BYTE_PTR (text));
-	  unsigned char * end = (start + (STRING_LENGTH (text)));
+	  unsigned long length;
+	  unsigned char * start = (GROUP_TEXT (group, (&length)));
+	  unsigned char * end = (start + length);
 	  unsigned char * gap_start = (start + (GROUP_GAP_START (group)));
 	  unsigned char * gap_end = (start + (GROUP_GAP_END (group)));
 	  if ((start < gap_start) || (gap_end < end))

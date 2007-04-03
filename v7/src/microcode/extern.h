@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: extern.h,v 9.65.2.11 2007/01/06 00:09:57 cph Exp $
+$Id: extern.h,v 9.65.2.12 2007/04/03 05:27:38 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -270,6 +270,7 @@ extern void add_reload_cleanup (void (*) (void));
 extern void execute_reload_cleanups (void);
 extern void clear_bit_string (SCHEME_OBJECT);
 extern void bit_string_set (SCHEME_OBJECT, long, int);
+extern unsigned char * lookup_external_string (SCHEME_OBJECT, unsigned long *);
 
 /* Memory management utilities */
 extern bool object_in_constant_space_p (SCHEME_OBJECT);

@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: string.c,v 9.49.2.3 2007/01/06 00:09:58 cph Exp $
+$Id: string.c,v 9.49.2.4 2007/04/03 05:27:42 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -263,15 +263,14 @@ DEFINE_PRIMITIVE ("SUBSTRING-DOWNCASE!", Prim_substring_downcase, 3, 3, 0)
      SUBSTRING_MODIFIER (char_downcase)
 
 #define VECTOR_8B_SUBSTRING_PREFIX()					\
-  long start, end, ascii;						\
+  unsigned long start, end, length, ascii;				\
   unsigned char *string_start, *scan, *limit;				\
   PRIMITIVE_HEADER (4);							\
-  CHECK_ARG (1, STRING_P);						\
-  string_start = (STRING_LOC ((ARG_REF (1)), 0));			\
+  string_start = (arg_extended_string (1, (&length)));			\
   start = (arg_nonnegative_integer (2));				\
   end = (arg_nonnegative_integer (3));					\
   ascii = (arg_ascii_integer (4));					\
-  if (end > (STRING_LENGTH (ARG_REF (1))))				\
+  if (end > length)							\
     error_bad_range_arg (3);						\
   if (start > end)							\
     error_bad_range_arg (2)
@@ -337,16 +336,15 @@ DEFINE_PRIMITIVE ("VECTOR-8B-FIND-PREVIOUS-CHAR-CI", Prim_vec_8b_find_prev_char_
 }
 
 #define SUBSTR_FIND_CHAR_IN_SET_PREFIX()				\
-  long start, end;							\
+  unsigned long start, end, length;					\
   unsigned char *char_set, *string_start, *scan, *limit;		\
   PRIMITIVE_HEADER (4);							\
-  CHECK_ARG (1, STRING_P);						\
-  string_start = (STRING_LOC ((ARG_REF (1)), 0));			\
+  string_start = (arg_extended_string (1, (&length)));			\
   start = (arg_nonnegative_integer (2));				\
   end = (arg_nonnegative_integer (3));					\
   CHECK_ARG (4, STRING_P);						\
   char_set = (STRING_LOC ((ARG_REF (4)), 0));				\
-  if (end > (STRING_LENGTH (ARG_REF (1))))				\
+  if (end > length)							\
     error_bad_range_arg (3);						\
   if (start > end)							\
     error_bad_range_arg (2);						\
@@ -615,7 +613,21 @@ DEFINE_PRIMITIVE ("EXTENDED-STRING-LENGTH", Prim_extended_string_length, 1, 1, 0
   }
 }
 
-void *
+unsigned char *
+lookup_external_string (SCHEME_OBJECT descriptor, unsigned long * lp)
+{
+  ht_record_t * record;
+  if (external_strings == 0)
+    external_strings = (make_hash_table ());
+  record = (ht_lookup (external_strings, (integer_to_ulong (descriptor))));
+  if (record == 0)
+    return (0);
+  if (lp != 0)
+    (*lp) = (HT_RECORD_N_BYTES (record));
+  return (HT_RECORD_PTR (record));
+}
+
+unsigned char *
 arg_extended_string (unsigned int n, unsigned long * lp)
 {
   SCHEME_OBJECT object = (ARG_REF (n));
@@ -623,19 +635,14 @@ arg_extended_string (unsigned int n, unsigned long * lp)
     {
       if (lp != 0)
 	(*lp) = (STRING_LENGTH (object));
-      return (STRING_POINTER (object));
+      return ((unsigned char *) (STRING_POINTER (object)));
     }
   else if ((INTEGER_P (object)) && (integer_to_ulong_p (object)))
     {
-      ht_record_t * record;
-      if (external_strings == 0)
-	external_strings = (make_hash_table ());
-      record = (ht_lookup (external_strings, (integer_to_ulong (object))));
-      if (record == 0)
+      unsigned char * result = (lookup_external_string (object, lp));
+      if (result == 0)
 	error_wrong_type_arg (n);
-      if (lp != 0)
-	(*lp) = (HT_RECORD_N_BYTES (record));
-      return (HT_RECORD_PTR (record));
+      return (result);
     }
   else
     {

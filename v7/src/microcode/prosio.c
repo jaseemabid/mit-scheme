@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: prosio.c,v 1.24.2.3 2007/01/06 00:09:58 cph Exp $
+$Id: prosio.c,v 1.24.2.4 2007/04/03 05:27:40 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -157,7 +157,7 @@ Return the number of characters actually read from CHANNEL.")
   PRIMITIVE_HEADER (4);
   {
     unsigned long length;
-    char * buffer = (arg_extended_string (2, (&length)));
+    unsigned char * buffer = (arg_extended_string (2, (&length)));
     unsigned long end = (arg_ulong_index_integer (4, (length + 1)));
     unsigned long start = (arg_ulong_index_integer (3, (end + 1)));
     long nread =
@@ -175,7 +175,7 @@ Third and fourth args START and END specify the substring to use.")
   PRIMITIVE_HEADER (4);
   {
     unsigned long length;
-    const char * buffer = (arg_extended_string (2, (&length)));
+    const unsigned char * buffer = (arg_extended_string (2, (&length)));
     unsigned long end = (arg_ulong_index_integer (4, (length + 1)));
     unsigned long start = (arg_ulong_index_integer (3, (end + 1)));
     long nwritten =
