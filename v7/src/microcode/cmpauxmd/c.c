@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.15.2.6 2007/01/22 06:41:43 cph Exp $
+$Id: c.c,v 1.15.2.7 2007/04/07 12:35:36 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -191,7 +191,7 @@ initialize_C_compiled_block (int argno, const char * name)
      ? SHARP_F
      : (COMPILED_BLOCK_DATA_ONLY_P (block))
      ? ((* (COMPILED_BLOCK_OBJECT_PROC (block))) ())
-     : (MAKE_CC_BLOCK ((* (COMPILED_BLOCK_DATA_PROC (block)))
+     : (MAKE_CC_ENTRY ((* (COMPILED_BLOCK_DATA_PROC (block)))
 		       (COMPILED_BLOCK_FIRST_ENTRY (block)))));
 }
 
