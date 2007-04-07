@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: boot.c,v 9.118.2.8 2007/01/22 18:30:45 riastradh Exp $
+$Id: boot.c,v 9.118.2.9 2007/04/07 12:35:05 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -59,7 +59,7 @@ extern SCHEME_OBJECT Re_Enter_Interpreter (void);
 #  define HOOK_ENTER_INTERPRETER(func) func ()
 #endif
 
-static void start_scheme (int, const char *);
+static void start_scheme (void);
 static void Enter_Interpreter (void);
 
 const char * scheme_program_name;
@@ -126,16 +126,9 @@ main_name (int argc, const char ** argv)
 		(BLOCKS_TO_BYTES (option_constant_size)));
 
   initialize_primitives ();
-  if (!option_fasl_file)
-    {
-      compiler_initialize (false);
-      start_scheme (BOOT_LOAD_BAND, option_band_file);
-    }
-  else
-    {
-      compiler_initialize (true);
-      start_scheme (BOOT_FASLOAD, option_fasl_file);
-    }
+  compiler_initialize (option_fasl_file != 0);
+  OS_initialize ();
+  start_scheme ();
   termination_init_error ();
   return (0);
 }
@@ -234,89 +227,48 @@ initialize_fixed_objects_vector (void)
 #endif
 
 static void
-start_scheme (int Start_Prim, const char * File_Name)
+start_scheme (void)
 {
-  SCHEME_OBJECT FName;
-  SCHEME_OBJECT expr = SHARP_F;
-  SCHEME_OBJECT * inner_arg;
-  SCHEME_OBJECT prim;
-  /* long i; */
-  /* Parallel processor test */
-  bool I_Am_Master = (Start_Prim != BOOT_GET_WORK);
-  OS_initialize ();
-  if (I_Am_Master)
+  SCHEME_OBJECT expr;
+
+  if (!option_batch_mode)
     {
-      if (!option_batch_mode)
-	{
-	  outf_console ("MIT/GNU Scheme running under %s\n", OS_Variant);
-	  OS_announcement ();
-	  outf_console ("\n");
-	  outf_flush_console ();
-	}
-      current_state_point = SHARP_F;
-      initialize_fixed_objects_vector ();
+      outf_console ("MIT/GNU Scheme running under %s\n", OS_Variant);
+      OS_announcement ();
+      outf_console ("\n");
+      outf_flush_console ();
     }
+  current_state_point = SHARP_F;
+  initialize_fixed_objects_vector ();
 
-  /* The initial program to execute is one of
-        (SCODE-EVAL (BINARY-FASLOAD <file-name>) SYSTEM-GLOBAL-ENVIRONMENT),
-	(LOAD-BAND <file-name>), or
-	((GET-WORK))
-	(SCODE-EVAL (INITIALIZE-C-COMPILED-BLOCK <file>) GLOBAL-ENV)
-     depending on the value of Start_Prim. */
-  switch (Start_Prim)
-  {
-    case BOOT_FASLOAD:	/* (SCODE-EVAL (BINARY-FASLOAD <file>) GLOBAL-ENV) */
-      FName = (char_pointer_to_string (File_Name));
-      prim = (make_primitive ("BINARY-FASLOAD", 1));
-      inner_arg = Free;
-      *Free++ = prim;
-      *Free++ = FName;
-      prim = (make_primitive ("SCODE-EVAL", 2));
-      expr = MAKE_POINTER_OBJECT (TC_PCOMB2, Free);
-      *Free++ = prim;
-      *Free++ = MAKE_POINTER_OBJECT (TC_PCOMB1, inner_arg);
-      *Free++ = THE_GLOBAL_ENV;
-      break;
-
-    case BOOT_LOAD_BAND:	/* (LOAD-BAND <file>) */
-      FName = (char_pointer_to_string (File_Name));
-      prim = (make_primitive ("LOAD-BAND", 1));
-      inner_arg = Free;
-      *Free++ = prim;
-      *Free++ = FName;
-      expr = MAKE_POINTER_OBJECT (TC_PCOMB1, inner_arg);
-      break;
-
-    case BOOT_GET_WORK:		/* ((GET-WORK)) */
-      prim = (make_primitive ("GET-WORK", 0));
-      inner_arg = Free;
-      *Free++ = prim;
-      *Free++ = SHARP_F;
-      expr = MAKE_POINTER_OBJECT (TC_COMBINATION, Free);
-      *Free++ = MAKE_OBJECT (TC_MANIFEST_VECTOR, 1);
-      *Free++ = MAKE_POINTER_OBJECT (TC_PCOMB1, inner_arg);
-      break;
-
-    case BOOT_EXECUTE:
+  if (option_fasl_file != 0)
+    {
+#ifdef CC_IS_C
       /* (SCODE-EVAL (INITIALIZE-C-COMPILED-BLOCK <file>) GLOBAL-ENV) */
-      FName = (char_pointer_to_string (File_Name));
-      prim = (make_primitive ("INITIALIZE-C-COMPILED-BLOCK", 1));
-      inner_arg = Free;
-      *Free++ = prim;
-      *Free++ = FName;
-      prim = (make_primitive ("SCODE-EVAL", 2));
+      SCHEME_OBJECT prim1 = (make_primitive ("INITIALIZE-C-COMPILED-BLOCK", 1));
+#else
+      /* (SCODE-EVAL (BINARY-FASLOAD <file>) GLOBAL-ENV) */
+      SCHEME_OBJECT prim1 = (make_primitive ("BINARY-FASLOAD", 1));
+#endif
+      SCHEME_OBJECT fn_object = (char_pointer_to_string (option_fasl_file));
+      SCHEME_OBJECT prim2 = (make_primitive ("SCODE-EVAL", 2));
+      SCHEME_OBJECT * inner_arg = Free;
+      (*Free++) = prim1;
+      (*Free++) = fn_object;
       expr = (MAKE_POINTER_OBJECT (TC_PCOMB2, Free));
-      *Free++ = prim;
-      *Free++ = (MAKE_POINTER_OBJECT (TC_PCOMB1, inner_arg));
-      *Free++ = THE_GLOBAL_ENV;
-      break;
-
-
-    default:
-      outf_fatal ("Unknown boot time option: %d\n", Start_Prim);
-      Microcode_Termination (TERM_BAD_PRIMITIVE);
-      /*NOTREACHED*/
-  }
+      (*Free++) = prim2;
+      (*Free++) = (MAKE_POINTER_OBJECT (TC_PCOMB1, inner_arg));
+      (*Free++) = THE_GLOBAL_ENV;
+    }
+  else
+    {
+      /* (LOAD-BAND <file>) */
+      SCHEME_OBJECT prim = (make_primitive ("LOAD-BAND", 1));
+      SCHEME_OBJECT fn_object = (char_pointer_to_string (option_band_file));
+      expr = (MAKE_POINTER_OBJECT (TC_PCOMB1, Free));
+      (*Free++) = prim;
+      (*Free++) = fn_object;
+    }
 
   /* Setup registers */
   INITIALIZE_INTERRUPTS (0);
@@ -324,11 +276,11 @@ start_scheme (int Start_Prim, const char * File_Name)
   trapping = false;
 
   /* Give the interpreter something to chew on, and ... */
- Will_Push (CONTINUATION_SIZE);
+  Will_Push (CONTINUATION_SIZE);
   SET_RC (RC_END_OF_COMPUTATION);
   SET_EXP (SHARP_F);
   SAVE_CONT ();
- Pushed ();
+  Pushed ();
 
   SET_EXP (expr);
 
