@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: option.c,v 1.61.2.10 2007/01/06 00:09:57 cph Exp $
+$Id: option.c,v 1.61.2.11 2007/04/07 12:37:09 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -896,12 +896,15 @@ read_command_line_options (int argc, const char ** argv)
       {
 	if (option_raw_band != 0)
 	  conflicting_options ("fasl", "band");
+#ifndef CC_IS_C
 	if (!FILE_READABLE (option_fasl_file))
 	  {
+	    /* Kludge; FILE_READABLE doesn't work right for this case.  */
 	    outf_fatal ("%s: can't read option file: --fasl %s\n",
 		     scheme_program_name, option_fasl_file);
 	    termination_init_error ();
 	  }
+#endif
 	option_large_sizes = true;
 	option_band_specified = true;
 	option_band_file = 0;
