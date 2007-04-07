@@ -1,6 +1,6 @@
 # -*- Makefile -*-
 #
-# $Id: Makefile.in.in,v 1.25.2.18 2007/01/22 14:23:43 cph Exp $
+# $Id: Makefile.in.in,v 1.25.2.19 2007/04/07 12:38:15 cph Exp $
 #
 # Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
 #     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
@@ -111,9 +111,9 @@ COMPILE_MODULE = $(COMPILE) $(MODULE_CFLAGS)
 LINK_MODULE = $(LINK) $(MODULE_LDFLAGS)
 MODULE_LIBS = -lc
 
-# **** Rules for C back end (part 1) ****
+# **** Rules for C back end (part 1, variables) ****
 
-@LIARC_RULES_1@
+@LIARC_VARS@
 
 # **** Program definitions ****
 
@@ -139,8 +139,10 @@ ALL_PROGRAMS = $(bin_PROGRAMS) $(aux_PROGRAMS)
 ALL_LIBS = $(aux_LIBS)
 ALL_DATA = $(aux_DATA)
 
-MOSTLYCLEAN_FILES = *.o cmpauxmd.s usrdef.c compinit.h utabmd.c utabmd.bci \
-	$(LIARC_OBJECTS)
+MOSTLYCLEAN_C_FILES = *.o usrdef.c compinit.h \
+	$(LIARC_OBJECTS) $(LIARC_BUNDLE_CLEAN_FILES)
+
+MOSTLYCLEAN_FILES = $(MOSTLYCLEAN_C_FILES) cmpauxmd.s utabmd.c utabmd.bci
 
 CLEAN_FILES = $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA) $(EXTRA_PROGRAMS)
 
@@ -148,8 +150,10 @@ DISTCLEAN_FILES = Makefile config.h config.cache config.log config.status \
 	cmpauxmd.m4 cmpauxmd.c cmpintmd.h makegen-cc \
 	cmpintmd-config.h cmpintmd.c
 
-MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps liarc-rules-1 \
+MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps liarc-vars liarc-rules \
 	config.h.in configure TAGS
+
+C_CLEAN_FILES = $(MOSTLYCLEAN_C_FILES) $(CLEAN_FILES) $(DISTCLEAN_FILES)
 
 # **** Implicit rules ****
 
@@ -169,7 +173,9 @@ MAINTAINER_CLEAN_FILES = Makefile.in Makefile.deps liarc-rules-1 \
 
 default-target: $(ALL_PROGRAMS) $(ALL_LIBS)
 
-all: $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA)
+all: $(ALL_PROGRAMS) $(ALL_LIBS) $(ALL_DATA) $(LIARC_BOOT_BUNDLES)
+
+liarc-bundles: all $(LIARC_BUNDLES)
 
 scheme: $(scheme_OBJECTS) $(scheme_DEPENDENCIES)
 	-rm -f $@
@@ -228,8 +234,12 @@ maintainer-clean: distclean
 	-rm -f $(MAINTAINER_CLEAN_FILES)
 	( cd cmpauxmd && $(MAKE) $@ )
 
+c-clean:
+	-rm -f $(C_CLEAN_FILES)
+	-rm -rf autom4te.cache
+
 install: install-binPROGRAMS install-auxPROGRAMS install-auxLIBS \
-	install-auxDATA
+	install-auxDATA $(LIARC_INSTALL)
 
 install-binPROGRAMS: $(bin_PROGRAMS)
 	$(mkinstalldirs) $(DESTDIR)$(bindir)
@@ -272,16 +282,16 @@ install-auxDATA: $(aux_DATA)
 	done
 
 .PHONY: default-target
-.PHONY: all tags TAGS mostlyclean clean distclean maintainer-clean
-.PHONY: install install_binPROGRAMS install_auxPROGRAMS install_auxDATA
+.PHONY: all tags TAGS mostlyclean clean distclean maintainer-clean c-clean
+.PHONY: install install-binPROGRAMS install-auxPROGRAMS install-auxDATA
 
 # **** File dependencies ****
 
 @(write-dependencies)@
 
-# **** Rules for C back end (part 2) ****
+# **** Rules for C back end (part 2, rules) ****
 
-@LIARC_RULES_2@
+@LIARC_RULES@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

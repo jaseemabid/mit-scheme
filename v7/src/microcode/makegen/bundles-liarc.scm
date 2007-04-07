@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: bundles-liarc.scm,v 1.1 2007/04/04 05:08:19 riastradh Exp $
+$Id: bundles-liarc.scm,v 1.1.2.1 2007/04/07 12:38:15 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -28,14 +28,14 @@ USA.
 ;;;; Bundles for LIARC to be linked into dynamically loadable shared
 ;;;; objects.
 
-;;; Format: (bundle (package*) source-directoory*)
+;;; Format: (bundle (package*) source-directory*)
 ;;;   bundle ::= string
 ;;;   package ::= pathname | (pathname os-type*)
 ;;;   source-directory ::= (pathname exclude-filename*)
 
 ;++ This is fragile: excluding filenames is bogus.  But it will work
 ;++ until we get a real module system.
-
+
 ("sf+compiler"
  ("../sf/sf"
   ("../compiler/compiler" "unx")

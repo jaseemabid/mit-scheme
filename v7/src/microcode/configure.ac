@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([MIT/GNU Scheme microcode], [15.0], [bug-mit-scheme@gnu.org], [mit-scheme])
-AC_REVISION([$Id: configure.ac,v 1.6.2.32 2007/02/24 17:10:42 cph Exp $])
+AC_REVISION([$Id: configure.ac,v 1.6.2.33 2007/04/07 12:38:14 cph Exp $])
 AC_CONFIG_SRCDIR([boot.c])
 AC_CONFIG_HEADERS([config.h])
 AC_PROG_MAKE_SET
@@ -184,8 +184,8 @@ MODULE_TARGETS=
 MODULE_RULES=/dev/null
 MODULE_CFLAGS="-DCOMPILE_AS_MODULE"
 MODULE_LDFLAGS=
-LIARC_RULES_1=/dev/null
-LIARC_RULES_2=/dev/null
+LIARC_VARS=/dev/null
+LIARC_RULES=/dev/null
 
 dnl Checks for programs.
 AC_PROG_CC
@@ -202,10 +202,13 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 if test ${GCC} = yes; then
     if test ${enable_debugging} = no; then
-	CFLAGS=-O3
+	CFLAGS="-O3"
     else
 	CFLAGS="-O0 -g -DENABLE_DEBUGGING_TOOLS"
 	LDFLAGS="${LDFLAGS} -g"
+    fi
+    if test ${enable_native_code} = c; then
+	CFLAGS="-fPIC ${CFLAGS}"
     fi
     CFLAGS="${CFLAGS} -Wall -Wundef -Wpointer-arith -Winline"
     CFLAGS="${CFLAGS} -Wstrict-prototypes -Wnested-externs -Wredundant-decls"
@@ -910,8 +913,8 @@ c)
     AC_DEFINE([COMPILE_FOR_STATIC_LINKING], [1],
 	[Define to 1 for static compilation of C native code.])
     OPTIONAL_BASES="${OPTIONAL_BASES} cmpauxmd unstackify compinit"
-    LIARC_RULES_1=liarc-rules-1
-    LIARC_RULES_2=makegen/liarc-rules-2
+    LIARC_VARS=liarc-vars
+    LIARC_RULES=liarc-rules
     ;;
 svm1)
     AC_MSG_RESULT([yes, using portable SVM code])
@@ -967,8 +970,8 @@ AC_SUBST([MODULE_TARGETS])
 AC_SUBST_FILE([MODULE_RULES])
 AC_SUBST([MODULE_CFLAGS])
 AC_SUBST([MODULE_LDFLAGS])
-AC_SUBST_FILE([LIARC_RULES_1])
-AC_SUBST_FILE([LIARC_RULES_2])
+AC_SUBST_FILE([LIARC_VARS])
+AC_SUBST_FILE([LIARC_RULES])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
