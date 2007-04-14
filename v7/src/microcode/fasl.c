@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasl.c,v 1.1.2.8 2007/01/22 06:02:45 cph Exp $
+$Id: fasl.c,v 1.1.2.9 2007/04/14 14:06:58 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -103,7 +103,13 @@ check_fasl_version (fasl_header_t * fh)
   return
     ((((FASLHDR_VERSION (fh)) >= OLDEST_INPUT_FASL_VERSION)
       && ((FASLHDR_VERSION (fh)) <= NEWEST_INPUT_FASL_VERSION))
-     ? (((FASLHDR_ARCH (fh)) == CURRENT_FASL_ARCH)
+     ? ((((FASLHDR_ARCH (fh)) == CURRENT_FASL_ARCH)
+#ifdef HEAP_IN_LOW_MEMORY
+	 && ((FASLHDR_MEMORY_BASE (fh)) == 0)
+#else
+	 && ((FASLHDR_MEMORY_BASE (fh)) != 0)
+#endif
+	 )
 	? FASL_FILE_FINE
 	: FASL_FILE_BAD_MACHINE)
      : FASL_FILE_BAD_VERSION);
