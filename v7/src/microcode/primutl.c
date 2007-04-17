@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: primutl.c,v 9.80.2.4 2007/01/06 00:09:57 cph Exp $
+$Id: primutl.c,v 9.80.2.5 2007/04/17 12:19:43 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -310,11 +310,20 @@ install_primitive (const char * name,
 SCHEME_OBJECT
 make_primitive (const char * name, int arity)
 {
-  SCHEME_OBJECT result = (declare_primitive (name,
-					     Prim_unimplemented,
-					     arity,
-					     arity,
-					     0));
+  tree_node prim;
+  char * cname;
+  SCHEME_OBJECT result;
+
+  /* Make sure to copy the name if we will be keeping it.  */
+  prim = (tree_lookup (prim_procedure_tree, name));
+  if (prim != 0)
+    cname = ((char *) (prim->name));
+  else
+    {
+      cname = (OS_malloc ((strlen (name)) + 1));
+      strcpy (cname, name);
+    }
+  result = (declare_primitive (cname, Prim_unimplemented, arity, arity, 0));
   return
     ((result == SHARP_F)
      ? SHARP_F
