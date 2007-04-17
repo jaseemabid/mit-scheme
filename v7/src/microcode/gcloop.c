@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.21 2007/01/06 00:09:57 cph Exp $
+$Id: gcloop.c,v 9.51.2.22 2007/04/17 14:35:39 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -607,7 +607,7 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
 	while (count > 0)
 	  {
 	    write_uuo_target
-	      ((GC_HANDLE_CC_ENTRY ((READ_UUO_TARGET (scan, ref)))),
+	      ((GC_HANDLE_CC_ENTRY (READ_UUO_TARGET (scan, ref))),
 	       scan);
 	    scan += UUO_LINK_SIZE;
 	    count -= 1;
