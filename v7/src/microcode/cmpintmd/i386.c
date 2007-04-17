@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.c,v 1.1.2.4 2007/01/06 00:10:00 cph Exp $
+$Id: i386.c,v 1.1.2.5 2007/04/17 12:31:17 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -156,6 +156,12 @@ compiled_closure_entry_to_target (insn_t * entry)
    information: (1) the name of the procedure being called (a symbol),
    and (2) the number of arguments that will be passed to the
    procedure.  */
+
+SCHEME_OBJECT
+read_uuo_symbol (SCHEME_OBJECT * saddr)
+{
+  return (saddr[1]);
+}
 
 unsigned int
 read_uuo_frame_size (SCHEME_OBJECT * saddr)

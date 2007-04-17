@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.h,v 1.9.2.4 2007/01/22 06:03:01 cph Exp $
+$Id: c.h,v 1.9.2.5 2007/04/17 12:31:12 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -119,31 +119,10 @@ The indexes refer to entries in the compiled_entries array.
 
 */
 
+#define CC_ARCH_INITIALIZE initialize_C_interface
 #define ASM_RESET_HOOK initialize_C_interface
 
 typedef SCHEME_OBJECT insn_t;
-
-#define UTILITY_RESULT_DEFINED 1
-
-typedef SCHEME_OBJECT * utility_result_t;
-
-#define RETURN_TO_C(code) do						\
-{									\
-  C_return_value = (code);						\
-  (*DSU_result) = 0;							\
-  return;								\
-} while (false)
-
-#define RETURN_TO_SCHEME(ep) do						\
-{									\
-  (*DSU_result) = (ep);							\
-  return;								\
-} while (false)
-
-#define ENTER_SCHEME(ep) return (C_to_interface (ep))
-
-extern long C_to_interface (SCHEME_OBJECT *);
-extern long C_return_value;
 
 /* Number of insn_t units preceding entry address in which header
    (type and offset info) is stored.  */

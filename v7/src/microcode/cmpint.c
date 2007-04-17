@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.17 2007/01/06 00:09:57 cph Exp $
+$Id: cmpint.c,v 1.103.2.18 2007/04/17 12:30:59 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -253,10 +253,10 @@ extern long ASM_ENTRY_POINT (C_to_interface) (insn_t *);
   return;								\
 } while (false)
 
-#define ENTER_SCHEME(ep) do
-{
-  C_to_interface (ep);
-  return (C_return_value);
+#define ENTER_SCHEME(ep) do						\
+{									\
+  C_to_interface (ep);							\
+  return (C_return_value);						\
 } while (false)
 
 extern utility_result_t interface_to_C_hook;
@@ -337,6 +337,9 @@ compiler_initialize (bool fasl_p)
   SET_PRIMITIVE (SHARP_F);
   compiler_processor_type = COMPILER_PROCESSOR_TYPE;
   compiler_interface_version = COMPILER_INTERFACE_VERSION;
+#ifdef CC_ARCH_INITIALIZE
+      CC_ARCH_INITIALIZE ();
+#endif
   if (fasl_p)
     {
       compiler_utilities = (make_compiler_utilities ());
@@ -347,9 +350,6 @@ compiler_initialize (bool fasl_p)
       /* Delay until after band-load, when compiler_reset will be invoked. */
       compiler_utilities = SHARP_F;
       return_to_interpreter = SHARP_F;
-#ifdef CC_ARCH_INITIALIZE
-      CC_ARCH_INITIALIZE ();
-#endif
     }
 }
 
@@ -380,8 +380,14 @@ make_compiler_utilities (void)
   {
     cc_entry_type_t cet;
     make_cc_entry_type ((&cet), CET_RETURN_TO_INTERPRETER);
-    fill_trampoline (block, 0, (&cet), TRAMPOLINE_K_RETURN_TO_INTERPRETER);
-    fill_trampoline (block, 1, (&cet), TRAMPOLINE_K_REFLECT_TO_INTERFACE);
+    if ((fill_trampoline (block, 0, (&cet), TRAMPOLINE_K_RETURN_TO_INTERPRETER))
+	||
+	(fill_trampoline (block, 1, (&cet), TRAMPOLINE_K_REFLECT_TO_INTERFACE)))
+      {
+	outf_fatal ("\nError in make_compiler_utilities\n");
+	Microcode_Termination (TERM_COMPILER_DEATH);
+	/*NOTREACHED*/
+      }
   }
 
   /* These entries are no longer used, but are provided for
@@ -2511,12 +2517,6 @@ make_apply_trampoline (SCHEME_OBJECT * slot,
 			   2,
 			   procedure,
 			   (ULONG_TO_FIXNUM (frame_size))));
-}
-
-SCHEME_OBJECT
-read_uuo_symbol (SCHEME_OBJECT * saddr)
-{
-  return (saddr[1]);
 }
 
 /* Compiled-code breakpoints */

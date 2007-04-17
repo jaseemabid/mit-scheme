@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.1.2.2 2007/01/06 00:10:00 cph Exp $
+$Id: c.c,v 1.1.2.3 2007/04/17 12:31:08 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -124,28 +124,34 @@ skip_compiled_closure_padding (insn_t * start)
   return ((SCHEME_OBJECT *) start);
 }
 
+SCHEME_OBJECT
+read_uuo_symbol (SCHEME_OBJECT * saddr)
+{
+  return (saddr[0]);
+}
+
 unsigned int
 read_uuo_frame_size (SCHEME_OBJECT * saddr)
 {
-  return (* ((unsigned short *) saddr));
+  return ((unsigned int) (saddr[1]));
 }
 
 SCHEME_OBJECT
 read_uuo_target (SCHEME_OBJECT * saddr)
 {
-  return (saddr[0]);
+  return (MAKE_CC_ENTRY ((insn_t *) (saddr[0])));
 }
 
 SCHEME_OBJECT
 read_uuo_target_no_reloc (SCHEME_OBJECT * saddr)
 {
-  return (saddr[0]);
+  return (MAKE_CC_ENTRY ((insn_t *) (saddr[0])));
 }
 
 void
 write_uuo_target (SCHEME_OBJECT target, SCHEME_OBJECT * saddr)
 {
-  (saddr[0]) = target;
+  (saddr[0]) = ((SCHEME_OBJECT) (CC_ENTRY_ADDRESS (target)));
 }
 
 unsigned long
