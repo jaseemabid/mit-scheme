@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: liarc.h,v 1.21.2.5 2007/01/12 06:27:39 cph Exp $
+$Id: liarc.h,v 1.21.2.6 2007/04/17 12:23:15 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -186,11 +186,25 @@ typedef unsigned long entry_count_t;
 
 #endif /* !LIARC_IN_MICROCODE */
 
+#ifdef ENABLE_DEBUGGING_TOOLS
+
+#define JUMP(destination) do						\
+{									\
+  SCHEME_OBJECT * JUMP_new_pc = (destination);				\
+  assert (JUMP_new_pc != 0);						\
+  Rpc = JUMP_new_pc;							\
+  goto perform_dispatch;						\
+} while (false)
+
+#else
+
 #define JUMP(destination) do						\
 {									\
   Rpc = (destination);							\
   goto perform_dispatch;						\
 } while (false)
+
+#endif
 
 #define POP_RETURN() goto pop_return
 
@@ -447,7 +461,7 @@ extern int declare_data_object (const char *, liarc_object_proc_t *);
 extern int declare_compiled_code_mult (unsigned, const struct liarc_code_S *);
 extern int declare_compiled_data_mult (unsigned, const struct liarc_data_S *);
 
-extern SCHEME_OBJECT unstackify (unsigned char *, entry_count_t);
+extern SCHEME_OBJECT unstackify (unsigned char *, size_t, entry_count_t);
 
 extern int multiply_with_overflow (long, long, long *);
 

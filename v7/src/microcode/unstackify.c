@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: unstackify.c,v 11.1.2.2 2007/01/06 00:09:58 cph Exp $
+$Id: unstackify.c,v 11.1.2.3 2007/04/17 12:23:19 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -32,16 +32,35 @@ USA.
 #include "liarc.h"
 #include "stackops.h"
 
-#ifndef DEBUG_STACKIFY
+typedef struct
+{
+  unsigned char * strptr;
+  entry_count_t dispatch_base;
+  SCHEME_OBJECT * sp;
+  SCHEME_OBJECT * regmap;
+} stackify_context_s, * stackify_context_t;
 
-#define DEBUG(stmt) do {} while (false)
-#define CHECK_SP_UNDERFLOW() do {} while (false)
-#define CHECK_SP_OVERFLOW() do {} while (false)
-#define CHECK_STR_OVERRUN() do {} while (false)
+static entry_count_t dispatch_base;
+
+static unsigned char * prog_start;
+static unsigned char * prog_end;
+static unsigned char * pc;
+
+static unsigned char * string_start;
+static unsigned char * string_end;
+static unsigned char * strptr;
+
+static SCHEME_OBJECT * sp_lower;
+static SCHEME_OBJECT * sp_upper;
+static SCHEME_OBJECT * sp;
+
+static SCHEME_OBJECT * regmap;
+static SCHEME_OBJECT * regmap_end;
 
-#else /* DEBUG_STACKIFY */
+#ifdef ENABLE_DEBUGGING_TOOLS
 
-#define DEBUG(stmt) do { if (debug_flag) stmt } while (false)
+#undef NDEBUG
+#include <assert.h>
 
 static const char * opcode_names [] =
 {
@@ -303,93 +322,53 @@ static const char * opcode_names [] =
   "unknown-0377",
 };
 
-#define CHECK_SP_UNDERFLOW() do						\
-{									\
-  if (sp > regmap)							\
-    abort ();								\
-} while (false)
-
-#define CHECK_SP_OVERFLOW() do						\
-{									\
-  if (sp < stack_bot)							\
-    abort ();								\
-} while (false)
-
-#define CHECK_STR_OVERRUN() do						\
-{									\
-  if (strptr > strptr_end)						\
-    abort ();								\
-} while (false)
-
-static bool debug_flag = 0;
-
-static unsigned char * pc_start;
-static SCHEME_OBJECT * stack_bot;
-static unsigned char * strptr_end;
-static unsigned char * strptr_start;
-
-static unsigned print_everything_count = 0;
-
-#endif /* DEBUG_STACKIFY */
-
-typedef struct
-{
-  unsigned char * strptr;
-  entry_count_t dispatch_base;
-  SCHEME_OBJECT * sp;
-  SCHEME_OBJECT * regmap;
-} stackify_context_s, * stackify_context_t;
-
-static unsigned char * strptr;
-static entry_count_t dispatch_base;
-static SCHEME_OBJECT * sp;
-static SCHEME_OBJECT * regmap;
-
-#ifdef DEBUG_STACKIFY
+static bool debug_trace_p = 0;
 
 static void
-print_everything (stackify_opcode_t op, unsigned char * pc)
+debug_trace (void)
 {
-  if (print_everything_count == 0)
-    printf ("stack_bot = 0x%08x"
-	    "; stack_base = 0x%08x"
-	    "; strptr_end = 0x%08x\n",
-	    ((unsigned) stack_bot),
-	    ((unsigned) regmap),
-	    ((unsigned) strptr_end));
-
-  printf ("(opcode %s stack-depth %d pc %d strtab-ptr %d)\n",
-	  opcode_names[op],
-	  (regmap - sp),
-	  (pc - pc_start),
-	  (strptr - strptr_start));
+  if (debug_trace_p)
+    {
+      if (pc == prog_start)
+	fprintf (stderr,
+		 "sp_lower = 0x%08x;"
+		 " sp_upper = 0x%08x;"
+		 " string_end = 0x%08x\n",
+		 ((unsigned int) sp_lower),
+		 ((unsigned int) sp_upper),
+		 ((unsigned int) string_end));
+      fprintf (stderr,
+	       "(opcode %s stack-depth %d pc %d strtab-ptr %d)\n",
+	       (opcode_names[*pc]),
+	       (sp_upper - sp),
+	       (pc - prog_start),
+	       (strptr - string_start));
+    }
 }
 
-#endif /* DEBUG_STACKIFY */
-
+#endif /* ENABLE_DEBUGGING_TOOLS */
+
 static inline SCHEME_OBJECT
 unstackify_pop (void)
 {
-  SCHEME_OBJECT res = (*sp);
-  sp += 1;
-  CHECK_SP_UNDERFLOW ();
-  return (res);
+  assert (sp < sp_upper);
+  return (*sp++);
 }
 
 static inline SCHEME_OBJECT
 unstackify_tos (void)
 {
+  assert (sp < sp_upper);
   return (*sp);
 }
 
 static inline void
 unstackify_push (SCHEME_OBJECT object)
 {
-  sp -= 1;
-  CHECK_SP_OVERFLOW ();
-  (*sp) = object;
+  assert (sp > sp_lower);
+  (*--sp) = object;
 }
-
+
 /* Note: The encoded value is one greater than the actual value,
    so that the encoding of a ulong never uses a null character.
    Thus we subtract one after decoding.  */
@@ -397,20 +376,21 @@ unstackify_push (SCHEME_OBJECT object)
 static unsigned long
 unstackify_read_ulong (void)
 {
-  unsigned shift = 0;
+  unsigned int shift = 0;
   unsigned long value = 0;
-  unsigned char byte;
-
-  CHECK_STR_OVERRUN ();
-
-  do
+#ifdef ENABLE_DEBUGGING_TOOLS
+  unsigned long sentinel = 1;
+#endif
+  while (true)
     {
-      byte = (*strptr++);
-      value = (value | ((byte & 0x7f) << shift));
+      unsigned char byte = (*strptr++);
+      assert (strptr <= string_end);
+      value |= ((byte & 0x7f) << shift);
+      if ((byte & 0x80) == 0)
+	break;
+      assert ((sentinel <<= 7) != 0);
       shift += 7;
     }
-  while ((byte & 0x80) != 0);
-
   return (value - 1);
 }
 
@@ -419,6 +399,7 @@ unstackify_read_string (unsigned long * plen)
 {
   unsigned long len = (unstackify_read_ulong ());
   char * res = ((char *) strptr);
+  assert ((strptr + len) <= string_end);
   strptr += len;
   (*plen) = len;
   return (res);
@@ -517,12 +498,14 @@ unstackify_push_record (unsigned long N)
 static inline void
 unstackify_push_lookup (unsigned long N)
 {
+  assert ((regmap + N) < regmap_end);
   unstackify_push (regmap[N]);
 }
 
 static inline void
 unstackify_store (unsigned long N)
 {
+  assert ((regmap + N) < regmap_end);
   (regmap[N]) = (unstackify_tos ());
 }
 
@@ -929,182 +912,189 @@ unstackify_restore_context (stackify_context_t context)
 }
 
 SCHEME_OBJECT
-unstackify (unsigned char * bytes, entry_count_t db)
+unstackify (unsigned char * bytes, size_t n_bytes, entry_count_t db)
 {
-    unsigned char op;
-    SCHEME_OBJECT result;
-    SCHEME_OBJECT * scratch;
-    unsigned char * pc, * progstart, * progend;
-    unsigned long stack_depth, regmap_size, proglen;
-    stackify_context_s context;
+  unsigned char op;
+  SCHEME_OBJECT result;
+  SCHEME_OBJECT * scratch;
+  unsigned long stack_length;
+  unsigned long regmap_length;
+  unsigned long prog_length;
+  stackify_context_s context;
 	
-    unstackify_save_context (& context);
+  unstackify_save_context (& context);
 
-    /* Read the header */
+  /* Read the header */
 
-    strptr = bytes;
-    DEBUG (strptr_end = (bytes + 4357));
+  string_start = bytes;
+  string_end = (bytes + n_bytes);
+  strptr = string_start;
 
-    stack_depth = (unstackify_read_ulong ());
-    regmap_size = (unstackify_read_ulong ());
-    proglen = (unstackify_read_ulong ());
+  stack_length = (unstackify_read_ulong ());
+  regmap_length = (unstackify_read_ulong ());
+  prog_length = (unstackify_read_ulong ());
 
-    /* Set up for execution */
+  /* Set up for execution */
+
+  prog_start = strptr;
+  prog_end = (prog_start + prog_length);
+  pc = prog_start;
+
+  string_start = prog_end;
+  strptr = string_start;
     
-    scratch = (malloc ((stack_depth + regmap_size) * SIZEOF_SCHEME_OBJECT));
-    if (scratch == 0)
-      return (SHARP_F);
+  scratch = (malloc ((stack_length + regmap_length) * SIZEOF_SCHEME_OBJECT));
+  if (scratch == 0)
+    return (SHARP_F);
 
-    regmap = (scratch + stack_depth);
-    sp = regmap;
-    DEBUG (stack_bot = scratch);
+  sp_lower = scratch;
+  sp_upper = (sp_lower + stack_length);
+  sp = sp_upper;
 
-    progstart = strptr;
-    progend = (progstart + proglen);
-    strptr = progend;
-    dispatch_base = db;
+  regmap = sp_upper;
+  regmap_end = (regmap + regmap_length);
 
-    DEBUG (pc_start = progstart);
-    DEBUG (strptr_start = progend);
-    DEBUG (print_everything_count = 0);
+  dispatch_base = db;
 
-    /* Now, execute the program */
+  /* Now, execute the program */
 
-    for (pc = progstart; (pc < progend); pc++)
+  while (pc < prog_end)
     {
-	op = ((stackify_opcode_t) (* pc));
-	DEBUG (print_everything (op, pc));
-	switch (op)
+#ifdef ENABLE_DEBUGGING_TOOLS
+      debug_trace ();
+#endif
+      op = ((stackify_opcode_t) (*pc++));
+      switch (op)
 	{
 	default:
 	case stackify_opcode_illegal:
 	case stackify_opcode_escape:
-	    unstackify_undefined_opcode (op);
-	    break;
+	  unstackify_undefined_opcode (op);
+	  break;
 
 	case stackify_opcode_push_Pfixnum:
-	    stackify_push_Pfixnum (op);
-	    break;
+	  stackify_push_Pfixnum (op);
+	  break;
 
 	case stackify_opcode_push__fixnum:
-	    stackify_push__fixnum (op);
-	    break;
+	  stackify_push__fixnum (op);
+	  break;
 
 	case stackify_opcode_push_Pinteger:
-	    stackify_push_Pinteger (op);
-	    break;
+	  stackify_push_Pinteger (op);
+	  break;
 
 	case stackify_opcode_push__integer:
-	    stackify_push__integer (op);
-	    break;
+	  stackify_push__integer (op);
+	  break;
 
 	case stackify_opcode_push_false:
-	    stackify_push_false (op);
-	    break;
+	  stackify_push_false (op);
+	  break;
 
 	case stackify_opcode_push_true:
-	    stackify_push_true (op);
-	    break;
+	  stackify_push_true (op);
+	  break;
 
 	case stackify_opcode_push_nil:
-	    stackify_push_nil (op);
-	    break;
+	  stackify_push_nil (op);
+	  break;
 
 	case stackify_opcode_push_flonum:
-	    stackify_push_flonum (op);
-	    break;
+	  stackify_push_flonum (op);
+	  break;
 
 	case stackify_opcode_push_cons_ratnum:
-	    stackify_push_cons_ratnum (op);
-	    break;
+	  stackify_push_cons_ratnum (op);
+	  break;
 
 	case stackify_opcode_push_cons_recnum:
-	    stackify_push_cons_recnum (op);
-	    break;
+	  stackify_push_cons_recnum (op);
+	  break;
 
 	case stackify_opcode_push_string:
-	    stackify_push_string (op);
-	    break;
+	  stackify_push_string (op);
+	  break;
 
 	case stackify_opcode_push_symbol:
-	    stackify_push_symbol (op);
-	    break;
+	  stackify_push_symbol (op);
+	  break;
 
 	case stackify_opcode_push_uninterned_symbol:
-	    stackify_push_uninterned_symbol (op);
-	    break;
+	  stackify_push_uninterned_symbol (op);
+	  break;
 
 	case stackify_opcode_push_char:
-	    stackify_push_char (op);
-	    break;
+	  stackify_push_char (op);
+	  break;
 
 	case stackify_opcode_push_bit_string:
-	    stackify_push_bit_string (op);
-	    break;
+	  stackify_push_bit_string (op);
+	  break;
 
 	case stackify_opcode_push_empty_cons:
-	    stackify_push_empty_cons (op);
-	    break;
+	  stackify_push_empty_cons (op);
+	  break;
 
 	case stackify_opcode_pop_and_set_car:
-	    stackify_pop_and_set_car (op);
-	    break;
+	  stackify_pop_and_set_car (op);
+	  break;
 
 	case stackify_opcode_pop_and_set_cdr:
-	    stackify_pop_and_set_cdr (op);
-	    break;
+	  stackify_pop_and_set_cdr (op);
+	  break;
 
 	case stackify_opcode_push_consS:
-	    stackify_push_consS (op);
-	    break;
+	  stackify_push_consS (op);
+	  break;
 
 	case stackify_opcode_push_empty_vector:
-	    stackify_push_empty_vector (op);
-	    break;
+	  stackify_push_empty_vector (op);
+	  break;
 
 	case stackify_opcode_pop_and_vector_set:
-	    stackify_pop_and_vector_set (op);
-	    break;
+	  stackify_pop_and_vector_set (op);
+	  break;
 
 	case stackify_opcode_push_vector:
-	    stackify_push_vector (op);
-	    break;
+	  stackify_push_vector (op);
+	  break;
 
 	case stackify_opcode_push_empty_record:
-	    stackify_push_empty_record (op);
-	    break;
+	  stackify_push_empty_record (op);
+	  break;
 
 	case stackify_opcode_pop_and_record_set:
-	    stackify_pop_and_record_set (op);
-	    break;
+	  stackify_pop_and_record_set (op);
+	  break;
 
 	case stackify_opcode_push_record:
-	    stackify_push_record (op);
-	    break;
+	  stackify_push_record (op);
+	  break;
 
 	case stackify_opcode_push_lookup:
-	    stackify_push_lookup (op);
-	    break;
+	  stackify_push_lookup (op);
+	  break;
 
 	case stackify_opcode_store:
-	    stackify_store (op);
-	    break;
+	  stackify_store (op);
+	  break;
 
 	case stackify_opcode_push_constant:
-	    stackify_push_constant (op);
-	    break;
+	  stackify_push_constant (op);
+	  break;
 
 	case stackify_opcode_push_unassigned:
-	    stackify_push_unassigned (op);
-	    break;
+	  stackify_push_unassigned (op);
+	  break;
 
 	case stackify_opcode_push_primitive:
-	    stackify_push_primitive (op);
-	    break;
+	  stackify_push_primitive (op);
+	  break;
 
 	case stackify_opcode_push_primitive_lexpr:
-	    stackify_push_primitive_lexpr (op);
-	    break;
+	  stackify_push_primitive_lexpr (op);
+	  break;
 
 	case stackify_opcode_push_0:
 	case stackify_opcode_push_1:
@@ -1113,12 +1103,12 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_push_4:
 	case stackify_opcode_push_5:
 	case stackify_opcode_push_6:
-	    stackify_push_N (op);
-	    break;
+	  stackify_push_N (op);
+	  break;
 
 	case stackify_opcode_push__1:
-	    stackify_push__1 (op);
-	    break;
+	  stackify_push__1 (op);
+	  break;
 
 	case stackify_opcode_push_consS_0:
 	case stackify_opcode_push_consS_1:
@@ -1128,8 +1118,8 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_push_consS_5:
 	case stackify_opcode_push_consS_6:
 	case stackify_opcode_push_consS_7:
-	    stackify_push_consS_N (op);
-	    break;
+	  stackify_push_consS_N (op);
+	  break;
 
 	case stackify_opcode_pop_and_vector_set_0:
 	case stackify_opcode_pop_and_vector_set_1:
@@ -1139,8 +1129,8 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_pop_and_vector_set_5:
 	case stackify_opcode_pop_and_vector_set_6:
 	case stackify_opcode_pop_and_vector_set_7:
-	    stackify_pop_and_vector_set_N (op);
-	    break;
+	  stackify_pop_and_vector_set_N (op);
+	  break;
 
 	case stackify_opcode_push_vector_1:
 	case stackify_opcode_push_vector_2:
@@ -1150,8 +1140,8 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_push_vector_6:
 	case stackify_opcode_push_vector_7:
 	case stackify_opcode_push_vector_8:
-	    stackify_push_vector_N (op);
-	    break;
+	  stackify_push_vector_N (op);
+	  break;
 
 	case stackify_opcode_pop_and_record_set_0:
 	case stackify_opcode_pop_and_record_set_1:
@@ -1161,8 +1151,8 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_pop_and_record_set_5:
 	case stackify_opcode_pop_and_record_set_6:
 	case stackify_opcode_pop_and_record_set_7:
-	    stackify_pop_and_record_set_N (op);
-	    break;
+	  stackify_pop_and_record_set_N (op);
+	  break;
 
 	case stackify_opcode_push_record_1:
 	case stackify_opcode_push_record_2:
@@ -1172,8 +1162,8 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_push_record_6:
 	case stackify_opcode_push_record_7:
 	case stackify_opcode_push_record_8:
-	    stackify_push_record_N (op);
-	    break;
+	  stackify_push_record_N (op);
+	  break;
 
 	case stackify_opcode_push_lookup_0:
 	case stackify_opcode_push_lookup_1:
@@ -1183,8 +1173,8 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_push_lookup_5:
 	case stackify_opcode_push_lookup_6:
 	case stackify_opcode_push_lookup_7:
-	    stackify_push_lookup_N (op);
-	    break;
+	  stackify_push_lookup_N (op);
+	  break;
 
 	case stackify_opcode_store_0:
 	case stackify_opcode_store_1:
@@ -1194,8 +1184,8 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_store_5:
 	case stackify_opcode_store_6:
 	case stackify_opcode_store_7:
-	    stackify_store_N (op);
-	    break;
+	  stackify_store_N (op);
+	  break;
 
 	case stackify_opcode_push_primitive_0:
 	case stackify_opcode_push_primitive_1:
@@ -1205,69 +1195,66 @@ unstackify (unsigned char * bytes, entry_count_t db)
 	case stackify_opcode_push_primitive_5:
 	case stackify_opcode_push_primitive_6:
 	case stackify_opcode_push_primitive_7:
-	    stackify_push_primitive_N (op);
-	    break;
+	  stackify_push_primitive_N (op);
+	  break;
 
-	    /* Compiler support */
-	    /* Ordinary objects don't need the following */
+	  /* Compiler support */
+	  /* Ordinary objects don't need the following */
 
 	case stackify_opcode_push_nm_header:
-	    stackify_push_nm_header (op);
-	    break;
+	  stackify_push_nm_header (op);
+	  break;
 
 	case stackify_opcode_push_linkage_header_operator:
-	    stackify_push_linkage_header_operator (op);
-	    break;
+	  stackify_push_linkage_header_operator (op);
+	  break;
 
 	case stackify_opcode_push_linkage_header_reference:
-	    stackify_push_linkage_header_reference (op);
-	    break;
+	  stackify_push_linkage_header_reference (op);
+	  break;
 
 	case stackify_opcode_push_linkage_header_assignment:
-	    stackify_push_linkage_header_assignment (op);
-	    break;
+	  stackify_push_linkage_header_assignment (op);
+	  break;
 
 	case stackify_opcode_push_linkage_header_global:
-	    stackify_push_linkage_header_global (op);
-	    break;
+	  stackify_push_linkage_header_global (op);
+	  break;
 
 	case stackify_opcode_push_linkage_header_closure:
-	    stackify_push_linkage_header_closure (op);
-	    break;
+	  stackify_push_linkage_header_closure (op);
+	  break;
 
 	case stackify_opcode_push_ulong:
-	    stackify_push_ulong (op);
-	    break;
+	  stackify_push_ulong (op);
+	  break;
 
 	case stackify_opcode_push_label_entry:
-	    stackify_push_label_entry (op);
-	    break;
+	  stackify_push_label_entry (op);
+	  break;
 
 	case stackify_opcode_push_label_descriptor:
-	    stackify_push_label_descriptor (op);
-	    break;
+	  stackify_push_label_descriptor (op);
+	  break;
 
 	case stackify_opcode_retag_cc_block:
-	    stackify_retag_cc_block (op);
-	    break;
+	  stackify_retag_cc_block (op);
+	  break;
 
 	case stackify_opcode_cc_block_to_entry:
-	    stackify_cc_block_to_entry (op);
-	    break;
+	  stackify_cc_block_to_entry (op);
+	  break;
 
 	case stackify_opcode_push_return_code:
-	    stackify_push_return_code (op);
-	    break;
+	  stackify_push_return_code (op);
+	  break;
 	}
     }
 
-    /* Grab the result and return it */
+  /* Grab the result and return it */
 
-    result = (unstackify_pop ());
-    
-    free (scratch);
-
-    unstackify_restore_context (& context);
-
-    return (result);
+  result = (unstackify_pop ());
+  free (scratch);
+  unstackify_restore_context (&context);
+  return (result);
 }
