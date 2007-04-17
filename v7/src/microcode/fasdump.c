@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.18 2007/01/22 06:02:41 cph Exp $
+$Id: fasdump.c,v 9.68.2.19 2007/04/17 12:22:07 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -98,7 +98,8 @@ static void add_fixup (SCHEME_OBJECT *);
 static void run_fixups (void *);
 
 static void initialize_fasl_header (bool);
-static bool write_fasl_file (SCHEME_OBJECT *, fasl_file_handle_t);
+static bool write_fasl_file
+  (SCHEME_OBJECT *, SCHEME_OBJECT *, fasl_file_handle_t);
 
 /* FASDUMP:
 
@@ -512,9 +513,7 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
 {
   SCHEME_OBJECT * to = Free;
   SCHEME_OBJECT * prim_table_start;
-#ifdef CC_IS_C
   SCHEME_OBJECT * c_code_table_start;
-#endif
   bool result;
   PRIMITIVE_HEADER (2);
 
@@ -546,8 +545,8 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
   (FASLHDR_PRIMITIVE_TABLE_SIZE (fh)) = (primitive_table_export_length ());
   to += (FASLHDR_PRIMITIVE_TABLE_SIZE (fh));
 
-#ifdef CC_IS_C
   c_code_table_start = to;
+#ifdef CC_IS_C
   (FASLHDR_C_CODE_TABLE_SIZE (fh))
     = (c_code_table_export_length (& (FASLHDR_N_C_CODE_BLOCKS (fh))));
   to += (FASLHDR_C_CODE_TABLE_SIZE (fh));
@@ -582,7 +581,8 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
       if (!open_fasl_output_file (filename, (&handle)))
 	error_bad_range_arg (2);
 
-      result = (write_fasl_file (prim_table_start, handle));
+      result
+	= (write_fasl_file (prim_table_start, c_code_table_start, handle));
 
       if (!close_fasl_output_file (handle))
 	OS_file_remove (filename);
@@ -624,7 +624,9 @@ initialize_fasl_header (bool cc_p)
 }
 
 static bool
-write_fasl_file (SCHEME_OBJECT * prim_table_start, fasl_file_handle_t handle)
+write_fasl_file (SCHEME_OBJECT * prim_table_start,
+		 SCHEME_OBJECT * c_code_table_start,
+		 fasl_file_handle_t handle)
 {
   return
     ((write_fasl_header (fh, handle))
@@ -636,5 +638,8 @@ write_fasl_file (SCHEME_OBJECT * prim_table_start, fasl_file_handle_t handle)
 			     handle))
      && (write_to_fasl_file (prim_table_start,
 			     (FASLHDR_PRIMITIVE_TABLE_SIZE (fh)),
+			     handle))
+     && (write_to_fasl_file (c_code_table_start,
+			     (FASLHDR_C_CODE_TABLE_SIZE (fh)),
 			     handle)));
 }
