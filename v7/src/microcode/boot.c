@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: boot.c,v 9.118.2.9 2007/04/07 12:35:05 cph Exp $
+$Id: boot.c,v 9.118.2.10 2007/04/17 12:18:10 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -95,8 +95,6 @@ DECLARE_CRITICAL_SECTION ();
 #ifndef main_name
 #define main_name main
 #endif
-
-#define FILE_READABLE(filename) (OS_file_access ((filename), 4))
 
 int
 main_name (int argc, const char ** argv)
