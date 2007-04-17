@@ -1,6 +1,6 @@
 #| -*-Scheme-*-
 
-$Id: makegen.scm,v 1.7.2.6 2007/04/07 12:38:15 cph Exp $
+$Id: makegen.scm,v 1.7.2.7 2007/04/17 12:21:22 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -87,7 +87,11 @@ USA.
 		  output)
       (newline output)
       (newline output)
-      (write-rule "LIARC_BOOT_BUNDLES" "=" '("sf+compiler.so") output)
+      (write-rule "LIARC_BOOT_BUNDLES" "="
+		  (map (lambda (name)
+			 (string-append name ".so"))
+		       '("sf" "compiler" "star-parser" "cref"))
+		  output)
       (newline output)
       (write-rule "LIARC_INSTALL" "=" '("install-liarc-bundles") output)
       (newline output)
