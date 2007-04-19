@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.12 2007/01/06 00:09:57 cph Exp $
+$Id: gccode.h,v 9.60.2.13 2007/04/19 04:44:29 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -115,10 +115,10 @@ typedef struct
   ((* (GCT_VECTOR (current_gc_table))) ((object), (align_p)))
 
 #define GC_HANDLE_CC_ENTRY(object)					\
-  ((* (GCT_CC_ENTRY (current_gc_table))) ((object)))
+  ((* (GCT_CC_ENTRY (current_gc_table))) (object))
 
 #define GC_PRECHECK_FROM(from)						\
-  ((* (GCT_PRECHECK_FROM (current_gc_table))) ((from)))
+  ((* (GCT_PRECHECK_FROM (current_gc_table))) (from))
 
 #define GC_TRANSPORT_WORDS(from, n_words, align_p)			\
   ((* (GCT_TRANSPORT_WORDS (current_gc_table))) ((from), (n_words), (align_p)))
