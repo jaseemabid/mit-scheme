@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.15.2.8 2007/04/17 12:31:04 cph Exp $
+$Id: c.c,v 1.15.2.9 2007/04/21 02:01:31 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -77,17 +77,17 @@ typedef struct
   liarc_code_proc_t * code_proc; /* C handler for this entry point */
   void * data_proc;		/* Data handler for this compiled block */
   entry_count_t first_entry;	/* Base of dispatch for this block */
-  entry_count_t nentries;	/* Number of entry points in this block */
+  entry_count_t n_entries;	/* Number of entry points in this block */
   unsigned int flags;
 } compiled_block_t;
 
-static entry_count_t max_compiled_blocks = 0;
+static entry_count_t n_compiled_blocks = 0;
 static entry_count_t compiled_blocks_table_size = 0;
 static compiled_block_t * compiled_blocks = 0;
 static tree_node compiled_blocks_tree = 0;
 
 static long initial_entry_number = (-1);
-static entry_count_t max_compiled_entries = 0;
+static entry_count_t n_compiled_entries = 0;
 static entry_count_t compiled_entries_size = 0;
 static compiled_block_t ** compiled_entries = 0;
 
@@ -95,7 +95,7 @@ static compiled_block_t ** compiled_entries = 0;
 #define COMPILED_BLOCK_CODE_PROC(block) ((block) -> code_proc)
 #define _COMPILED_BLOCK_DATA_PROC(block) ((block) -> data_proc)
 #define COMPILED_BLOCK_FIRST_ENTRY(block) ((block) -> first_entry)
-#define COMPILED_BLOCK_NENTRIES(block) ((block) -> nentries)
+#define COMPILED_BLOCK_N_ENTRIES(block) ((block) -> n_entries)
 #define COMPILED_BLOCK_FLAGS(block) ((block) -> flags)
 
 #define COMPILED_BLOCK_DATA_PROC(block)					\
@@ -147,7 +147,7 @@ C_to_interface (SCHEME_OBJECT * entry)
       entry_count_t index = ((entry_count_t) (*entry));
       compiled_block_t * block;
 
-      if (index >= max_compiled_entries)
+      if (index >= n_compiled_entries)
 	{
 	  SET_EXP ((SCHEME_OBJECT) entry);
 	  return (ERR_EXECUTE_MANIFEST_VECTOR);
@@ -173,6 +173,7 @@ void
 initialize_C_interface (void)
 {
   if (initial_entry_number == (-1))
+    /* TRAMPOLINE_FUDGE allows for future growth of max_trampoline.  */
     initial_entry_number = (max_trampoline + TRAMPOLINE_FUDGE);
 
   if (! (((declare_trampoline_block (initial_entry_number)) == 0)
@@ -180,7 +181,7 @@ initialize_C_interface (void)
     {
       if (GET_PRIMITIVE != SHARP_F)
 	signal_error_from_primitive (ERR_FASLOAD_COMPILED_MISMATCH);
-      outf_fatal ("interface_initialize: error initializing compiled code.\n");
+      outf_fatal ("error initializing compiled code.\n");
       Microcode_Termination (TERM_EXIT);
     }
 }
@@ -216,7 +217,7 @@ unsigned long
 c_code_table_export_length (unsigned long * n_blocks_r)
 {
   compiled_block_t * block = compiled_blocks;
-  compiled_block_t * end = (block + max_compiled_blocks);
+  compiled_block_t * end = (block + n_compiled_blocks);
   unsigned long n = 1;
 
   while (block < end)
@@ -224,7 +225,7 @@ c_code_table_export_length (unsigned long * n_blocks_r)
       n += (1 + (BYTES_TO_WORDS ((strlen (COMPILED_BLOCK_NAME (block))) + 1)));
       block += 1;
     }
-  (*n_blocks_r) = max_compiled_blocks;
+  (*n_blocks_r) = n_compiled_blocks;
   return (n);
 }
 
@@ -232,12 +233,12 @@ void
 export_c_code_table (SCHEME_OBJECT * start)
 {
   compiled_block_t * block = compiled_blocks;
-  compiled_block_t * end = (block + max_compiled_blocks);
+  compiled_block_t * end = (block + n_compiled_blocks);
 
   (*start++) = (LONG_TO_FIXNUM (initial_entry_number));
   while (block < end)
     {
-      (*start++) = (LONG_TO_UNSIGNED_FIXNUM (COMPILED_BLOCK_NENTRIES (block)));
+      (*start++) = (LONG_TO_UNSIGNED_FIXNUM (COMPILED_BLOCK_N_ENTRIES (block)));
       strcpy (((char *) start), (COMPILED_BLOCK_NAME (block)));
       start += (BYTES_TO_WORDS ((strlen (COMPILED_BLOCK_NAME (block))) + 1));
       block += 1;
@@ -261,12 +262,12 @@ import_c_code_table (SCHEME_OBJECT * table, unsigned long n_blocks)
   if (compiled_blocks_tree != 0)
     tree_free (compiled_blocks_tree);
   
-  max_compiled_blocks = 0;
+  n_compiled_blocks = 0;
   compiled_blocks_table_size = 0;
   compiled_blocks = 0;
   compiled_blocks_tree = 0;
 
-  max_compiled_entries = 0;
+  n_compiled_entries = 0;
   compiled_entries_size = 0;
   compiled_entries = 0;
 
@@ -275,14 +276,14 @@ import_c_code_table (SCHEME_OBJECT * table, unsigned long n_blocks)
 
   for (count = 0; (count < n_blocks); count += 1)
     {
-      unsigned long nentries = (FIXNUM_TO_ULONG (*table++));
+      unsigned long n_entries = (FIXNUM_TO_ULONG (*table++));
       size_t nb = ((strlen ((const char *) table)) + 1);
       char * ncopy = (malloc (nb));
 
       if (ncopy == 0)
 	return (false);
       strcpy (ncopy, ((const char *) table));
-      if ((declare_compiled_code_ns (ncopy, nentries, unspecified_code)) != 0)
+      if ((declare_compiled_code_ns (ncopy, n_entries, unspecified_code)) != 0)
 	return (false);
       table += (BYTES_TO_WORDS (nb));
     }
@@ -292,56 +293,54 @@ import_c_code_table (SCHEME_OBJECT * table, unsigned long n_blocks)
 
 int
 declare_compiled_code_ns (const char * name,
-			  entry_count_t nentries,
+			  entry_count_t n_block_entries,
 			  liarc_code_proc_t * code_proc)
 {
   compiled_block_t * block = (find_compiled_block (name));
-  if (block != 0)
+  if (block == 0)
     {
-      if ((! (((COMPILED_BLOCK_CODE_PROC (block)) == unspecified_code)
-	      || ((COMPILED_BLOCK_CODE_PROC (block)) == code_proc)
-	      || (code_proc == unspecified_code)))
-	  || ((COMPILED_BLOCK_NENTRIES (block)) != nentries))
-	return (-1);
-      {
-	entry_count_t counter = (COMPILED_BLOCK_FIRST_ENTRY (block));
-	entry_count_t limit = (counter + nentries);
-	while (counter < limit)
-	  (compiled_entries[counter++]) = block;
-      }
-    }
-  else
-    {
-      entry_count_t entries_start = max_compiled_entries;
-      entry_count_t entries_end = (entries_start + nentries);
+      entry_count_t entries_start = n_compiled_entries;
+      entry_count_t entries_end = (entries_start + n_block_entries);
       tree_node new_tree;
 
-      if ((entries_end < entries_start)	/* Wrap around */
-	  || ((max_compiled_blocks >= compiled_blocks_table_size)
-	      && (!grow_compiled_blocks ()))
-	  || ((entries_end >= compiled_entries_size)
-	      && (!grow_compiled_entries (entries_end))))
+      if (! ((entries_start <= entries_end)
+	     && ((n_compiled_blocks < compiled_blocks_table_size)
+		 || (grow_compiled_blocks ()))
+	     && ((entries_end < compiled_entries_size)
+		 || (grow_compiled_entries (entries_end)))))
 	return (-1);
-    
+
       tree_error_message = 0;
-      new_tree
-	= (tree_insert (compiled_blocks_tree, name, max_compiled_blocks));
+      new_tree = (tree_insert (compiled_blocks_tree, name, n_compiled_blocks));
       if (tree_error_message != 0)
 	return (-1);
       compiled_blocks_tree = new_tree;
 
-      block = (compiled_blocks + (max_compiled_blocks++));
+      block = (compiled_blocks + (n_compiled_blocks++));
       (COMPILED_BLOCK_NAME (block)) = name;
       (COMPILED_BLOCK_CODE_PROC (block)) = code_proc;
       (_COMPILED_BLOCK_DATA_PROC (block)) = 0;
       (COMPILED_BLOCK_FIRST_ENTRY (block)) = entries_start;
-      (COMPILED_BLOCK_NENTRIES (block)) = nentries;
+      (COMPILED_BLOCK_N_ENTRIES (block)) = n_block_entries;
       (COMPILED_BLOCK_FLAGS (block)) = 0;
 
-      while (max_compiled_entries < entries_end)
-	(compiled_entries[max_compiled_entries++]) = block;
+      while (n_compiled_entries < entries_end)
+	(compiled_entries[n_compiled_entries++]) = block;
+      return (0);
     }
-  return (0);
+  else if ((((COMPILED_BLOCK_CODE_PROC (block)) == unspecified_code)
+	    || ((COMPILED_BLOCK_CODE_PROC (block)) == code_proc)
+	    || (code_proc == unspecified_code))
+	   && ((COMPILED_BLOCK_N_ENTRIES (block)) == n_block_entries))
+    {
+      entry_count_t counter = (COMPILED_BLOCK_FIRST_ENTRY (block));
+      entry_count_t limit = (counter + n_block_entries);
+      while (counter < limit)
+	(compiled_entries[counter++]) = block;
+      return (0);
+    }
+  else
+    return (-1);
 }
 
 static bool
@@ -359,7 +358,7 @@ grow_compiled_blocks (void)
   if (new_blocks != compiled_blocks)
     {
       compiled_block_t ** scan = compiled_entries;
-      compiled_block_t ** end = (scan + max_compiled_entries);
+      compiled_block_t ** end = (scan + n_compiled_entries);
       while (scan < end)
 	{
 	  (*scan) = (((*scan) - compiled_blocks) + new_blocks);
@@ -394,11 +393,11 @@ grow_compiled_entries (entry_count_t entries_end)
 
 int
 declare_compiled_code (const char * name,
-		       entry_count_t nentries,
+		       entry_count_t n_block_entries,
 		       liarc_decl_code_t * decl_code,
 		       liarc_code_proc_t * code_proc)
 {
-  int rc = (declare_compiled_code_ns (name, nentries, code_proc));
+  int rc = (declare_compiled_code_ns (name, n_block_entries, code_proc));
   return ((rc == 0) ? ((*decl_code) ()) : rc);
 }
 
@@ -477,10 +476,10 @@ declare_compiled_data_mult (unsigned int nslots,
 }
 
 static int
-declare_trampoline_block (entry_count_t nentries)
+declare_trampoline_block (entry_count_t n_block_entries)
 {
   return (declare_compiled_code_ns ("#trampoline_code_block",
-				    nentries,
+				    n_block_entries,
 				    trampoline_procedure));
 }
 
