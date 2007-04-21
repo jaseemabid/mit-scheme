@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.15.2.10 2007/04/21 02:04:35 cph Exp $
+$Id: c.c,v 1.15.2.11 2007/04/21 02:51:51 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -484,9 +484,9 @@ bool
 store_trampoline_insns (insn_t * entry, byte_t code)
 {
   /* Trampoline entries are stored in the lowest part of the
-     compiled_entries table.  That's  why we reserve those above.  */
+     compiled_entries table.  That's why we reserve those above.  */
   (*entry) = code;
-  return (true);
+  return (false);
 }
 
 static SCHEME_OBJECT *
