@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasdump.c,v 9.68.2.19 2007/04/17 12:22:07 cph Exp $
+$Id: fasdump.c,v 9.68.2.20 2007/04/21 01:44:12 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -573,7 +573,7 @@ When the file is reloaded, PROCEDURE is called with an argument of #F.")
 	faligned_constant += 1;
 
       (FASLHDR_HEAP_START (fh)) = faligned_heap;
-      (FASLHDR_HEAP_END (fh)) = to;
+      (FASLHDR_HEAP_END (fh)) = prim_table_start;
       (FASLHDR_CONSTANT_START (fh)) = faligned_constant;
       (FASLHDR_CONSTANT_END (fh)) = constant_alloc_next;
 
