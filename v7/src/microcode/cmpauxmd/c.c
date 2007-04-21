@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.15.2.9 2007/04/21 02:01:31 cph Exp $
+$Id: c.c,v 1.15.2.10 2007/04/21 02:04:35 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -333,10 +333,7 @@ declare_compiled_code_ns (const char * name,
 	    || (code_proc == unspecified_code))
 	   && ((COMPILED_BLOCK_N_ENTRIES (block)) == n_block_entries))
     {
-      entry_count_t counter = (COMPILED_BLOCK_FIRST_ENTRY (block));
-      entry_count_t limit = (counter + n_block_entries);
-      while (counter < limit)
-	(compiled_entries[counter++]) = block;
+      (COMPILED_BLOCK_CODE_PROC (block)) = code_proc;
       return (0);
     }
   else
@@ -486,12 +483,9 @@ declare_trampoline_block (entry_count_t n_block_entries)
 bool
 store_trampoline_insns (insn_t * entry, byte_t code)
 {
-  compiled_block_t * block = (find_compiled_block ("#trampoline_code_block"));
-  if ((block != 0) && (code < (COMPILED_BLOCK_NENTRIES (block))))
-    {
-      (*entry) = ((COMPILED_BLOCK_FIRST_ENTRY (block)) + code);
-      return (false);
-    }
+  /* Trampoline entries are stored in the lowest part of the
+     compiled_entries table.  That's  why we reserve those above.  */
+  (*entry) = code;
   return (true);
 }
 
