@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: fasload.c,v 9.96.2.20 2007/01/22 06:06:37 cph Exp $
+$Id: fasload.c,v 9.96.2.21 2007/04/21 02:19:25 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -79,6 +79,10 @@ static gc_handler_t handle_primitive;
 static gc_tuple_handler_t fasload_tuple;
 static gc_vector_handler_t fasload_vector;
 static gc_object_handler_t fasload_cc_entry;
+#ifndef HEAP_IN_LOW_MEMORY
+static gc_raw_address_to_object_t fasload_raw_address_to_object;
+static gc_raw_address_to_cc_entry_t fasload_raw_address_to_cc_entry;
+#endif
 static void * relocate_address (void *);
 
 static gc_table_t * intern_block_table (void);
@@ -401,6 +405,7 @@ load_file (fasl_file_handle_t handle)
 	 && (((FASLHDR_STACK_START (fh)) == 0)
 	     || ((FASLHDR_STACK_START (fh)) == new_stack_start))
 	 && ((FASLHDR_STACK_END (fh)) == new_stack_end)
+	 && ((FASLHDR_MEMORY_BASE (fh)) == memory_base)
 	 && (primitive_numbers_unchanged_p (new_prim_table))))
     {
       current_gc_table = (relocate_block_table ());
@@ -461,6 +466,10 @@ relocate_block_table (void)
       (GCT_TUPLE (&table)) = fasload_tuple;
       (GCT_VECTOR (&table)) = fasload_vector;
       (GCT_CC_ENTRY (&table)) = fasload_cc_entry;
+#ifndef HEAP_IN_LOW_MEMORY
+      (GCT_RAW_ADDRESS_TO_OBJECT (&table)) = fasload_raw_address_to_object;
+      (GCT_RAW_ADDRESS_TO_CC_ENTRY (&table)) = fasload_raw_address_to_cc_entry;
+#endif
 
       (GCT_ENTRY ((&table), TC_WEAK_CONS)) = gc_handle_pair;
       (GCT_ENTRY ((&table), TC_PRIMITIVE)) = handle_primitive;
@@ -484,10 +493,38 @@ DEFINE_GC_HANDLER (handle_primitive)
   return (scan + 1);
 }
 
+#ifdef HEAP_IN_LOW_MEMORY
+
+#define OLD_ADDRESS OBJECT_ADDRESS
+#define OLD_CC_ADDRESS CC_ENTRY_ADDRESS
+
+#else
+
+#define OLD_ADDRESS(object)						\
+  ((FASLHDR_MEMORY_BASE (fh)) + (OBJECT_DATUM (object)))
+
+#define OLD_CC_ADDRESS(object)						\
+  (((insn_t *) (FASLHDR_MEMORY_BASE (fh))) + (OBJECT_DATUM (object)))
+
+static SCHEME_OBJECT
+fasload_raw_address_to_object (unsigned int type, SCHEME_OBJECT * address)
+{
+  return (MAKE_OBJECT (type, (address - (FASLHDR_MEMORY_BASE (fh)))));
+}
+
+SCHEME_OBJECT
+fasload_raw_address_to_cc_entry (insn_t * address)
+{
+  return (MAKE_OBJECT (TC_COMPILED_ENTRY,
+		       (address - ((insn_t *) (FASLHDR_MEMORY_BASE (fh))))));
+}
+
+#endif /* !HEAP_IN_LOW_MEMORY */
+
 #define RELOCATE_OBJECT(object)						\
   (OBJECT_NEW_ADDRESS ((object),					\
 		       ((SCHEME_OBJECT *)				\
-			(relocate_address (OBJECT_ADDRESS (object))))))
+			(relocate_address (OLD_ADDRESS (object))))))
 
 static
 DEFINE_GC_TUPLE_HANDLER (fasload_tuple)
@@ -507,7 +544,7 @@ DEFINE_GC_OBJECT_HANDLER (fasload_cc_entry)
 #ifdef CC_SUPPORT_P
   return
     (CC_ENTRY_NEW_ADDRESS (object,
-			   (relocate_address (CC_ENTRY_ADDRESS (object)))));
+			   (relocate_address (OLD_CC_ADDRESS (object)))));
 #else
   return (object);
 #endif

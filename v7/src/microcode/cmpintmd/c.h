@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.h,v 1.9.2.5 2007/04/17 12:31:12 cph Exp $
+$Id: c.h,v 1.9.2.6 2007/04/21 02:19:49 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -119,7 +119,6 @@ The indexes refer to entries in the compiled_entries array.
 
 */
 
-#define CC_ARCH_INITIALIZE initialize_C_interface
 #define ASM_RESET_HOOK initialize_C_interface
 
 typedef SCHEME_OBJECT insn_t;
@@ -142,8 +141,8 @@ typedef SCHEME_OBJECT insn_t;
 #define READ_COMPILED_CLOSURE_TARGET(a, r) (read_compiled_closure_target (a))
 
 extern void initialize_C_interface (void);
-extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *);
-extern SCHEME_OBJECT read_compiled_closure_target (insn_t *);
+extern insn_t * read_uuo_target (SCHEME_OBJECT *);
+extern insn_t * read_compiled_closure_target (insn_t *);
 
 extern unsigned long c_code_table_export_length (unsigned long *);
 extern void export_c_code_table (SCHEME_OBJECT *);

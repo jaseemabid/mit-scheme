@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: c.c,v 1.1.2.3 2007/04/17 12:31:08 cph Exp $
+$Id: c.c,v 1.1.2.4 2007/04/21 02:19:43 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -74,16 +74,16 @@ write_cc_entry_offset (cc_entry_offset_t * ceo, insn_t * address)
   return (true);
 }
 
-SCHEME_OBJECT
+insn_t *
 read_compiled_closure_target (insn_t * start)
 {
-  return (MAKE_CC_ENTRY ((insn_t *) (start [CC_ENTRY_HEADER_SIZE + 1])));
+  return ((insn_t *) (start [CC_ENTRY_HEADER_SIZE + 1]));
 }
 
 void
-write_compiled_closure_target (SCHEME_OBJECT target, insn_t * start)
+write_compiled_closure_target (insn_t * target, insn_t * start)
 {
-  (start [CC_ENTRY_HEADER_SIZE + 1]) = ((insn_t) (CC_ENTRY_ADDRESS (target)));
+  (start [CC_ENTRY_HEADER_SIZE + 1]) = ((insn_t) target);
 }
 
 SCHEME_OBJECT
@@ -136,22 +136,22 @@ read_uuo_frame_size (SCHEME_OBJECT * saddr)
   return ((unsigned int) (saddr[1]));
 }
 
-SCHEME_OBJECT
+insn_t *
 read_uuo_target (SCHEME_OBJECT * saddr)
 {
-  return (MAKE_CC_ENTRY ((insn_t *) (saddr[0])));
+  return ((insn_t *) (saddr[0]));
 }
 
-SCHEME_OBJECT
+insn_t *
 read_uuo_target_no_reloc (SCHEME_OBJECT * saddr)
 {
-  return (MAKE_CC_ENTRY ((insn_t *) (saddr[0])));
+  return ((insn_t *) (saddr[0]));
 }
 
 void
-write_uuo_target (SCHEME_OBJECT target, SCHEME_OBJECT * saddr)
+write_uuo_target (insn_t * target, SCHEME_OBJECT * saddr)
 {
-  (saddr[0]) = ((SCHEME_OBJECT) (CC_ENTRY_ADDRESS (target)));
+  (saddr[0]) = ((SCHEME_OBJECT) target);
 }
 
 unsigned long

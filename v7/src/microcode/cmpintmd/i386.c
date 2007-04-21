@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.c,v 1.1.2.5 2007/04/17 12:31:17 cph Exp $
+$Id: i386.c,v 1.1.2.6 2007/04/21 02:19:55 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -76,23 +76,22 @@ start_closure_relocation (SCHEME_OBJECT * scan, reloc_ref_t * ref)
        (compiled_closure_entry (compiled_closure_start (scan + 1))));
 }
 
-SCHEME_OBJECT
+insn_t *
 read_compiled_closure_target (insn_t * start, reloc_ref_t * ref)
 {
   insn_t * addr = (start + CC_ENTRY_HEADER_SIZE + 1);
-  return
-    (MAKE_CC_ENTRY (((((insn_t *) (tospace_to_newspace (addr + 4)))
-		      - (ref->new_addr))
-		     + (ref->old_addr))
-		    + (* ((long *) addr))));
+  return (((((insn_t *) (tospace_to_newspace (addr + 4)))
+	    - (ref->new_addr))
+	   + (ref->old_addr))
+	  + (* ((long *) addr)));
 }
 
 void
-write_compiled_closure_target (SCHEME_OBJECT target, insn_t * start)
+write_compiled_closure_target (insn_t * target, insn_t * start)
 {
   insn_t * addr = (start + CC_ENTRY_HEADER_SIZE + 1);
-  (* ((long *) addr)) = ((CC_ENTRY_ADDRESS (target))
-			 - ((insn_t *) (tospace_to_newspace (addr + 4))));
+  (* ((long *) addr))
+    = (target - ((insn_t *) (tospace_to_newspace (addr + 4))));
 }
 
 #define SINGLE_CLOSURE_OFFSET						\
@@ -178,31 +177,30 @@ start_operator_relocation (SCHEME_OBJECT * saddr, reloc_ref_t * ref)
   (* ((insn_t **) saddr)) = nsaddr;
 }
 
-SCHEME_OBJECT
+insn_t *
 read_uuo_target (SCHEME_OBJECT * saddr, reloc_ref_t * ref)
 {
   insn_t * addr = (((insn_t *) saddr) + 4);
   insn_t * base = (tospace_to_newspace (addr + 4));
-  return
-    (MAKE_CC_ENTRY (((ref == 0)
-		     ? base
-		     : ((base - (ref->new_addr)) + (ref->old_addr)))
-		    + (* ((long *) addr))));
+  return (((ref == 0)
+	   ? base
+	   : ((base - (ref->new_addr)) + (ref->old_addr)))
+	  + (* ((long *) addr)));
 }
 
-SCHEME_OBJECT
+insn_t *
 read_uuo_target_no_reloc (SCHEME_OBJECT * saddr)
 {
   return (read_uuo_target (saddr, 0));
 }
 
 void
-write_uuo_target (SCHEME_OBJECT target, SCHEME_OBJECT * saddr)
+write_uuo_target (insn_t * target, SCHEME_OBJECT * saddr)
 {
   insn_t * addr = (((insn_t *) saddr) + 3);
   (*addr++) = 0xE9;		/* JMP rel32 */
-  (* ((long *) addr)) = ((CC_ENTRY_ADDRESS (target))
-			 - ((insn_t *) (tospace_to_newspace (addr + 4))));
+  (* ((long *) addr))
+    = (target - ((insn_t *) (tospace_to_newspace (addr + 4))));
 }
 
 #define TRAMPOLINE_ENTRY_SIZE 3

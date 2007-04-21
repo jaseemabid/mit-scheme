@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: i386.h,v 1.37.2.10 2007/01/06 00:10:00 cph Exp $
+$Id: i386.h,v 1.37.2.11 2007/04/21 02:20:01 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -325,9 +325,9 @@ extern void ASM_ENTRY_POINT (asm_trampoline_to_interface) (void);
 
 extern void ia32_cache_synchronize (void);
 extern void start_closure_relocation (SCHEME_OBJECT *, reloc_ref_t *);
-extern SCHEME_OBJECT read_compiled_closure_target (insn_t *, reloc_ref_t *);
+extern insn_t * read_compiled_closure_target (insn_t *, reloc_ref_t *);
 extern void start_operator_relocation (SCHEME_OBJECT *, reloc_ref_t *);
-extern SCHEME_OBJECT read_uuo_target (SCHEME_OBJECT *, reloc_ref_t *);
+extern insn_t * read_uuo_target (SCHEME_OBJECT *, reloc_ref_t *);
 extern void i386_reset_hook (void);
 
 extern int ia32_cpuid_needed;

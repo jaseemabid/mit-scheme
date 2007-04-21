@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gccode.h,v 9.60.2.13 2007/04/19 04:44:29 cph Exp $
+$Id: gccode.h,v 9.60.2.14 2007/04/21 02:19:31 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -88,6 +88,12 @@ typedef bool gc_ignore_object_p_t (SCHEME_OBJECT);
 #define DEFINE_GC_IGNORE_OBJECT_P(handler_name)				\
 bool									\
 handler_name (SCHEME_OBJECT object)
+
+typedef SCHEME_OBJECT gc_raw_address_to_object_t
+  (unsigned int, SCHEME_OBJECT *);
+typedef SCHEME_OBJECT * gc_object_to_raw_address_t (SCHEME_OBJECT);
+typedef SCHEME_OBJECT gc_raw_address_to_cc_entry_t (insn_t *);
+typedef insn_t * gc_cc_entry_to_raw_address_t (SCHEME_OBJECT);
 
 typedef struct
 {
@@ -98,6 +104,10 @@ typedef struct
   gc_precheck_from_t * precheck_from;
   gc_transport_words_t * transport_words;
   gc_ignore_object_p_t * ignore_object_p;
+  gc_raw_address_to_object_t * raw_address_to_object;
+  gc_object_to_raw_address_t * object_to_raw_address;
+  gc_raw_address_to_cc_entry_t * raw_address_to_cc_entry;
+  gc_cc_entry_to_raw_address_t * cc_entry_to_raw_address;
 } gc_table_t;
 
 #define GCT_ENTRY(table, type) (((table)->handlers) [(type)])
@@ -107,6 +117,10 @@ typedef struct
 #define GCT_PRECHECK_FROM(table) ((table)->precheck_from)
 #define GCT_TRANSPORT_WORDS(table) ((table)->transport_words)
 #define GCT_IGNORE_OBJECT_P(table) ((table)->ignore_object_p)
+#define GCT_RAW_ADDRESS_TO_OBJECT(table) ((table)->raw_address_to_object)
+#define GCT_OBJECT_TO_RAW_ADDRESS(table) ((table)->object_to_raw_address)
+#define GCT_RAW_ADDRESS_TO_CC_ENTRY(table) ((table)->raw_address_to_cc_entry)
+#define GCT_CC_ENTRY_TO_RAW_ADDRESS(table) ((table)->cc_entry_to_raw_address)
 
 #define GC_HANDLE_TUPLE(object, n_words)				\
   ((* (GCT_TUPLE (current_gc_table))) ((object), (n_words)))
@@ -122,6 +136,18 @@ typedef struct
 
 #define GC_TRANSPORT_WORDS(from, n_words, align_p)			\
   ((* (GCT_TRANSPORT_WORDS (current_gc_table))) ((from), (n_words), (align_p)))
+
+#define GC_RAW_ADDRESS_TO_OBJECT(type, addr)				\
+  ((* (GCT_RAW_ADDRESS_TO_OBJECT (current_gc_table))) ((type), (addr)))
+
+#define GC_OBJECT_TO_RAW_ADDRESS(object)				\
+  ((* (GCT_OBJECT_TO_RAW_ADDRESS (current_gc_table))) (object))
+
+#define GC_RAW_ADDRESS_TO_CC_ENTRY(addr)				\
+  ((* (GCT_RAW_ADDRESS_TO_CC_ENTRY (current_gc_table))) (addr))
+
+#define GC_CC_ENTRY_TO_RAW_ADDRESS(object)				\
+  ((* (GCT_CC_ENTRY_TO_RAW_ADDRESS (current_gc_table))) (object))
 
 extern gc_table_t * current_gc_table;
 
@@ -148,6 +174,10 @@ extern gc_precheck_from_t gc_precheck_from;
 extern gc_precheck_from_t gc_precheck_from_no_transport;
 extern gc_transport_words_t gc_transport_words;
 extern gc_transport_words_t gc_no_transport_words;
+extern gc_raw_address_to_object_t gc_raw_address_to_object;
+extern gc_object_to_raw_address_t gc_object_to_raw_address;
+extern gc_raw_address_to_cc_entry_t gc_raw_address_to_cc_entry;
+extern gc_cc_entry_to_raw_address_t gc_cc_entry_to_raw_address;
 
 extern void initialize_gc_table (gc_table_t *, bool);
 

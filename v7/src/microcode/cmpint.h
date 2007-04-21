@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.h,v 10.12.2.10 2007/01/06 00:09:57 cph Exp $
+$Id: cmpint.h,v 10.12.2.11 2007/04/21 02:19:19 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -125,7 +125,6 @@ extern bool write_cc_entry_offset (cc_entry_offset_t *, insn_t *);
 			  + ((CC_ENTRY_ADDRESS (entry))			\
 			     - ((insn_t *) (old_block))))))
 
-
 #define MAKE_CC_BLOCK(address)						\
   (MAKE_POINTER_OBJECT (TC_COMPILED_CODE_BLOCK, (address)))
 
@@ -200,8 +199,8 @@ extern long coerce_to_compiled (SCHEME_OBJECT, unsigned int, SCHEME_OBJECT *);
 extern SCHEME_OBJECT read_uuo_link (SCHEME_OBJECT, unsigned long);
 
 extern SCHEME_OBJECT read_uuo_symbol (SCHEME_OBJECT *);
-extern SCHEME_OBJECT read_uuo_target_no_reloc (SCHEME_OBJECT *);
-extern void write_uuo_target (SCHEME_OBJECT, SCHEME_OBJECT *);
+extern insn_t * read_uuo_target_no_reloc (SCHEME_OBJECT *);
+extern void write_uuo_target (insn_t *, SCHEME_OBJECT *);
 
 extern unsigned int read_uuo_frame_size (SCHEME_OBJECT *);
 
@@ -262,7 +261,7 @@ extern SCHEME_OBJECT compiled_closure_entry_to_target (insn_t *);
 
 /* Given a compiled-code entry point and the address of a closure
    entry, modifies the closure to invoke the entry point.  */
-extern void write_compiled_closure_target (SCHEME_OBJECT, insn_t *);
+extern void write_compiled_closure_target (insn_t *, insn_t *);
 
 /* Given a compiled-code block, returns true iff it is a closure's
    block.  */
@@ -370,7 +369,6 @@ extern void compiled_with_stack_marker (SCHEME_OBJECT);
 
 extern void compiler_initialize (bool);
 extern void compiler_reset (SCHEME_OBJECT);
-extern void compiler_reset_error (void) NORETURN;
 
 extern void declare_compiled_code_block (SCHEME_OBJECT);
 

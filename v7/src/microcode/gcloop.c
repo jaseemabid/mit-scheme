@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: gcloop.c,v 9.51.2.22 2007/04/17 14:35:39 cph Exp $
+$Id: gcloop.c,v 9.51.2.23 2007/04/21 02:19:37 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -110,11 +110,11 @@ static SCHEME_OBJECT current_object;
     tospace_open ();							\
 } while (false)
 
-#ifndef READ_REFERENCE_OBJECT
-#  define READ_REFERENCE_OBJECT(addr)					\
-     (MAKE_POINTER_OBJECT (TC_HUNK3, (* ((SCHEME_OBJECT **) (addr)))))
-#  define WRITE_REFERENCE_OBJECT(ref, addr)				\
-     ((* ((SCHEME_OBJECT **) (addr))) = (OBJECT_ADDRESS (ref)))
+#ifndef READ_REFERENCE_ADDRESS
+#  define READ_REFERENCE_ADDRESS(addr)					\
+     (* ((SCHEME_OBJECT **) (addr)))
+#  define WRITE_REFERENCE_ADDRESS(ref, addr)				\
+     ((* ((SCHEME_OBJECT **) (addr))) = (ref))
 #endif
 
 static SCHEME_OBJECT * weak_chain;
@@ -336,6 +336,10 @@ initialize_gc_table (gc_table_t * table, bool transport_p)
       (GCT_TRANSPORT_WORDS (table)) = gc_no_transport_words;
     }
   (GCT_IGNORE_OBJECT_P (table)) = 0;
+  (GCT_RAW_ADDRESS_TO_OBJECT (table)) = gc_raw_address_to_object;
+  (GCT_OBJECT_TO_RAW_ADDRESS (table)) = gc_object_to_raw_address;
+  (GCT_RAW_ADDRESS_TO_CC_ENTRY (table)) = gc_raw_address_to_cc_entry;
+  (GCT_CC_ENTRY_TO_RAW_ADDRESS (table)) = gc_cc_entry_to_raw_address;
 }
 
 gc_table_t *
@@ -580,6 +584,30 @@ DEFINE_GC_HANDLER (gc_handle_reference_trap)
   return (scan + 1);
 }
 
+SCHEME_OBJECT
+gc_raw_address_to_object (unsigned int type, SCHEME_OBJECT * address)
+{
+  return (MAKE_POINTER_OBJECT (type, address));
+}
+
+SCHEME_OBJECT *
+gc_object_to_raw_address (SCHEME_OBJECT object)
+{
+  return (OBJECT_ADDRESS (object));
+}
+
+SCHEME_OBJECT
+gc_raw_address_to_cc_entry (insn_t * address)
+{
+  return (MAKE_CC_ENTRY (address));
+}
+
+insn_t *
+gc_cc_entry_to_raw_address (SCHEME_OBJECT entry)
+{
+  return (CC_ENTRY_ADDRESS (entry));
+}
+
 DEFINE_GC_HANDLER (gc_handle_linkage_section)
 {
 #ifdef CC_SUPPORT_P
@@ -591,8 +619,13 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
     case LINKAGE_SECTION_TYPE_ASSIGNMENT:
       while (count > 0)
 	{
-	  WRITE_REFERENCE_OBJECT
-	    ((GC_HANDLE_TUPLE ((READ_REFERENCE_OBJECT (scan)), 3)),
+	  WRITE_REFERENCE_ADDRESS
+	    ((GC_OBJECT_TO_RAW_ADDRESS
+	      (GC_HANDLE_TUPLE
+	       ((GC_RAW_ADDRESS_TO_OBJECT
+		 (TC_HUNK3,
+		  (READ_REFERENCE_ADDRESS (scan)))),
+		3))),
 	     scan);
 	  scan += 1;
 	  count -= 1;
@@ -607,7 +640,10 @@ DEFINE_GC_HANDLER (gc_handle_linkage_section)
 	while (count > 0)
 	  {
 	    write_uuo_target
-	      ((GC_HANDLE_CC_ENTRY (READ_UUO_TARGET (scan, ref))),
+	      ((GC_CC_ENTRY_TO_RAW_ADDRESS
+		(GC_HANDLE_CC_ENTRY
+		 (GC_RAW_ADDRESS_TO_CC_ENTRY
+		  (READ_UUO_TARGET (scan, ref))))),
 	       scan);
 	    scan += UUO_LINK_SIZE;
 	    count -= 1;
@@ -639,7 +675,10 @@ DEFINE_GC_HANDLER (gc_handle_manifest_closure)
     while (count > 0)
       {
 	write_compiled_closure_target
-	  ((GC_HANDLE_CC_ENTRY (READ_COMPILED_CLOSURE_TARGET (start, ref))),
+	  ((GC_CC_ENTRY_TO_RAW_ADDRESS
+	    (GC_HANDLE_CC_ENTRY
+	     (GC_RAW_ADDRESS_TO_CC_ENTRY
+	      (READ_COMPILED_CLOSURE_TARGET (start, ref))))),
 	   start);
 	start = (compiled_closure_next (start));
 	count -= 1;

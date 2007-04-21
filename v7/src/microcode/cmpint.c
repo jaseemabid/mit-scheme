@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: cmpint.c,v 1.103.2.18 2007/04/17 12:30:59 cph Exp $
+$Id: cmpint.c,v 1.103.2.19 2007/04/21 02:19:13 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -139,7 +139,6 @@ SCHEME_OBJECT reflect_to_interface;
 static bool linking_cc_block_p = 0;
 
 static SCHEME_OBJECT make_compiler_utilities (void);
-static void compiler_reset_internal (void);
 static void open_stack_gap (unsigned long, unsigned long);
 static void close_stack_gap (unsigned long, unsigned long);
 static void recover_from_apply_error (SCHEME_OBJECT, unsigned long);
@@ -337,19 +336,16 @@ compiler_initialize (bool fasl_p)
   SET_PRIMITIVE (SHARP_F);
   compiler_processor_type = COMPILER_PROCESSOR_TYPE;
   compiler_interface_version = COMPILER_INTERFACE_VERSION;
-#ifdef CC_ARCH_INITIALIZE
-      CC_ARCH_INITIALIZE ();
-#endif
   if (fasl_p)
-    {
-      compiler_utilities = (make_compiler_utilities ());
-      compiler_reset_internal ();
-    }
+    compiler_reset (make_compiler_utilities ());
   else
     {
       /* Delay until after band-load, when compiler_reset will be invoked. */
       compiler_utilities = SHARP_F;
       return_to_interpreter = SHARP_F;
+#ifdef CC_ARCH_INITIALIZE
+      CC_ARCH_INITIALIZE ();
+#endif
     }
 }
 
@@ -401,7 +397,7 @@ make_compiler_utilities (void)
   block = (copy_to_constant_space (block, n_words));
   return (MAKE_CC_BLOCK (block));
 }
-
+
 void
 compiler_reset (SCHEME_OBJECT new_block)
 {
@@ -409,41 +405,29 @@ compiler_reset (SCHEME_OBJECT new_block)
   SCHEME_OBJECT h1;
   SCHEME_OBJECT h2;
   unsigned long n_words;
+  SCHEME_OBJECT * nbp;
 
   COMPILER_UTILITIES_HEADERS ((&h1), (&h2), (&n_words));
   h1 = (OBJECT_NEW_TYPE (TC_MANIFEST_VECTOR, h1));
-  if ((CC_BLOCK_P (new_block))
-      && ((MEMORY_REF (new_block, 0)) == h1)
-      && ((MEMORY_REF (new_block, 1)) == h2))
+  if (! ((CC_BLOCK_P (new_block))
+	 && ((MEMORY_REF (new_block, 0)) == h1)
+	 && ((MEMORY_REF (new_block, 1)) == h2)))
     {
-      compiler_utilities = new_block;
-      compiler_reset_internal ();
+      outf_fatal ("\nThe world image being restored is incompatible"
+		  " with this microcode.\n");
+      Microcode_Termination (TERM_COMPILER_DEATH);
+      /*NOTREACHED*/
     }
-  else
-    compiler_reset_error ();
-}
 
-static void
-compiler_reset_internal (void)
-{
-  SCHEME_OBJECT * block = (OBJECT_ADDRESS (compiler_utilities));
-  return_to_interpreter = (MAKE_CC_ENTRY (trampoline_entry_addr (block, 0)));
-  reflect_to_interface = (MAKE_CC_ENTRY (trampoline_entry_addr (block, 1)));
-
+  nbp = (OBJECT_ADDRESS (new_block));
+  compiler_utilities = new_block;
+  return_to_interpreter = (MAKE_CC_ENTRY (trampoline_entry_addr (nbp, 0)));
+  reflect_to_interface = (MAKE_CC_ENTRY (trampoline_entry_addr (nbp, 1)));
   SET_CLOSURE_FREE (0);
   SET_CLOSURE_SPACE (0);
   SET_REFLECTOR (reflect_to_interface);
 
   ASM_RESET_HOOK ();
-}
-
-void
-compiler_reset_error (void)
-{
-  outf_fatal ("\nThe band being restored and the compiled code interface\n");
-  outf_fatal ("in this microcode are inconsistent.\n");
-  Microcode_Termination (TERM_COMPILER_DEATH);
-  /*NOTREACHED*/
 }
 
 /* Main compiled-code entry points */
@@ -1821,13 +1805,14 @@ write_variable_cache (SCHEME_OBJECT cache,
 SCHEME_OBJECT
 read_uuo_link (SCHEME_OBJECT block, unsigned long offset)
 {
-  return (read_uuo_target_no_reloc (MEMORY_LOC (block, offset)));
+  return
+    (MAKE_CC_ENTRY (read_uuo_target_no_reloc (MEMORY_LOC (block, offset))));
 }
 
 static void
 write_uuo_link (SCHEME_OBJECT target, SCHEME_OBJECT * cache_address)
 {
-  write_uuo_target (target, cache_address);
+  write_uuo_target ((CC_ENTRY_ADDRESS (target)), cache_address);
 #ifdef FLUSH_I_CACHE_REGION
   if (!linking_cc_block_p)
     {
@@ -2227,7 +2212,7 @@ DEFINE_TRAMPOLINE (comutil_operator_lookup_trap)
   long code = (compiler_operator_reference_trap (cache, (&procedure)));
   if (code != PRIM_DONE)
     {
-      STACK_PUSH (read_uuo_target_no_reloc (cache_addr));
+      STACK_PUSH (MAKE_CC_ENTRY (read_uuo_target_no_reloc (cache_addr)));
       /* Next three for debugger.  */
       STACK_PUSH (ULONG_TO_FIXNUM (frame_size));
       STACK_PUSH (cc_block_environment (block));
@@ -2253,7 +2238,7 @@ DEFINE_SCHEME_ENTRY (comp_op_lookup_trap_restart)
       = (trampoline_storage (cc_entry_to_block_address (STACK_POP ())));
     SCHEME_OBJECT block = (store[1]);
     unsigned long offset = (OBJECT_DATUM (store[2]));
-    JUMP_TO_CC_ENTRY (read_uuo_target_no_reloc (MEMORY_LOC (block, offset)));
+    ENTER_SCHEME (read_uuo_target_no_reloc (MEMORY_LOC (block, offset)));
   }
 }
 
@@ -2650,10 +2635,7 @@ DEFINE_SCHEME_UTILITY_1 (comutil_compiled_closure_bkpt, entry_addr)
 
    Important: Do NOT reorder this table without changing the indices
    defined on the following page and the corresponding table in the
-   compiler.
-
-   In addition, this table must be declared before
-   compiler_reset_internal.  */
+   compiler.  */
 
 utility_proc_t * utility_table [] =
 {

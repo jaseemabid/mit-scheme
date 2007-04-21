@@ -1,6 +1,6 @@
 /* -*-C-*-
 
-$Id: svm1.c,v 1.1.2.4 2007/01/06 00:10:00 cph Exp $
+$Id: svm1.c,v 1.1.2.5 2007/04/21 02:20:07 cph Exp $
 
 Copyright (C) 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994,
     1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
@@ -351,7 +351,7 @@ read_uuo_frame_size (SCHEME_OBJECT * saddr)
      | ((unsigned int) (address[0])));
 }
 
-SCHEME_OBJECT
+insn_t *
 read_uuo_target (SCHEME_OBJECT * saddr)
 {
   insn_t * addr = ((insn_t *) (saddr + 2));
@@ -362,21 +362,21 @@ read_uuo_target (SCHEME_OBJECT * saddr)
     {
       eaddr |= (*--addr);
       if (addr == end)
-	return (MAKE_CC_ENTRY (eaddr));
+	return (eaddr);
       eaddr <<= 8;
     }
 }
 
-SCHEME_OBJECT
+insn_t *
 read_uuo_target_no_reloc (SCHEME_OBJECT * saddr)
 {
   return (read_uuo_target (saddr));
 }
 
 void
-write_uuo_target (SCHEME_OBJECT entry, SCHEME_OBJECT * saddr)
+write_uuo_target (insn_t * target, SCHEME_OBJECT * saddr)
 {
-  unsigned long eaddr = ((unsigned long) (CC_ENTRY_ADDRESS (entry)));
+  unsigned long eaddr = ((unsigned long) target);
   unsigned long frame_size = (OBJECT_DATUM (saddr[0]));
   insn_t * addr = ((insn_t *) saddr);
   insn_t * end = ((insn_t *) (saddr + 1));
