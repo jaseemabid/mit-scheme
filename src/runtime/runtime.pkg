@@ -4992,6 +4992,7 @@ USA.
 	  deregister-timer-event
 	  detach-thread
 	  exit-current-thread
+	  guarantee-thread-mutex-owned
 	  join-thread
 	  lock-thread-mutex
 	  make-thread-mutex
