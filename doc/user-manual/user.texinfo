@@ -227,7 +227,7 @@ installed in the customary way.  To install the @code{GDBM2} and
 @code{MHASH} options:
 
 @smallexample
-(cd gdbm && ./configure && make && make install)
+(cd gdbm && make && make install)
 (cd mhash && ./configure && make && make install)
 @end smallexample
 
