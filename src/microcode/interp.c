@@ -1161,6 +1161,17 @@ Interpret (int pop_return_p)
 	}
       break;
 
+    case RC_MULTIPLE_VALUES:
+      /* Frame consists of the consumer already popped into EXP. */
+      /* This is a normal return; tail-apply EXP to VAL. */
+     Will_Push (STACK_ENV_EXTRA_SLOTS + 2);
+      STACK_PUSH (GET_VAL);
+      STACK_PUSH (GET_EXP);
+      PUSH_APPLY_FRAME_HEADER (1);
+     Pushed ();
+      SET_PRIMITIVE (SHARP_F);
+      goto internal_apply;
+
     default:
       POP_RETURN_ERROR (ERR_INAPPLICABLE_CONTINUATION);
     }

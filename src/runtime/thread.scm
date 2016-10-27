@@ -871,20 +871,20 @@ USA.
       (if thread
 	  (let ((block-events? (thread/block-events? thread)))
 	    (set-thread/block-events?! thread #t)
-	    (let ((value
-		   ((ucode-primitive with-stack-marker 3)
-		    (lambda ()
-		      (set-interrupt-enables! interrupt-mask)
-		      (let ((value (thunk)))
-			(set-interrupt-enables! interrupt-mask/gc-ok)
-			value))
-		    'WITH-THREAD-EVENTS-BLOCKED
-		    block-events?)))
+	    (let ((value*))
+	      ((ucode-primitive with-stack-marker 3)
+	       (lambda ()
+		 (set-interrupt-enables! interrupt-mask)
+		 (call-with-values thunk
+		   (lambda values** (set! value* values**)))
+		 (set-interrupt-enables! interrupt-mask/gc-ok))
+	       'WITH-THREAD-EVENTS-BLOCKED
+	       block-events?)
 	      (let ((thread first-running-thread))
 		(if thread
 		    (set-thread/block-events?! thread block-events?)))
 	      (set-interrupt-enables! interrupt-mask)
-	      value))
+	      (apply values value*)))
 	  (begin
 	    (set-interrupt-enables! interrupt-mask)
 	    (thunk))))))

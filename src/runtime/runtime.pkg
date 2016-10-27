@@ -139,6 +139,7 @@ USA.
   (parent (runtime))
   (export ()
 	  bracketed-unparser-method
+	  call-with-values
 	  default-object
 	  default-object?
 	  error:not-unparser-method
@@ -164,8 +165,10 @@ USA.
 	  simple-unparser-method
 	  standard-unparser-method
 	  unparser-method?
+	  values
 	  with-absolutely-no-interrupts
 	  with-limited-interrupts
+	  with-values
 	  without-interrupts)
   (export (runtime)
 	  add-boot-init!
@@ -442,7 +445,6 @@ USA.
 	  append-hook-to-list
 	  apply
 	  bind-cell-contents!
-	  call-with-values
 	  cd
 	  cell-contents
 	  cell?
@@ -545,11 +547,9 @@ USA.
 	  unspecific
 	  user-initial-environment
 	  user-initial-prompt
-	  values
 	  wait-interval
 	  with-history-disabled
 	  with-interrupt-mask
-	  with-values
 	  write-to-string)
   (import (runtime thread)
 	  with-obarray-lock)

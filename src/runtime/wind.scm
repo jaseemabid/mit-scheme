@@ -83,10 +83,13 @@ USA.
 		(set-state-point/from-nearer! old-root after)
 		(set-state-space/nearest-point! space new-point))
 	      old-root)))))
-    (let ((value
-	   (with-stack-marker during %translate-to-state-point old-root)))
+    (let ((value*))
+      (with-stack-marker
+       (lambda ()
+	 (call-with-values during (lambda value** (set! value* value**))))
+       %translate-to-state-point old-root)
       (%translate-to-state-point old-root)
-      value)))
+      (apply values value*))))
 
 (define (%translate-to-state-point point)
   (%without-interrupts

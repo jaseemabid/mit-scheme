@@ -336,50 +336,6 @@ USA.
 	((null? rest) (constant/make (and expr (object/scode expr)) '()))
 	(else (error "Improper list."))))
 
-(define (values-expansion expr operands block)
-  (let ((block (block/make block #t '())))
-    (let ((variables
-	   (map (lambda (position)
-		  (variable/make&bind!
-		   block
-		   (string->uninterned-symbol
-		    (string-append "value-" (number->string position)))))
-		(iota (length operands)))))
-      (combination/make
-       expr
-       block
-       (procedure/make
-	#f
-	block lambda-tag:let variables '() #f
-	(let ((block (block/make block #t '())))
-	  (let ((variable (variable/make&bind! block 'RECEIVER)))
-	    (procedure/make
-	     #f block lambda-tag:unnamed (list variable) '() #f
-	     (declaration/make
-	      #f
-	      ;; The receiver is used only once, and all its operand
-	      ;; expressions are effect-free, so integrating here is
-	      ;; safe.
-	      (declarations/parse block '((INTEGRATE-OPERATOR RECEIVER)))
-	      (combination/make #f
-				block
-				(reference/make #f block variable)
-				(map (lambda (variable)
-				       (reference/make #f block variable))
-				     variables)))))))
-       operands))))
-
-(define (call-with-values-expansion expr operands block)
-  (if (and (pair? operands)
-	   (pair? (cdr operands))
-	   (null? (cddr operands)))
-      (combination/make expr
-			block
-			(combination/make #f block (car operands) '())
-			(cdr operands))
-      #f))
-
-
 ;;;; General CAR/CDR Encodings
 
 (define (call-to-car? expression)
@@ -713,7 +669,6 @@ USA.
 	    cadddr
 	    caddr
 	    cadr
-	    call-with-values
 	    car
 	    cdaaar
 	    cdaadr
@@ -764,9 +719,7 @@ USA.
 	    string->symbol
 	    symbol?
 	    third
-	    values
 	    weak-pair?
-	    with-values
 	    zero?)
 	  (map car global-primitives)))
 
@@ -798,7 +751,6 @@ USA.
 	   cadddr-expansion
 	   caddr-expansion
 	   cadr-expansion
-	   call-with-values-expansion
 	   car-expansion
 	   cdaaar-expansion
 	   cdaadr-expansion
@@ -849,9 +801,7 @@ USA.
 	   string->symbol-expansion
 	   symbol?-expansion
 	   third-expansion
-	   values-expansion
 	   weak-pair?-expansion
-	   call-with-values-expansion
 	   zero?-expansion)
 	  (map (lambda (p)
 		 (make-primitive-expander

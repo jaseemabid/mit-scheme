@@ -139,15 +139,6 @@ USA.
 (define bind-cell-contents!
   (object-component-binder cell-contents set-cell-contents!))
 
-(define (values . objects)
-  (lambda (receiver)
-    (apply receiver objects)))
-
-(define (call-with-values thunk receiver)
-  ((thunk) receiver))
-
-(define with-values call-with-values)
-
 (define (write-to-string object #!optional max)
   (if (or (default-object? max) (not max))
       (with-output-to-string (lambda () (write object)))

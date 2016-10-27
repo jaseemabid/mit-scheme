@@ -29,7 +29,7 @@ USA.
 
 #define RC_END_OF_COMPUTATION		0x00
 #define RC_JOIN_STACKLETS		0x01
-/* unused				0x02 */
+#define RC_MULTIPLE_VALUES		0x02
 #define RC_INTERNAL_APPLY		0x03
 /* unused			 	0x04 */
 #define RC_RESTORE_HISTORY 		0x05
@@ -98,7 +98,7 @@ USA.
 {									\
 /* 0x00 */		"non-existent-continuation",			\
 /* 0x01 */		"join-stacklets",				\
-/* 0x02 */		0,						\
+/* 0x02 */		"multiple-values",				\
 /* 0x03 */		"internal-apply",				\
 /* 0x04 */		0,						\
 /* 0x05 */		"restore-history",				\

@@ -113,6 +113,68 @@ Invokes PROCEDURE on the arguments in ARG-LIST.")
   }
 }
 
+static void
+close_stack_gap (unsigned long offset, unsigned long n_words)
+{
+  SCHEME_OBJECT * scan_from = (STACK_LOC (offset));
+  SCHEME_OBJECT * scan_end = (STACK_LOC (0));
+  SCHEME_OBJECT * scan_to = (STACK_LOC (offset + n_words));
+  while (scan_from != scan_end)
+    (STACK_LOCATIVE_PUSH (scan_to)) = (STACK_LOCATIVE_PUSH (scan_from));
+  stack_pointer = (STACK_LOC (n_words));
+}
+
+DEFINE_PRIMITIVE ("VALUES", Prim_values, 0, LEXPR,
+		  "(VALUES . values)\n\
+Return zero or more values to the current continuation.")
+{
+  PRIMITIVE_HEADER (LEXPR);
+  {
+    unsigned long n_args = GET_LEXPR_ACTUALS;
+    unsigned long extra = 0;
+
+#ifdef CC_SUPPORT_P
+    if (return_to_interpreter == (STACK_REF (n_args)))
+      extra = 1;
+#endif
+
+    if (CHECK_RETURN_CODE (RC_MULTIPLE_VALUES, n_args+extra))
+      {
+	SCHEME_OBJECT consumer = (CONT_EXP (n_args+extra));
+	close_stack_gap (n_args, CONTINUATION_SIZE+extra);
+	assert (RETURN_CODE_P (STACK_REF (n_args)));
+	STACK_PUSH (consumer);
+	PUSH_APPLY_FRAME_HEADER (n_args);
+	PRIMITIVE_ABORT (PRIM_APPLY);
+	/*NOTREACHED*/
+	PRIMITIVE_RETURN (UNSPECIFIC);
+      }
+    else
+      {
+	PRIMITIVE_RETURN (n_args == 0 ? UNSPECIFIC : (ARG_REF(1)));
+      }
+  }
+}
+
+DEFINE_PRIMITIVE ("CALL-WITH-VALUES", Prim_call_with_values, 2, 2,
+		  "(CALL-WITH-VALUES PRODUCER CONSUMER)\n\
+Call PRODUCER and tail-apply its return values to CONSUMER.")
+{
+  PRIMITIVE_HEADER (2);
+  canonicalize_primitive_context ();
+  {
+    SCHEME_OBJECT producer = (STACK_POP ());
+    STACK_PUSH (MAKE_RETURN_CODE (RC_MULTIPLE_VALUES));
+   Will_Push (STACK_ENV_EXTRA_SLOTS + 1);
+    STACK_PUSH (producer);
+    PUSH_APPLY_FRAME_HEADER (0);
+   Pushed ();
+    PRIMITIVE_ABORT (PRIM_APPLY);
+    /*NOTREACHED*/
+    PRIMITIVE_RETURN (UNSPECIFIC);
+  }
+}
+
 /* CALL-WITH-CURRENT-CONTINUATION creates a control point (a pointer
    to the current stack) and passes it to PROCEDURE as its only
    argument.  The inverse operation, typically called THROW, is

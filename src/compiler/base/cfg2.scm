@@ -178,9 +178,10 @@ USA.
 
 (define (cleanup-noop-nodes thunk)
   (fluid-let ((*noop-nodes* '()))
-    (let ((value (thunk)))
-      (for-each snode-delete! *noop-nodes*)
-      value)))
+    (call-with-values thunk
+      (lambda value*
+	(for-each snode-delete! *noop-nodes*)
+	(apply values value*)))))
 
 (define (make-false-pcfg)
   (snode->pcfg-false (make-noop-node)))

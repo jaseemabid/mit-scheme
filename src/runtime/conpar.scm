@@ -798,6 +798,8 @@ USA.
     (standard-frame 'NON-EXISTENT-CONTINUATION 2)
     (standard-frame 'POP-RETURN-ERROR 2)
     (standard-frame 'RESTORE-VALUE 2)
+    (if ((ucode-primitive get-primitive-address 2) 'CALL-WITH-VALUES #f)
+	(standard-frame 'MULTIPLE-VALUES 2))
 
     (standard-frame 'RESTORE-DONT-COPY-HISTORY 4 parser/restore-history)
     (standard-frame 'RESTORE-HISTORY 4 parser/restore-history)
