@@ -35,5 +35,9 @@
 				       rtl-output-port lap-output-port wrapper))
    (->environment '(compiler top-level))))
 
-(if (find-package '(COMPILER TOP-LEVEL) #f)
+(define (32bit-words?)
+  (= 4 (vector-ref (gc-space-status) 0)))
+
+(if (and (find-package '(COMPILER TOP-LEVEL) #f)
+	 (not (32bit-words?)))
     (patch-scode-optimizer))
