@@ -412,6 +412,8 @@ extern long apply_compiled_procedure (void);
 extern long return_to_compiled_code (void);
 
 extern void apply_compiled_from_primitive (unsigned long, SCHEME_OBJECT);
+extern bool apply_values_from_primitive (unsigned long);
+extern void compiled_call_with_values (SCHEME_OBJECT);
 extern void compiled_with_interrupt_mask
   (unsigned long, SCHEME_OBJECT, unsigned long);
 extern void compiled_with_stack_marker (SCHEME_OBJECT);

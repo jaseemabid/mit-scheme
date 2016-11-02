@@ -131,17 +131,25 @@ Return zero or more values to the current continuation.")
   PRIMITIVE_HEADER (LEXPR);
   {
     unsigned long n_args = GET_LEXPR_ACTUALS;
-    unsigned long extra = 0;
 
 #ifdef CC_SUPPORT_P
-    if (return_to_interpreter == (STACK_REF (n_args)))
-      extra = 1;
+    if ((CC_ENTRY_P (STACK_REF (n_args)))
+	|| (CHECK_RETURN_CODE (RC_REENTER_COMPILED_CODE, n_args)))
+      {
+	if (apply_values_from_primitive (n_args))
+	  {
+	    UN_POP_PRIMITIVE_FRAME (n_args);
+	    PRIMITIVE_RETURN (UNSPECIFIC);
+	  }
+	else
+	  PRIMITIVE_RETURN (n_args == 0 ? UNSPECIFIC : (ARG_REF(1)));
+      }
 #endif
 
-    if (CHECK_RETURN_CODE (RC_MULTIPLE_VALUES, n_args+extra))
+    if (CHECK_RETURN_CODE (RC_MULTIPLE_VALUES, n_args))
       {
-	SCHEME_OBJECT consumer = (CONT_EXP (n_args+extra));
-	close_stack_gap (n_args, CONTINUATION_SIZE+extra);
+	SCHEME_OBJECT consumer = (CONT_EXP (n_args));
+	close_stack_gap (n_args, CONTINUATION_SIZE);
 	assert (RETURN_CODE_P (STACK_REF (n_args)));
 	STACK_PUSH (consumer);
 	PUSH_APPLY_FRAME_HEADER (n_args);
@@ -149,10 +157,8 @@ Return zero or more values to the current continuation.")
 	/*NOTREACHED*/
 	PRIMITIVE_RETURN (UNSPECIFIC);
       }
-    else
-      {
-	PRIMITIVE_RETURN (n_args == 0 ? UNSPECIFIC : (ARG_REF(1)));
-      }
+
+    PRIMITIVE_RETURN (n_args == 0 ? UNSPECIFIC : (ARG_REF(1)));
   }
 }
 
@@ -161,7 +167,14 @@ DEFINE_PRIMITIVE ("CALL-WITH-VALUES", Prim_call_with_values, 2, 2,
 Call PRODUCER and tail-apply its return values to CONSUMER.")
 {
   PRIMITIVE_HEADER (2);
-  canonicalize_primitive_context ();
+#ifdef CC_SUPPORT_P
+  if ((CC_ENTRY_P (STACK_REF (2))))
+    {
+      compiled_call_with_values (STACK_POP ());
+      UN_POP_PRIMITIVE_FRAME (2);
+      PRIMITIVE_RETURN (UNSPECIFIC);
+    }
+#endif
   {
     SCHEME_OBJECT producer = (STACK_POP ());
     STACK_PUSH (MAKE_RETURN_CODE (RC_MULTIPLE_VALUES));

@@ -72,7 +72,8 @@ typedef enum
   REFLECT_CODE_INTERNAL_APPLY,
   REFLECT_CODE_RESTORE_INTERRUPT_MASK,
   REFLECT_CODE_STACK_MARKER,
-  REFLECT_CODE_CC_BKPT
+  REFLECT_CODE_CC_BKPT,
+  REFLECT_CODE_MULTIPLE_VALUES
 } reflect_code_t;
 
 #define PUSH_REFLECTION(code) do					\
@@ -1474,6 +1475,56 @@ apply_compiled_from_primitive (unsigned long n_args, SCHEME_OBJECT procedure)
     }
 }
 
+bool
+apply_values_from_primitive (unsigned long n_args)
+{
+  if ((reflect_to_interface == (STACK_REF (n_args)))
+      && ((ULONG_TO_FIXNUM (REFLECT_CODE_MULTIPLE_VALUES))
+	  == (STACK_REF (n_args + 1))))
+    {
+      SCHEME_OBJECT consumer = (STACK_REF (n_args + 2));
+      close_stack_gap (n_args, 3);
+      assert (CC_ENTRY_P (STACK_REF (n_args)));
+      apply_compiled_from_primitive (n_args, consumer);
+      return (true);
+    }
+
+  if ((return_to_interpreter == (STACK_REF (n_args)))
+      && (CHECK_RETURN_CODE (RC_MULTIPLE_VALUES, n_args + 1)))
+    {
+      SCHEME_OBJECT consumer = (STACK_REF (n_args + 2));
+      close_stack_gap (n_args + 1, 2);
+      apply_compiled_from_primitive (n_args, consumer);
+      return (true);
+    }
+
+  if ((CHECK_RETURN_CODE (RC_REENTER_COMPILED_CODE, n_args))
+      && (reflect_to_interface == (STACK_REF (n_args + 2)))
+      && ((ULONG_TO_FIXNUM (REFLECT_CODE_MULTIPLE_VALUES))
+	  == (STACK_REF (n_args + 3))))
+    {
+      SCHEME_OBJECT consumer = (STACK_REF (n_args + 4));
+      unsigned long lrc = (FIXNUM_TO_ULONG (CONT_EXP (n_args)));
+      close_stack_gap (n_args + 2, 3);
+      (STACK_REF (n_args + 1)) = lrc - 3;
+      assert (CC_ENTRY_P (STACK_REF (n_args + 2)));
+      STACK_PUSH (consumer);
+      PUSH_APPLY_FRAME_HEADER (n_args);
+      PRIMITIVE_ABORT (PRIM_APPLY);
+      /*NOTREACHED*/
+      return (true);
+    }
+
+  return (false);
+}
+
+void
+compiled_call_with_values (SCHEME_OBJECT producer)
+{
+  PUSH_REFLECTION (REFLECT_CODE_MULTIPLE_VALUES);
+  apply_compiled_from_primitive (0, producer);
+}
+
 void
 compiled_with_interrupt_mask (unsigned long old_mask,
 			      SCHEME_OBJECT receiver,
@@ -2064,6 +2115,13 @@ DEFINE_TRAMPOLINE (comutil_reflect_to_interface)
 	unsigned long frame_size = (OBJECT_DATUM (STACK_POP ()));
 	SCHEME_OBJECT procedure = (STACK_POP ());
 	TAIL_CALL_2 (comutil_apply, procedure, frame_size);
+      }
+
+    case REFLECT_CODE_MULTIPLE_VALUES:
+      {
+	SCHEME_OBJECT consumer = STACK_POP ();
+	STACK_PUSH (GET_VAL);
+	TAIL_CALL_2 (comutil_apply, consumer, 2);
       }
 
     case REFLECT_CODE_RESTORE_INTERRUPT_MASK:
