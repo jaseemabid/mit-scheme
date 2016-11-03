@@ -782,7 +782,7 @@ USA.
 (define (length<=? list length)
   (let loop ((list list) (length length))
     (cond ((pair? list) (and (> length 0) (loop (cdr list) (- length 1))))
-          ((null? list) (zero? length))
+          ((null? list) #t)
           (else (error "Invalid list:" list)))))
 
 (define (truncate->exact x)
