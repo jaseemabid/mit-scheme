@@ -26,9 +26,9 @@ USA.
 
 ;;;; XML: packaging
 
-(global-definitions "../runtime/runtime")
-(global-definitions "../sos/sos")
-(global-definitions "../star-parser/parser")
+(global-definitions runtime/)
+(global-definitions sos/)
+(global-definitions star-parser/parser)
 
 (define-package (runtime xml)
   (parent (runtime)))

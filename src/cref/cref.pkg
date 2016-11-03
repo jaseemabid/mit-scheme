@@ -26,7 +26,7 @@ USA.
 
 ;;;; CREF Packaging
 
-(global-definitions "../runtime/runtime")
+(global-definitions runtime/)
 
 (define-package (cross-reference)
   (files "mset"

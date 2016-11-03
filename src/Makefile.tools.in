@@ -210,7 +210,6 @@ compiler/machines/svm/assembler-db.scm:
 .PHONY: cref-cross-compiler
 cref-cross-compiler: cref-cross-cref
 cref-cross-compiler: cref-cross-sf
-cref-cross-compiler: cref-kludgerous-runtime
 	(echo '(with-working-directory-pathname "compiler"' && \
 	 echo '  (lambda ()' && \
 	 echo '    (cref/generate-trivial-constructor "compiler")))') \
@@ -231,7 +230,7 @@ syntax-cross-cref: cref-cross-cref
 	| $(HOST_SYNTAXER)
 
 .PHONY: cref-cross-cref
-cref-cross-cref: cref-kludgerous-runtime
+cref-cross-cref:
 	(echo '(with-working-directory-pathname "cref"' && \
 	 echo '  (lambda ()' && \
 	 echo '    (cref/generate-trivial-constructor "cref")))') \
@@ -252,7 +251,7 @@ syntax-cross-sf: cref-cross-sf
 	| $(HOST_SYNTAXER)
 
 .PHONY: cref-cross-sf
-cref-cross-sf: cref-kludgerous-runtime
+cref-cross-sf:
 	(echo '(with-working-directory-pathname "sf"' && \
 	 echo '  (lambda ()' && \
 	 echo '    (cref/generate-trivial-constructor "sf")))') \
@@ -264,20 +263,7 @@ cref-cross-sf: cref-kludgerous-runtime
 # be able to load and run macros for the target even if we are cross-
 # compiling, but currently that's not doable.
 .PHONY: compile-kludgerous-star-parser
-compile-kludgerous-star-parser: cref-kludgerous-runtime
+compile-kludgerous-star-parser:
 	(echo '(with-working-directory-pathname "star-parser"' && \
 	 echo '  (lambda () (load "compile")))') \
-	| $(HOST_TOOLCHAIN)
-
-# XXX This is a mega-kludge that should be abolished.  Parser.pkg has
-# (global-definitions "../../runtime"), which should refer to the
-# host's runtime packaging -- but that doesn't get installed anywhere!
-# So instead we pretend it refers to the target's runtime packaging
-# (which may be completely wrong for something we want to load into the
-# host).
-.PHONY: cref-kludgerous-runtime
-cref-kludgerous-runtime:
-	(echo '(with-working-directory-pathname "runtime"' && \
-	 echo '  (lambda ()' && \
-	 echo '    (cref/generate-trivial-constructor "runtime")))') \
 	| $(HOST_TOOLCHAIN)

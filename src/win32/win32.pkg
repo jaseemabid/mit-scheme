@@ -26,7 +26,7 @@ USA.
 
 ;;;; WIN32 Packaging
 
-(global-definitions "../runtime/runtime")
+(global-definitions runtime/)
 
 (define-package (win32)
   (parent ())

@@ -26,8 +26,8 @@ USA.
 
 ;;;; SSP: packaging
 
-(global-definitions "../runtime/runtime")
-(global-definitions "../xml/xml")
+(global-definitions runtime/)
+(global-definitions xml/)
 
 (define-package (runtime ssp)
   (parent (runtime)))

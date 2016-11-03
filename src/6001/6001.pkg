@@ -26,8 +26,8 @@ USA.
 
 ;;;; 6.001 packaging
 
-(global-definitions "../runtime/runtime")
-(global-definitions "../edwin/edwin")
+(global-definitions runtime/)
+(global-definitions edwin/)
 
 (define-package (student)
   (parent ()))

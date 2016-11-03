@@ -2,7 +2,7 @@
 
 FFI System Packaging |#
 
-(global-definitions "../runtime/runtime")
+(global-definitions runtime/)
 
 (define-package (ffi)
   (parent ())

@@ -26,7 +26,7 @@ USA.
 
 ;;;; Wabbit Hunting / Headhunting System Packaging
 
-(global-definitions "../runtime/runtime")
+(global-definitions runtime/)
 
 
 (define-package (gc-wabbits)

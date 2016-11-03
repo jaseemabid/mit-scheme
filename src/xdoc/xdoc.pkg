@@ -26,9 +26,9 @@ USA.
 
 ;;;; XDOC: packaging
 
-(global-definitions "../runtime/runtime")
-(global-definitions "../xml/xml")
-(global-definitions "../ssp/ssp")
+(global-definitions runtime/)
+(global-definitions xml/)
+(global-definitions ssp/)
 
 (define-package (runtime ssp xdoc)
   (files "xdoc")

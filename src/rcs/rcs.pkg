@@ -26,7 +26,7 @@ USA.
 
 ;;;; RCS Packaging
 
-(global-definitions "../runtime/runtime")
+(global-definitions runtime/)
 
 (define-package (rcs)
   (files "object")

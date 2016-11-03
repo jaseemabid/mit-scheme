@@ -26,8 +26,8 @@ USA.
 
 ;;;; Edwin Packaging
 
-(global-definitions "../runtime/runtime")
-(global-definitions "../xml/xml")
+(global-definitions runtime/)
+(global-definitions xml/)
 
 (define-package (edwin)
   (files "utils"
@@ -1126,7 +1126,7 @@ USA.
 	    update-xterm-screen-names!)))
 
  ((nt)
-  (global-definitions "../win32/win32")
+  (global-definitions win32/)
 
   (extend-package (edwin)
     (files "dos"

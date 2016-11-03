@@ -26,9 +26,9 @@ USA.
 
 ;;;; Compiler Packaging
 
-(global-definitions "../runtime/runtime")
-(global-definitions "../sf/sf")
-(global-definitions "../cref/cref")
+(global-definitions runtime/)
+(global-definitions sf/)
+(global-definitions cref/)
 
 (define-package (compiler)
   (files "base/switch"
