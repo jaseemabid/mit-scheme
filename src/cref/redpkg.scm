@@ -52,6 +52,10 @@ USA.
 	    globals)
        model-pathname))))
 
+;; This is a global variable for now, not a parameter, until we put out
+;; a release that has parameters.
+(define cref/global-definitions-directory #f)
+
 (define (find-global-definitions name model-pathname os-type)
   (let* ((filename (->pathname
 		    (cond ((symbol? name) (symbol-name name))
@@ -59,15 +63,17 @@ USA.
 			  (else (error "Not a globals name:" name)))))
 	 (pkd (package-set-pathname filename os-type)))
     (or
-     (if (symbol? name)
-	 (let ((pathname (ignore-errors
-			  (lambda ()
-			    (system-library-pathname pkd)))))
-	   (and (not (condition? pathname))
-		pathname))
-	 (let ((pathname (merge-pathnames pkd model-pathname)))
-	   (and (file-exists? pathname)
-		pathname)))
+     (let ((pathname
+	    (cond ((not (symbol? name))
+		   (merge-pathnames pkd model-pathname))
+		  (cref/global-definitions-directory
+		   => (lambda (d)
+			(merge-pathnames pkd (pathname-as-directory d))))
+		  (else
+		   (system-library-pathname pkd)))))
+       (and pathname
+	    (file-exists? pathname)
+	    pathname))
      (begin
        (warn "Could not find global definitions:" pkd)
        #f))))

@@ -63,6 +63,8 @@ USA.
 (define-package (cross-reference reader)
   (files "redpkg")
   (parent (cross-reference))
+  (export ()
+	  cref/global-definitions-directory)
   (export (cross-reference)
 	  read-file-analyses!
 	  read-package-model
