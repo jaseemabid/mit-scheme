@@ -382,6 +382,29 @@ USA.
           (write-octet 0 output-port)))
       (assert (zero? (modulo (port-position output-port) bytes-per-word))))))
 
+(define (fasdump-bit-string-n-words format bit-string)
+  (let ((bits-per-byte (format.bits-per-byte format))
+        (bytes-per-word (format.bytes-per-word format)))
+    (let ((bits-per-word (* bits-per-byte bytes-per-word)))
+      (quotient (+ (bit-string-length bit-string) (- bits-per-word 1))
+                bits-per-word))))
+
+(define (fasdump-bit-string state bit-string)
+  (let ((format (state.format state))
+        (port (state.output-port state))
+        (n (bit-string-length bit-string)))
+    (let ((write-untagged-word (format.write-untagged-word format))
+          (bits-per-byte (format.bits-per-byte format))
+          (bytes-per-word (format.bytes-per-word format)))
+      (let ((bits-per-word (* bits-per-byte bytes-per-word)))
+        (let loop ((i 0))
+          (if (< i n)
+              (let ((i* (min n (+ i bits-per-word)))
+                    (word (make-bit-string bits-per-word #f)))
+                (bit-substring-move-right! bit-string i i* word 0)
+                (write-untagged-word (bit-string->unsigned-integer word) port)
+                (loop i*))))))))
+
 (define (fasdump-bignum-n-digits format integer)
   (assert (exact-integer? integer))
   (let ((bits-per-digit (format.bits-per-bignum-digit format)))
@@ -481,6 +504,10 @@ USA.
            (if-pointer tc:character-string
                        ;; One for the real length, one for the manifest.
                        (+ 2 (fasdump-string-n-words format object))))
+          ((bit-string? object)
+           (if-pointer tc:bit-string
+                       ;; One for the real length, one for the manifest.
+                       (+ 2 (fasdump-bit-string-n-words format object))))
           ((symbol? object)
            (let ((type
                   (if (uninterned-symbol? object)
@@ -580,6 +607,11 @@ USA.
              (fasdump-word state tc:manifest-nm-vector n-words)
              (fasdump-word state 0 (string-length object))
              (fasdump-string state object)))
+          ((bit-string? object)
+           (let ((n-words (fasdump-bit-string-n-words format object)))
+             (fasdump-word state tc:manifest-nm-vector n-words)
+             (fasdump-word state 0 (bit-string-length object))
+             (fasdump-bit-string state object)))
           ((symbol? object)
            (fasdump-object state (symbol->string object))
            (if (uninterned-symbol? object)
@@ -706,6 +738,7 @@ USA.
 (define tc:assignment #x23)
 (define tc:big-fixnum #x0e)
 (define tc:big-flonum #x06)
+(define tc:bit-string #x2f)
 (define tc:broken-heart #x22)
 (define tc:character #x02)
 (define tc:character-string #x1e)
