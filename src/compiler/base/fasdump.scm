@@ -169,8 +169,8 @@ USA.
   (write-half write-halves high output-port))
 
 (define (write-be-halves write-halves write-half low high output-port)
-  (write-half write-halves low output-port)
-  (write-half write-halves high output-port))
+  (write-half write-halves high output-port)
+  (write-half write-halves low output-port))
 
 (define (write-64 write-halves n output-port)
   (write-halves* write-halves write-32 32 n output-port))
