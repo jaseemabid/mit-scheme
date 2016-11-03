@@ -31,6 +31,16 @@ USA.
 (lambda (#!optional architecture-name)
   (load-option 'COMPRESS)
   (load-option 'RB-TREE)
+  ;; XXX Mega-kludgerific !&@#*&!@$ for SEQUENCE scode type transition
+  ;; until we have a build story that isn't incestuouser than the
+  ;; European royal families.
+  (if (and (microcode-type/name->code 'SEQUENCE-2)
+           (not (microcode-type/name->code 'SEQUENCE)))
+      (let-syntax ((modify! (syntax-rules () ((MODIFY! x f) (SET! x (f x))))))
+        (modify! (access TYPE-ALIASES
+                         (->environment '(RUNTIME MICROCODE-TABLES)))
+                 (lambda (type-aliases)
+                   (cons '(SEQUENCE-2 SEQUENCE) type-aliases)))))
   ((access with-directory-rewriting-rule
 	   (->environment '(RUNTIME COMPILER-INFO)))
    (working-directory-pathname)
