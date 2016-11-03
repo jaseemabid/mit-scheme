@@ -518,6 +518,11 @@ USA.
            (if-primitive tc:primitive
                          (symbol->string (primitive-procedure-name object))
                          (primitive-procedure-arity object)))
+          ((reference-trap? object)
+           (let ((kind (reference-trap-kind object)))
+             (if (<= kind trap-max-immediate)
+                 (if-non-pointer tc:reference-trap kind)
+                 (if-pointer tc:reference-trap 2))))
           ((number? object)
            (fasdump-classify/number state object
              if-non-pointer if-pointer if-aligned-pointer))
@@ -601,7 +606,9 @@ USA.
           ((vector? object)
            (fasdump-word state tc:manifest-vector (vector-length object))
            (do ((i 0 (+ i 1))) ((>= i (vector-length object)))
-             (fasdump-object state (vector-ref object i))))
+             (let ((element
+                    (map-reference-trap (lambda () (vector-ref object i)))))
+               (fasdump-object state element))))
           ((string? object)
            (let ((n-words (fasdump-string-n-words format object)))
              (fasdump-word state tc:manifest-nm-vector n-words)
@@ -618,6 +625,10 @@ USA.
                (fasdump-word state tc:reference-trap trap:unbound)
                ;; XXX Hysterical raisins...
                (fasdump-word state tc:broken-heart 0)))
+          ((reference-trap? object)
+           (assert (> (reference-trap-kind object) trap-max-immediate))
+           (fasdump-object state (reference-trap-kind object))
+           (fasdump-object state (reference-trap-extra object)))
           ((number? object)
            (fasdump-storage/number state object))
           ((scode? object)
