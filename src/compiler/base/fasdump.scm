@@ -523,6 +523,8 @@ USA.
              (if (<= kind trap-max-immediate)
                  (if-non-pointer tc:reference-trap kind)
                  (if-pointer tc:reference-trap 2))))
+          ((interpreter-return-address? object)
+           (if-non-pointer tc:return-code (return-address/code object)))
           ((number? object)
            (fasdump-classify/number state object
              if-non-pointer if-pointer if-aligned-pointer))
@@ -784,6 +786,7 @@ USA.
 (define tc:primitive #x18)
 (define tc:ratnum #x3a)
 (define tc:reference-trap #x32)
+(define tc:return-code #x0b)
 (define tc:scode-quote #x03)
 (define tc:sequence #x19)
 (define tc:the-environment #x2d)
