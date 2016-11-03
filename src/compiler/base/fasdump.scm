@@ -531,11 +531,24 @@ USA.
           ((char? object) (if-non-pointer tc:character (char->integer object)))
           ((eqv? object #f) (if-non-pointer tc:null null:false))
           ((eqv? object #t) (if-non-pointer tc:constant constant:true))
-          ((eqv? object (unspecific-object))
-           (if-non-pointer tc:constant constant:unspecific))
+          ((eqv? object (aux-object))
+           (if-non-pointer tc:constant constant:aux))
           ((eqv? object (default-object))
            (if-non-pointer tc:constant constant:default))
-          ((null? object) (if-non-pointer tc:constant constant:null))
+          ((eqv? object (eof-object))
+           (if-non-pointer tc:constant constant:eof))
+          ((eqv? object (key-object))
+           (if-non-pointer tc:constant constant:key))
+          ((eqv? object (eof-object))
+           (if-non-pointer tc:constant constant:eof))
+          ((eqv? object (optional-object))
+           (if-non-pointer tc:constant constant:optional))
+          ((eqv? object (rest-object))
+           (if-non-pointer tc:constant constant:rest))
+          ((eqv? object (unspecific-object))
+           (if-non-pointer tc:constant constant:unspecific))
+          ((null? object)
+           (if-non-pointer tc:constant constant:null))
           (else
            (fasdump-error state "Invalid object for fasdump:" object)))))
 
@@ -784,7 +797,12 @@ USA.
 
 (define constant:true 0)
 (define constant:unspecific 1)
+(define constant:optional 3)
+(define constant:rest 4)
+(define constant:key 5)
+(define constant:eof 6)
 (define constant:default 7)
+(define constant:aux 8)
 (define constant:null 9)
 
 (define trap:unbound 2)
@@ -847,11 +865,13 @@ USA.
 
 ;;; XXX Hurk.
 
-(define (unspecific-object)
-  #!unspecific)
-
-(define (default-object)
-  #!default)
+(define (aux-object) #!aux)
+(define (default-object) #!default)
+(define (eof-object) (call-with-input-string "" read)) ;XXX
+(define (key-object) #!key)
+(define (optional-object) #!optional)
+(define (rest-object) #!rest)
+(define (unspecific-object) #!unspecific)
 
 ;;;; IEEE 754 utilities
 
