@@ -31,6 +31,8 @@ USA.
 
 ;;;; Architecture Parameters
 
+(define (target-fasdump-format) fasdump-format:sparc32)
+
 (define use-pre/post-increment? false)
 (define endianness 'BIG)
 (define-integrable addressing-granularity 8)

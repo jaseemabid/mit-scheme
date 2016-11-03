@@ -31,6 +31,8 @@ USA.
 
 ;;;; Architecture Parameters
 
+(define (target-fasdump-format) (error "m68k is hard.  Let's go shopping!"))
+
 (define use-pre/post-increment? true)
 (define-integrable endianness 'BIG)
 (define-integrable addressing-granularity 8)

@@ -31,6 +31,11 @@ USA.
 
 ;;;; Architecture Parameters
 
+;; XXX Oops -- there's no good answer here.  This is essentially a
+;; user-specified parameter.  Crap.  All the world's amd64 these days,
+;; right?
+(define (target-fasdump-format) fasdump-format:amd64) ;XXX Temporary kludge!
+
 (define use-pre/post-increment? #t)
 (define-integrable endianness 'LITTLE)
 (define-integrable addressing-granularity 8)

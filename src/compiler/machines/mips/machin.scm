@@ -31,6 +31,12 @@ USA.
 
 ;;;; Architecture Parameters
 
+(define (target-fasdump-format)
+  (case endianness
+    ((LITTLE) fasdump-format:mips32le)
+    ((BIG) fasdump-format:mips32be)
+    (else (error "Unknown MIPS parliamentary affiliation:" endianness))))
+
 (define use-pre/post-increment? false)
 (define endianness 'LITTLE)
 (define-integrable addressing-granularity 8)

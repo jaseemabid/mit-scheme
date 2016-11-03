@@ -31,6 +31,8 @@ USA.
 
 ;;;; Architecture Parameters
 
+(define (target-fasdump-format) fasdump-format:vax)
+
 (define use-pre/post-increment? true)
 (define-integrable endianness 'LITTLE)
 (define-integrable addressing-granularity 8)

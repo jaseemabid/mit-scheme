@@ -31,6 +31,8 @@ USA.
 
 ;;;; Architecture Parameters
 
+(define (target-fasdump-format) fasdump-format:hppa)
+
 (define use-pre/post-increment? true)
 (define-integrable endianness 'BIG)
 (define-integrable addressing-granularity 8)
