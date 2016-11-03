@@ -279,7 +279,7 @@ USA.
   (let ((name (car primitive))
         (arity (cdr primitive)))
     (let ((n-words (fasdump-string-n-words (state.format state) name)))
-      (fasdump-word state tc:fixnum arity)
+      (fasdump-word state tc:fixnum (fixnum->datum (state.format state) arity))
       (fasdump-word state tc:manifest-nm-vector n-words)
       (fasdump-word state 0 (string-length name))
       (fasdump-string state name))))
@@ -293,6 +293,9 @@ USA.
     ;; for number of bytes.
     (+ 3 (fasdump-string-n-words (state.format state) (car entry))))
   (reduce + 0 (map count-words (state.primitives-reversed state))))
+
+(define (fixnum->datum format fixnum)
+  (signed->unsigned (format.bits-per-datum format) fixnum))
 
 (define fasl-header-n-words 50)
 
@@ -510,9 +513,7 @@ USA.
     (cond ((exact-integer? object)
            (if (and (<= (format.least-fixnum format) object)
                     (<= object (format.greatest-fixnum format)))
-               (if-non-pointer tc:fixnum
-                               (signed->unsigned (format.bits-per-datum format)
-                                                 object))
+               (if-non-pointer tc:fixnum (fixnum->datum format object))
                (if-pointer tc:big-fixnum
                            (+ 1 (fasdump-bignum-n-words format object)))))
           ((exact-rational? object) (if-pointer tc:ratnum 2))
