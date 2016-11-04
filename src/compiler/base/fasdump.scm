@@ -296,7 +296,8 @@ USA.
         (arity (cdr primitive)))
     (let ((n-words (fasdump-string-n-words (state.format state) name)))
       (fasdump-word state tc:fixnum (fixnum->datum (state.format state) arity))
-      (fasdump-word state tc:manifest-nm-vector n-words)
+      ;; One word for number of bytes, one word for content.
+      (fasdump-word state tc:manifest-nm-vector (+ 1 n-words))
       (fasdump-word state 0 (string-length name))
       (fasdump-string state name))))
 
@@ -642,12 +643,14 @@ USA.
                (fasdump-object state element))))
           ((string? object)
            (let ((n-words (fasdump-string-n-words format object)))
-             (fasdump-word state tc:manifest-nm-vector n-words)
+             ;; One word for number of bytes, one word for content.
+             (fasdump-word state tc:manifest-nm-vector (+ 1 n-words))
              (fasdump-word state 0 (string-length object))
              (fasdump-string state object)))
           ((bit-string? object)
            (let ((n-words (fasdump-bit-string-n-words format object)))
-             (fasdump-word state tc:manifest-nm-vector n-words)
+             ;; One word for number of bits, one word for content.
+             (fasdump-word state tc:manifest-nm-vector (+ 1 n-words))
              (fasdump-word state 0 (bit-string-length object))
              (fasdump-bit-string state object)))
           ((symbol? object)
