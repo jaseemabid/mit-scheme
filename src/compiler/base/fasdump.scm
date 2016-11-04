@@ -257,18 +257,34 @@ USA.
   (apply error message irritants))
 
 (define (portable-fasdump object pathname format)
-  ;; XXX Write to temporary, rename to permanent.
-  (call-with-output-file pathname
-    (lambda (output-port)
-      (let ((state (make-state format output-port)))
-        (set-port-position! output-port
-                            (* fasl-header-n-words
-                               (format.bytes-per-word format)))
-        (fasdump-object state object)
-        (do () ((queue-empty? (state.queue state)))
-          (fasdump-storage state (dequeue! (state.queue state))))
-        (fasdump-primitive-table state)
-        (fasdump-header state)))))
+  (let ((temporary
+         (let ((root (string-append (->namestring pathname) ".tmp")))
+           (let loop ((i 0))
+             (if (> i 100)
+                 (error "Unable to allocate temporary file!"))
+             (let ((temporary (string-append root (number->string i))))
+               (if (allocate-temporary-file temporary)
+                   temporary
+                   (loop)))))))
+    (dynamic-wind
+     (let ((done? #f))
+       (lambda ()
+         (if done? (error "Re-entry into fasdump not allowed!"))))
+     (lambda ()
+       (call-with-output-file temporary
+         (lambda (output-port)
+           (let ((state (make-state format output-port)))
+             (set-port-position! output-port
+                                 (* fasl-header-n-words
+                                    (format.bytes-per-word format)))
+             (fasdump-object state object)
+             (do () ((queue-empty? (state.queue state)))
+               (fasdump-storage state (dequeue! (state.queue state))))
+             (fasdump-primitive-table state)
+             (fasdump-header state))))
+       (rename-file temporary pathname))
+     (lambda ()
+       (deallocate-temporary-file temporary)))))
 
 (define (fasdump-primitive-table state)
   (for-each (lambda (primitive)
