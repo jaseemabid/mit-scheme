@@ -120,7 +120,7 @@ USA.
         (low  (shiftout datum #x0000ffff)))
     (let ((high
            (bitwise-ior (shiftin type #xfc00)
-                        (shiftin high #x003f))))
+                        (shiftin high #x03ff))))
       (write-halves write-halves write-16 low high output-port))))
 
 (define (write-std64-word type datum write-halves output-port)
