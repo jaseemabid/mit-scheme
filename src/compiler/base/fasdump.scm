@@ -843,7 +843,7 @@ USA.
             (arity
              (encode-xlambda-arity (length required)
                                    (length optional)
-                                   (pair? rest))))
+                                   (if rest #t #f))))
         (fasdump-object state body)
         (fasdump-object state (list->vector variables))
         (fasdump-word state tc:fixnum arity)))))
