@@ -52,6 +52,7 @@ USA.
     "runtime/test-hash-table"
     "runtime/test-integer-bits"
     "runtime/test-mime-codec"
+    "runtime/test-multiple-values"
     "runtime/test-thread-queue"
     "runtime/test-process"
     "runtime/test-readwrite"
