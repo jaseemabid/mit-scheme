@@ -448,25 +448,28 @@ extent of a call to @var{before} or @var{after} is undefined.
 
 The following two procedures support multiple values.
 
-@deffn procedure call-with-values thunk procedure
-@cindex multiple values, from procedure
-@cindex values, multiple
-@var{Thunk} must be a procedure of no arguments, and @var{procedure}
-must be a procedure.  @var{Thunk} is invoked with a continuation that
-expects to receive multiple values; specifically, the continuation
-expects to receive the same number of values that @var{procedure}
-accepts as arguments.  @var{Thunk} must return multiple values using the
-@code{values} procedure.  Then @var{procedure} is called with the
-multiple values as its arguments.  The result yielded by @var{procedure}
-is returned as the result of @code{call-with-values}.
-@end deffn
-
 @deffn procedure values object @dots{}
 Returns multiple values.  The continuation in effect when this procedure
-is called must be a multiple-value continuation that was created by
-@code{call-with-values}.  Furthermore it must accept as many values as
-there are @var{object}s.
+is called must accept as many values as there are @var{object}s.
 @end deffn
+
+@deffn procedure call-with-values producer consumer
+@cindex multiple values, from procedure
+@cindex values, multiple
+
+Calls @var{producer} with no arguments and a continuation that, when
+passed some values, calls @var{consumer} with those values as
+arguments.  The continuation for the call to @var{consumer} is the
+continuation of the call to @code{call-with-values}.
+@end deffn
+
+@example
+(call-with-values (lambda () (values 4 5))
+                  (lambda (a b) b))     @result{} 5
+@end example
+@example
+(call-with-values * -)                  @result{} -1
+@end example
 
 @node Application Hooks, Generic Dispatch, Continuations, Procedures
 @section Application Hooks
