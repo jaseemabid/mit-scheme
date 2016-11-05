@@ -246,7 +246,7 @@ USA.
   (format #f read-only #t)
   (output-port #f read-only #t)
   (n-words 1)                           ;Always one object at the start.
-  (addresses (make-strong-eqv-hash-table) read-only #t)
+  (addresses (make-strong-eq-hash-table) read-only #t)
   (primitive-name->number (make-string-hash-table) read-only #t)
   (primitives-reversed '())
   (queue (make-queue) read-only #t))
