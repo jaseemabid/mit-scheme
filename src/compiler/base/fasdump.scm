@@ -265,7 +265,7 @@ USA.
              (let ((temporary (string-append root (number->string i))))
                (if (allocate-temporary-file temporary)
                    temporary
-                   (loop)))))))
+                   (loop (+ i 1))))))))
     (dynamic-wind
      (let ((done? #f))
        (lambda ()
@@ -364,6 +364,21 @@ USA.
      (= (* fasl-header-n-words (format.bytes-per-word (state.format state)))
         (port-position output-port)))))
 
+(define (with-fasdump-words state n-words procedure)
+  (let ((format (state.format state))
+        (output-port (state.output-port state)))
+    (let ((bytes-per-word (format.bytes-per-word format))
+          (before (port-position output-port)))
+      (begin0 (procedure)
+        (let ((after (port-position output-port)))
+          (assert (= (- after before) (* n-words bytes-per-word))
+            `(n-words ,n-words)
+            `(n-bytes ,(* n-words bytes-per-word))
+            `(before ,before)
+            `(after ,after))
+          ;; Make sure it stays around in case we enter the debugger.
+          (assert (reference-barrier procedure)))))))
+
 (define (fasdump-word state type datum)
   (let ((format (state.format state)))
     (assert (<= 0 type (bit-mask (format.bits-per-type format) 0)))
@@ -374,8 +389,10 @@ USA.
   (let* ((unaligned-address (fasdump-address state))
          (aligned-address (round-up (+ unaligned-address overhead) alignment))
          (n-words (- aligned-address (+ unaligned-address overhead))))
-    (do ((i 0 (+ i 1))) ((>= i n-words))
-      (fasdump-word state tc:null 0))))
+    (with-fasdump-words state n-words
+      (lambda ()
+        (do ((i 0 (+ i 1))) ((>= i n-words))
+          (fasdump-word state tc:null 0))))))
 
 (define (fasdump-float state value)
   (let ((format (state.format state)))
@@ -390,15 +407,17 @@ USA.
   (let ((format (state.format state))
         (output-port (state.output-port state)))
     (let ((bytes (string-length string))
-          (words (fasdump-string-n-words format string))
+          (n-words (fasdump-string-n-words format string))
           (bytes-per-word (format.bytes-per-word format)))
-      (let ((n-zeros (- (* words bytes-per-word) bytes)))
-        (write-string string output-port)
-        (do ((i 0 (+ i 1))) ((>= i n-zeros))
-          ;; XXX fasdump-byte, not write-octet
-          (write-octet 0 output-port)))
+      (with-fasdump-words state n-words
+        (lambda ()
+          (let ((n-zeros (- (* n-words bytes-per-word) bytes)))
+            (write-string string output-port)
+            (do ((i 0 (+ i 1))) ((>= i n-zeros))
+              ;; XXX fasdump-byte, not write-octet
+              (write-octet 0 output-port)))))
       (assert (zero? (modulo (port-position output-port) bytes-per-word))))))
-
+
 (define (fasdump-bit-string-n-words format bit-string)
   (let ((bits-per-byte (format.bits-per-byte format))
         (bytes-per-word (format.bytes-per-word format)))
@@ -414,14 +433,18 @@ USA.
           (bits-per-byte (format.bits-per-byte format))
           (bytes-per-word (format.bytes-per-word format)))
       (let ((bits-per-word (* bits-per-byte bytes-per-word)))
-        (let loop ((i 0))
-          (if (< i n)
-              (let ((i* (min n (+ i bits-per-word)))
-                    (word (make-bit-string bits-per-word #f)))
-                (bit-substring-move-right! bit-string i i* word 0)
-                (write-untagged-word (bit-string->unsigned-integer word) port)
-                (loop i*))))))))
-
+        (with-fasdump-words state
+            (fasdump-bit-string-n-words format bit-string)
+          (lambda ()
+            (let loop ((i 0))
+              (if (< i n)
+                  (let ((i* (min n (+ i bits-per-word)))
+                        (word (make-bit-string bits-per-word #f)))
+                    (bit-substring-move-right! bit-string i i* word 0)
+                    (let ((integer (bit-string->unsigned-integer word)))
+                      (write-untagged-word integer port))
+                    (loop i*))))))))))
+
 (define (fasdump-bignum-n-digits format integer)
   (assert (exact-integer? integer))
   (let ((bits-per-digit (format.bits-per-bignum-digit format)))
@@ -444,19 +467,22 @@ USA.
   (let ((format (state.format state)))
     (let ((n-digits (fasdump-bignum-n-digits format integer))
           (shift (format.bits-per-bignum-digit format)))
-      (let ((mask (bit-mask shift 0)))
-        (assert (<= 0 n-digits))
-        (assert (= n-digits (bitwise-and n-digits mask)))
-        (let ((sign (if (< integer 0) 1 0))
-              (magnitude (abs integer)))
-          (let ((header (replace-bit-field 1 shift n-digits sign)))
-            (fasdump-bignum-digit state header)
-            (let loop ((magnitude magnitude) (digits 0))
-              (if (zero? magnitude)
-                  (assert (= digits n-digits))
-                  (begin
-                    (fasdump-bignum-digit state (bitwise-and magnitude mask))
-                    (loop (shift-right magnitude shift) (+ digits 1)))))))))))
+      (with-fasdump-words state (fasdump-bignum-n-words format integer)
+        (lambda ()
+          (let ((mask (bit-mask shift 0)))
+            (assert (<= 0 n-digits))
+            (assert (= n-digits (bitwise-and n-digits mask)))
+            (let ((sign (if (< integer 0) 1 0))
+                  (magnitude (abs integer)))
+              (let ((header (replace-bit-field 1 shift n-digits sign)))
+                (fasdump-bignum-digit state header)
+                (let loop ((magnitude magnitude) (digits 0))
+                  (if (zero? magnitude)
+                      (assert (= digits n-digits))
+                      (let ((digit (bitwise-and magnitude mask)))
+                        (fasdump-bignum-digit state digit)
+                        (loop (shift-right magnitude shift)
+                              (+ digits 1)))))))))))))
 
 ;;;; Fasdumping an object
 
@@ -637,32 +663,43 @@ USA.
            (fasdump-object state (cdr object)))
           ((vector? object)
            (fasdump-word state tc:manifest-vector (vector-length object))
-           (do ((i 0 (+ i 1))) ((>= i (vector-length object)))
-             (let ((element
-                    (map-reference-trap (lambda () (vector-ref object i)))))
-               (fasdump-object state element))))
+           (with-fasdump-words state (vector-length object)
+             (lambda ()
+               (do ((i 0 (+ i 1))) ((>= i (vector-length object)))
+                 (let ((element
+                        (map-reference-trap
+                         (lambda () (vector-ref object i)))))
+                   (fasdump-object state element))))))
           ((string? object)
            (let ((n-words (fasdump-string-n-words format object)))
              ;; One word for number of bytes, one word for content.
              (fasdump-word state tc:manifest-nm-vector (+ 1 n-words))
-             (fasdump-word state 0 (string-length object))
-             (fasdump-string state object)))
+             (with-fasdump-words state (+ 1 n-words)
+               (lambda ()
+                 (fasdump-word state 0 (string-length object))
+                 (fasdump-string state object)))))
           ((bit-string? object)
            (let ((n-words (fasdump-bit-string-n-words format object)))
              ;; One word for number of bits, one word for content.
              (fasdump-word state tc:manifest-nm-vector (+ 1 n-words))
-             (fasdump-word state 0 (bit-string-length object))
-             (fasdump-bit-string state object)))
+             (with-fasdump-words state (+ 1 n-words)
+               (lambda ()
+                 (fasdump-word state 0 (bit-string-length object))
+                 (fasdump-bit-string state object)))))
           ((symbol? object)
-           (fasdump-object state (symbol->string object))
-           (if (uninterned-symbol? object)
-               (fasdump-word state tc:reference-trap trap:unbound)
-               ;; XXX Hysterical raisins...
-               (fasdump-word state tc:broken-heart 0)))
+           (with-fasdump-words state 2
+             (lambda ()
+               (fasdump-object state (symbol->string object))
+               (if (uninterned-symbol? object)
+                   (fasdump-word state tc:reference-trap trap:unbound)
+                   ;; XXX Hysterical raisins...
+                   (fasdump-word state tc:broken-heart 0)))))
           ((reference-trap? object)
            (assert (> (reference-trap-kind object) trap-max-immediate))
-           (fasdump-object state (reference-trap-kind object))
-           (fasdump-object state (reference-trap-extra object)))
+           (with-fasdump-words state 2
+             (lambda ()
+               (fasdump-object state (reference-trap-kind object))
+               (fasdump-object state (reference-trap-extra object)))))
           ((number? object)
            (fasdump-storage/number state object))
           ((scode? object)
@@ -678,21 +715,28 @@ USA.
     (cond ((exact-integer? object)
            (assert (or (< object (format.least-fixnum format))
                        (< (format.greatest-fixnum format) object)))
-           (fasdump-word state
-                         tc:manifest-nm-vector
-                         (fasdump-bignum-n-words format object))
-           (fasdump-bignum state object))
+           (let ((n-words (fasdump-bignum-n-words format object)))
+             (fasdump-word state tc:manifest-nm-vector n-words)
+             (with-fasdump-words state n-words
+               (lambda ()
+                 (fasdump-bignum state object)))))
           ((exact-rational? object)
-           (fasdump-object state (numerator object))
-           (fasdump-object state (denominator object)))
+           (with-fasdump-words state 2
+             (lambda ()
+               (fasdump-object state (numerator object))
+               (fasdump-object state (denominator object)))))
           ((inexact-real? object)
            (let ((words-per-float (format.words-per-float format)))
              (fasdump-align state 1 words-per-float)
              (fasdump-word state tc:manifest-nm-vector words-per-float)
-             (fasdump-float state object)))
+             (with-fasdump-words state words-per-float
+               (lambda ()
+                 (fasdump-float state object)))))
           ((complex? object)
-           (fasdump-object state (real-part object))
-           (fasdump-object state (imag-part object)))
+           (with-fasdump-words state 2
+             (lambda ()
+               (fasdump-object state (real-part object))
+               (fasdump-object state (imag-part object)))))
           (else
            (error "Fasdump bug -- number should have been rejected:"
                   object)))))
@@ -701,33 +745,50 @@ USA.
 
 (define (fasdump-storage/scode state scode)
   (cond ((access? scode)
-         (fasdump-object state (access-environment scode))
-         (fasdump-object state (access-name scode)))
+         (with-fasdump-words state 2
+           (lambda ()
+             (fasdump-object state (access-environment scode))
+             (fasdump-object state (access-name scode)))))
         ((assignment? scode)
-         (fasdump-object state (assignment-variable scode))
-         (fasdump-object state (assignment-value scode)))
+         (with-fasdump-words state 2
+           (lambda ()
+             (fasdump-object state (assignment-variable scode))
+             (fasdump-object state (assignment-value scode)))))
         ((combination? scode)
-         (let ((operands (combination-operands scode)))
-           (fasdump-word state tc:manifest-vector (+ 1 (length operands)))
-           (fasdump-object state (combination-operator scode))
-           (for-each (lambda (operand)
-                       (fasdump-object state operand))
-                     operands)))
+         (let* ((operands (combination-operands scode))
+                (n-words (+ 1 (length operands))))
+           (fasdump-word state tc:manifest-vector n-words)
+           (with-fasdump-words state n-words
+             (lambda ()
+               (fasdump-object state (combination-operator scode))
+               (for-each (lambda (operand)
+                           (fasdump-object state operand))
+                         operands)))))
         ((comment? scode)
-         (fasdump-object state (comment-expression scode))
-         (fasdump-object state (comment-text scode)))
+         (with-fasdump-words state 2
+           (lambda ()
+             (fasdump-object state (comment-expression scode))
+             (fasdump-object state (comment-text scode)))))
         ((conditional? scode)
-         (fasdump-object state (conditional-predicate scode))
-         (fasdump-object state (conditional-consequent scode))
-         (fasdump-object state (conditional-alternative scode)))
+         (with-fasdump-words state 3
+           (lambda ()
+             (fasdump-object state (conditional-predicate scode))
+             (fasdump-object state (conditional-consequent scode))
+             (fasdump-object state (conditional-alternative scode)))))
         ((definition? scode)
-         (fasdump-object state (definition-name scode))
-         (fasdump-object state (definition-value scode)))
+         (with-fasdump-words state 2
+           (lambda ()
+             (fasdump-object state (definition-name scode))
+             (fasdump-object state (definition-value scode)))))
         ((delay? scode)
-         (fasdump-object state (delay-expression scode)))
+         (with-fasdump-words state 1
+           (lambda ()
+             (fasdump-object state (delay-expression scode)))))
         ((disjunction? scode)
-         (fasdump-object state (disjunction-predicate scode))
-         (fasdump-object state (disjunction-alternative scode)))
+         (with-fasdump-words state 2
+           (lambda ()
+             (fasdump-object state (disjunction-predicate scode))
+             (fasdump-object state (disjunction-alternative scode)))))
         ((lambda? scode)
          (lambda-components* scode
            (lambda (name required optional rest body)
@@ -735,39 +796,49 @@ USA.
                  (fasdump-xlambda state name required optional rest body)
                  (fasdump-lambda state name required body)))))
         ((quotation? scode)
-         (fasdump-object state (quotation-expression scode)))
+         (with-fasdump-words state 1
+           (lambda ()
+             (fasdump-object state (quotation-expression scode)))))
         ((sequence? scode)
-         (let ((actions (sequence-actions scode)))
-           (assert (not (length<=? actions 1)))
-           (fasdump-object state (car actions))
-           (fasdump-object state
-                           (if (length<=? actions 2)
-                               (cadr actions)
-                               (make-sequence (cdr actions))))))
+         (with-fasdump-words state 2
+           (lambda ()
+             (let ((actions (sequence-actions scode)))
+               (assert (not (length<=? actions 1)))
+               (fasdump-object state (car actions))
+               (fasdump-object state
+                               (if (length<=? actions 2)
+                                   (cadr actions)
+                                   (make-sequence (cdr actions))))))))
         ((variable? scode)
-         (fasdump-object state (variable-name scode))
-         ;; XXX Hysterical raisins...
-         (fasdump-object state #t)
-         (fasdump-object state '()))
+         (with-fasdump-words state 3
+           (lambda ()
+             (fasdump-object state (variable-name scode))
+             ;; XXX Hysterical raisins...
+             (fasdump-object state #t)
+             (fasdump-object state '()))))
         (else
          (error "Fasdump bug -- this is not scode!" scode))))
 
 (define (fasdump-lambda state name required body)
-  (fasdump-object state body)
-  (fasdump-object state (list->vector (cons name required))))
+  (with-fasdump-words state 2
+    (lambda ()
+      (fasdump-object state body)
+      (fasdump-object state (list->vector (cons name required))))))
 
 (define (fasdump-xlambda state name required optional rest body)
-  (assert (length<=? required #xff))
-  (assert (length<=? optional #xff))
-  (let ((variables
-         (cons name (append required optional (if rest (list rest) '()))))
-        (arity
-         (encode-xlambda-arity (length required)
-                               (length optional)
-                               (pair? rest))))
-    (fasdump-object state body)
-    (fasdump-object state (list->vector variables))
-    (fasdump-word state tc:fixnum arity)))
+  (with-fasdump-words state 3
+    (lambda ()
+      (assert (length<=? required #xff))
+      (assert (length<=? optional #xff))
+      (let ((variables
+             (cons name (append required optional (if rest (list rest) '()))))
+            (arity
+             (encode-xlambda-arity (length required)
+                                   (length optional)
+                                   (pair? rest))))
+        (fasdump-object state body)
+        (fasdump-object state (list->vector variables))
+        (fasdump-word state tc:fixnum arity)))))
 
 (define (encode-xlambda-arity n-required n-optional rest?)
   (assert (<= 0 n-required #xff))
