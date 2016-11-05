@@ -798,11 +798,18 @@ USA.
              (fasdump-object state (disjunction-predicate scode))
              (fasdump-object state (disjunction-alternative scode)))))
         ((lambda? scode)
-         (lambda-components* scode
-           (lambda (name required optional rest body)
-             (if (or (pair? optional) rest)
-                 (fasdump-xlambda state name required optional rest body)
-                 (fasdump-lambda state name required body)))))
+         (lambda-components scode
+           (lambda (name required optional rest aux decls body)
+             (let* ((body
+                     (if (pair? decls)
+                         (make-sequence
+                          (list (make-block-declaration decls)
+                                body))
+                         body))
+                    (body (make-auxiliary-lambda aux body)))
+               (if (or (pair? optional) rest)
+                   (fasdump-xlambda state name required optional rest body)
+                   (fasdump-lambda state name required body))))))
         ((quotation? scode)
          (with-fasdump-words state 1
            (lambda ()
@@ -855,6 +862,27 @@ USA.
         (b (shiftin n-required          #x0ff00))
         (c (shiftin n-optional          #x000ff)))
     (bitwise-ior a (bitwise-ior b c))))
+
+(define lambda-tag:internal-lambda '|#[internal-lambda]|)
+
+(define (make-auxiliary-lambda auxiliaries body)
+  (if (not (pair? auxiliaries))
+      body
+      (make-combination
+       ;; NOTE: The list of auxiliaries must be empty here to avoid
+       ;; infinite recursion!
+       (let ((name lambda-tag:internal-lambda)
+             (required auxiliaries)
+             (optional '())
+             (rest #f)
+             (aux '())
+             (decls '())
+             (body body))
+         (make-lambda name required optional rest aux decls body))
+       (map (lambda (auxiliary)
+              auxiliary                 ;ignore
+              (make-unassigned-reference-trap))
+            auxiliaries))))
 
 ;;;; Type codes and other magic numbers
 
