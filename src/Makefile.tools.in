@@ -66,9 +66,9 @@ HOST_COMPILER = $(HOST_TOOLCHAIN)
 HOST_RUNTIME = '$(MIT_SCHEME_EXE)' --batch-mode --band runtime.com
 HOST_SYNTAXER = '$(MIT_SCHEME_EXE)' --batch-mode --band runtime.com \
 	--eval '(load-option (quote CREF))' \
-	--eval '(load-option (quote SF))' --load tools/patch
+	--eval '(load-option (quote SF))'
 HOST_TOOLCHAIN = '$(MIT_SCHEME_EXE)' --batch-mode \
-	--eval '(load-option (quote CREF))' --load tools/patch
+	--eval '(load-option (quote CREF))'
 
 SUBDIRS = compiler cref runtime sf star-parser
 

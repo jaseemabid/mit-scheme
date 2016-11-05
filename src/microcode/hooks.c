@@ -113,17 +113,6 @@ Invokes PROCEDURE on the arguments in ARG-LIST.")
   }
 }
 
-static void
-close_stack_gap (unsigned long offset, unsigned long n_words)
-{
-  SCHEME_OBJECT * scan_from = (STACK_LOC (offset));
-  SCHEME_OBJECT * scan_end = (STACK_LOC (0));
-  SCHEME_OBJECT * scan_to = (STACK_LOC (offset + n_words));
-  while (scan_from != scan_end)
-    (STACK_LOCATIVE_PUSH (scan_to)) = (STACK_LOCATIVE_PUSH (scan_from));
-  stack_pointer = (STACK_LOC (n_words));
-}
-
 DEFINE_PRIMITIVE ("VALUES", Prim_values, 0, LEXPR,
 		  "(VALUES . values)\n\
 Return zero or more values to the current continuation.")
@@ -149,7 +138,15 @@ Return zero or more values to the current continuation.")
     if (CHECK_RETURN_CODE (RC_MULTIPLE_VALUES, n_args))
       {
 	SCHEME_OBJECT consumer = (CONT_EXP (n_args));
-	close_stack_gap (n_args, CONTINUATION_SIZE);
+	unsigned long n_words = CONTINUATION_SIZE;
+	{
+	  SCHEME_OBJECT * scan_from = (STACK_LOC (n_args));
+	  SCHEME_OBJECT * scan_end = (STACK_LOC (0));
+	  SCHEME_OBJECT * scan_to = (STACK_LOC (n_args + n_words));
+	  while (scan_from != scan_end)
+	    (STACK_LOCATIVE_PUSH (scan_to)) = (STACK_LOCATIVE_PUSH (scan_from));
+	  stack_pointer = (STACK_LOC (n_words));
+	}
 	assert (RETURN_CODE_P (STACK_REF (n_args)));
 	STACK_PUSH (consumer);
 	PUSH_APPLY_FRAME_HEADER (n_args);

@@ -127,23 +127,11 @@ USA.
    (fix:and limit-mask (get-interrupt-enables))
    procedure))
 
-(define values
-  (or ((ucode-primitive get-primitive-address 2) 'VALUES #f)
-      (named-lambda (values . objects)
-	(if (= 1 (length objects))
-	    (car objects)
-	    (cons '%VALUES objects)))))
+(define values (ucode-primitive values -1))
 
-(define call-with-values
-  (or ((ucode-primitive get-primitive-address 2) 'CALL-WITH-VALUES #f)
-      (named-lambda (call-with-values thunk receiver)
-	(let ((val (thunk)))
-	  (if (and (pair? val)
-		   (eq? '%VALUES (car val)))
-	      (apply receiver (cdr val))
-	      (receiver val))))))
+(define call-with-values (ucode-primitive call-with-values 2))
 
-(define with-values call-with-values)
+(define with-values (ucode-primitive call-with-values 2))
 
 (define (object-constant? object)
   ((ucode-primitive constant?) object))
