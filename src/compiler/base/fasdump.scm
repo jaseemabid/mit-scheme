@@ -656,7 +656,10 @@ USA.
   (assert (let ((address
                  (or (hash-table/get (state.addresses state) object #f)
                      (error "Unallocated queued object:" object))))
-            (fasdump-at-address? state address)))
+            (fasdump-at-address? state address))
+    `(object ,object)
+    `(object address ,(hash-table/get (state.addresses state) object #f))
+    `(current address ,(fasdump-address state)))
   (let ((format (state.format state)))
     (cond ((pair? object)
            (fasdump-object state (car object))
