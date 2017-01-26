@@ -211,6 +211,7 @@ USA.
 	  fix:and
 	  fix:andc
 	  fix:divide
+	  fix:end-index
 	  fix:fixnum?
 	  fix:gcd
 	  fix:iota
@@ -225,6 +226,7 @@ USA.
 	  fix:quotient
 	  fix:remainder
 	  fix:smallest-value
+	  fix:start-index
 	  fix:xor
 	  fix:zero?
 	  fixnum?
@@ -710,6 +712,7 @@ USA.
   (parent (runtime))
   (export ()
 	  ;; BEGIN deprecated bindings
+	  (substring->symbol string->symbol)
 	  (symbol-append symbol)
 	  error:not-interned-symbol
 	  error:not-symbol
@@ -725,20 +728,14 @@ USA.
 	  string->uninterned-symbol
 	  string-head->symbol
 	  string-tail->symbol
-	  substring->symbol
 	  symbol
 	  symbol->string
-	  symbol->utf8-string
-	  symbol->wide-string
 	  symbol-hash
-	  symbol-hash-mod
 	  symbol-name
 	  symbol<?
 	  symbol>?
 	  symbol?
-	  uninterned-symbol?
-	  utf8-string->symbol
-	  utf8-string->uninterned-symbol))
+	  uninterned-symbol?))
 
 (define-package (runtime microcode-data)
   (files "udata")
@@ -973,30 +970,11 @@ USA.
   (export ()
 	  ;; BEGIN deprecated bindings
 	  (guarantee-vector-8b guarantee-string)
-	  (set-vector-8b-length! set-string-length!)
-	  (vector-8b-length string-length)
-	  (vector-8b-maximum-length string-maximum-length)
-	  (vector-8b? string?)
-	  error:not-string
-	  error:not-xstring
-	  guarantee-string
-	  guarantee-string-index
-	  guarantee-xstring
-	  hexadecimal->vector-8b
-	  make-vector-8b
-	  vector-8b->hexadecimal
-	  vector-8b-fill!
-	  vector-8b-find-next-char
-	  vector-8b-find-next-char-ci
-	  vector-8b-find-previous-char
-	  vector-8b-find-previous-char-ci
-	  vector-8b-ref
-	  vector-8b-set!
-	  ;; END deprecated bindings
 	  (legacy-string string)
 	  (legacy-string->list string->list)
 	  (legacy-string->vector string->vector)
 	  (legacy-string-append string-append)
+	  (legacy-string-capitalize string-capitalize)
 	  (legacy-string-ci<=? string-ci<=?)
 	  (legacy-string-ci<? string-ci<?)
 	  (legacy-string-ci=? string-ci=?)
@@ -1007,6 +985,7 @@ USA.
 	  (legacy-string-downcase string-downcase)
 	  (legacy-string-fill! string-fill!)
 	  (legacy-string-for-each string-for-each)
+	  (legacy-string-hash string-hash)
 	  (legacy-string-length string-length)
 	  (legacy-string-map string-map)
 	  (legacy-string-ref string-ref)
@@ -1021,6 +1000,24 @@ USA.
 	  (legacy-substring substring)
 	  (list->legacy-string list->string)
 	  (make-legacy-string make-string)
+	  (set-vector-8b-length! set-string-length!)
+	  (vector-8b-length string-length)
+	  (vector-8b-maximum-length string-maximum-length)
+	  (vector-8b? string?)
+	  error:not-string
+	  guarantee-string
+	  guarantee-string-index
+	  hexadecimal->vector-8b
+	  make-vector-8b
+	  vector-8b->hexadecimal
+	  vector-8b-fill!
+	  vector-8b-find-next-char
+	  vector-8b-find-next-char-ci
+	  vector-8b-find-previous-char
+	  vector-8b-find-previous-char-ci
+	  vector-8b-ref
+	  vector-8b-set!
+	  ;; END deprecated bindings
 	  ascii-string-copy
 	  burst-string
 	  camel-case-string->lisp
@@ -1140,52 +1137,67 @@ USA.
 	  substring-upper-case?
 	  substring<?
 	  substring=?
-	  substring?
-	  utf8-string
-	  xstring-move!
-	  xsubstring-fill!
-	  xsubstring-find-next-char
-	  xsubstring-find-next-char-ci
-	  xsubstring-find-next-char-in-set
-	  xsubstring-find-previous-char
-	  xsubstring-find-previous-char-ci
-	  xsubstring-find-previous-char-in-set
-	  xsubstring-move!)
+	  substring?)
   (initialization (initialize-package!)))
 
-(define-package (runtime xstring)
-  (files "xstring")
+(define-package (runtime ustring)
+  (files "ustring")
   (parent (runtime))
   (export ()
-	  (list->xstring list->utf32-string)
-	  (make-xstring make-utf32-string)
-	  (xstring utf32-string)
-	  (xsubstring xstring-copy)
-	  xstring->list
-	  xstring->vector
-	  xstring-append
-	  ;; xstring-ci<=?
-	  ;; xstring-ci<?
-	  ;; xstring-ci=?
-	  ;; xstring-ci>=?
-	  ;; xstring-ci>?
-	  xstring-copy
-	  xstring-copy!
-	  ;; xstring-downcase
-	  xstring-fill!
-	  ;; xstring-foldcase
-	  xstring-for-each
-	  xstring-length
-	  xstring-map
-	  xstring-ref
-	  xstring-set!
-	  ;; xstring-upcase
-	  ;; xstring<=?
-	  ;; xstring<?
-	  ;; xstring=?
-	  ;; xstring>=?
-	  ;; xstring>?
-	  xstring?))
+	  ;; BEGIN deprecated bindings
+	  ustring-find-first-char	 ;use ustring-find-first-index
+	  ustring-find-first-char-in-set ;use ustring-find-first-index
+	  ustring-find-last-char	 ;use ustring-find-last-index
+	  ustring-find-last-char-in-set	 ;use ustring-find-last-index
+	  ;; END deprecated bindings
+	  (make-ustring make-utf32-string)
+	  (usubstring ustring-copy)
+	  list->ustring
+	  ustring
+	  ustring*
+	  ustring->ascii
+	  ustring->list
+	  ustring->vector
+	  ustring-any
+	  ustring-append
+	  ustring-ascii?
+	  ustring-capitalize
+	  ustring-ci<=?
+	  ustring-ci<?
+	  ustring-ci=?
+	  ustring-ci>=?
+	  ustring-ci>?
+	  ustring-copy
+	  ustring-copy!
+	  ustring-downcase
+	  ustring-every
+	  ustring-fill!
+	  ustring-find-first-index
+	  ustring-find-last-index
+	  ;; ustring-foldcase
+	  ustring-for-each
+	  ustring-hash
+	  ustring-head
+	  ustring-length
+	  ustring-map
+	  ustring-prefix-ci?
+	  ustring-prefix?
+	  ustring-ref
+	  ustring-set!
+	  ustring-suffix-ci?
+	  ustring-suffix?
+	  ustring-tail
+	  ustring-upcase
+	  ustring<=?
+	  ustring<?
+	  ustring=?
+	  ustring>=?
+	  ustring>?
+	  ustring?)
+  (export (runtime symbol)
+	  %ustring*)
+  (export (runtime predicate-metadata)
+	  register-ustring-predicates!))
 
 (define-package (runtime bytevector)
   (files "bytevector")
@@ -1200,6 +1212,7 @@ USA.
 	  bytevector-copy
 	  bytevector-copy!
 	  bytevector-fill!
+	  bytevector-hash
 	  bytevector-length
 	  bytevector-u16be-ref
 	  bytevector-u16be-set!
@@ -1226,6 +1239,8 @@ USA.
 	  utf32be->string
 	  utf32le->string
 	  utf8->string)
+  (export (runtime symbol)
+	  %legacy-string->bytevector)
   (export (runtime predicate-metadata)
 	  register-mit-bytevector-predicates!))
 
@@ -1329,6 +1344,7 @@ USA.
 	  char-bits-set?
 	  char-ci<=?
 	  char-ci<?
+	  char-ci=-predicate
 	  char-ci=?
 	  char-ci>=?
 	  char-ci>?
@@ -1342,6 +1358,7 @@ USA.
 	  char-utf8-byte-length
 	  char<=?
 	  char<?
+	  char=-predicate
 	  char=?
 	  char>=?
 	  char>?
@@ -1372,9 +1389,6 @@ USA.
 	  unicode-char->scalar-value
 	  unicode-char?
 	  unicode-scalar-value?)
-  (export (runtime unicode)
-	  legal-code-16?
-	  legal-code-32?)
   (initialization (initialize-package!)))
 
 (define-package (runtime character-set)
@@ -1382,10 +1396,21 @@ USA.
   (parent (runtime))
   (export ()
 	  ;; BEGIN deprecated bindings
+	  (8-bit-alphabet? 8-bit-char-set?)
+	  (alphabet char-set)
+	  (alphabet+ char-set-union)
+	  (alphabet- char-set-difference)
+	  (alphabet->string char-set->string)
+	  (alphabet-predicate char-set-predicate)
+	  (alphabet? char-set?)
 	  (error:not-8-bit-alphabet error:not-8-bit-char-set)
 	  (error:not-alphabet error:not-char-set)
 	  (guarantee-8-bit-alphabet guarantee-8-bit-char-set)
 	  (guarantee-alphabet guarantee-char-set)
+	  (string->alphabet string->char-set)
+	  alphabet->char-set
+	  alphabet->scalar-values
+	  char-set->alphabet
 	  error:not-8-bit-char-set
 	  error:not-char-set
 	  error:not-well-formed-scalar-value-list
@@ -1394,20 +1419,9 @@ USA.
 	  guarantee-char-set
 	  guarantee-well-formed-scalar-value-list
 	  guarantee-well-formed-scalar-value-range
+	  scalar-values->alphabet
 	  ;; END deprecated bindings
-	  (8-bit-alphabet? 8-bit-char-set?)
-	  (<alphabet> <char-set>)
-	  (alphabet char-set)
-	  (alphabet+ char-set-union)
-	  (alphabet- char-set-difference)
-	  (alphabet->string char-set->string)
-	  (alphabet-predicate char-set-predicate)
-	  (alphabet? char-set?)
-	  (string->alphabet string->char-set)
 	  8-bit-char-set?
-	  <char-set>
-	  alphabet->char-set
-	  alphabet->scalar-values
 	  ascii-range->char-set
 	  char-alphabetic?
 	  char-alphanumeric?
@@ -1417,7 +1431,6 @@ USA.
 	  char-lower-case?
 	  char-numeric?
 	  char-set
-	  char-set->alphabet
 	  char-set->scalar-values
 	  char-set-difference
 	  char-set-intersection
@@ -1454,7 +1467,6 @@ USA.
 	  char-wsp?
 	  chars->char-set
 	  scalar-value-in-char-set?
-	  scalar-values->alphabet
 	  scalar-values->char-set
 	  string->char-set
 	  well-formed-scalar-value-list?
@@ -2802,6 +2814,7 @@ USA.
 	  read-line
 	  read-string
 	  read-string!
+	  read-ustring
 	  unread-char))
 
 (define-package (runtime output-port)
@@ -4629,6 +4642,10 @@ USA.
   (parent (runtime))
   (export ()
 	  ;; BEGIN deprecated bindings
+	  (get-output-from-accumulator get-output-string!)
+	  (make-accumulator-output-port open-output-string)
+	  (string->input-port open-input-string)
+	  (with-string-output-port call-with-output-string)
 	  call-with-input-octets
 	  call-with-output-octets
 	  open-input-octets
@@ -4637,23 +4654,13 @@ USA.
 	  with-output-to-string
 	  with-output-to-truncated-string
 	  ;; END deprecated bindings
-	  (call-with-output-string call-with-narrow-output-string)
-	  (get-output-from-accumulator get-output-string!)
-	  (make-accumulator-output-port open-narrow-output-string)
-	  (open-output-string open-narrow-output-string)
-	  (open-wide-input-string open-input-string)
-	  (string->input-port open-input-string)
-	  (with-string-output-port call-with-narrow-output-string)
 	  call-with-input-string
-	  call-with-narrow-output-string
+	  call-with-output-string
 	  call-with-truncated-output-string
-	  call-with-wide-output-string
 	  get-output-string
 	  get-output-string!
 	  open-input-string
-	  open-narrow-output-string
-	  open-wide-output-string)
-  (initialization (initialize-package!)))
+	  open-output-string))
 
 (define-package (runtime syntax)
   (files)
@@ -5626,7 +5633,7 @@ USA.
   (files "parser-buffer")
   (parent (runtime))
   (export ()
-	  ;; Deprecated:
+	  ;; BEGIN deprecated bindings
 	  (input-port->parser-buffer textual-input-port->parser-buffer)
 	  (match-parser-buffer-char-in-alphabet match-parser-buffer-char-in-set)
 	  (match-parser-buffer-char-in-alphabet-no-advance
@@ -5636,12 +5643,11 @@ USA.
 	  (match-parser-buffer-char-not-in-alphabet-no-advance
 	   match-parser-buffer-char-not-in-set-no-advance)
 	  (match-utf8-char-in-alphabet match-parser-buffer-char-in-set)
+	  ;; END deprecated bindings
 	  *match-string
 	  *match-symbol
-	  *match-utf8-string
 	  *parse-string
 	  *parse-symbol
-	  *parse-utf8-string
 	  call-with-parser-buffer-tail
 	  complete-*match
 	  complete-*parse
@@ -5681,126 +5687,7 @@ USA.
 	  read-parser-buffer-char
 	  set-parser-buffer-pointer!
 	  string->parser-buffer
-	  textual-input-port->parser-buffer
-	  utf8-string->parser-buffer))
-
-(define-package (runtime unicode)
-  (files "unicode")
-  (parent (runtime))
-  (export ()
-	  ;; BEGIN deprecated bindings
-	  error:not-utf16-be-string
-	  error:not-utf16-high-surrogate
-	  error:not-utf16-le-string
-	  error:not-utf16-low-surrogate
-	  error:not-utf16-string
-	  error:not-utf32-be-string
-	  error:not-utf32-le-string
-	  error:not-utf32-string
-	  error:not-utf8-string
-	  error:not-wide-string
-	  guarantee-utf16-be-string
-	  guarantee-utf16-high-surrogate
-	  guarantee-utf16-le-string
-	  guarantee-utf16-low-surrogate
-	  guarantee-utf16-string
-	  guarantee-utf32-be-string
-	  guarantee-utf32-le-string
-	  guarantee-utf32-string
-	  guarantee-utf8-string
-	  guarantee-wide-string
-	  ;; END deprecated bindings
-	  (wide-string->utf16-be-string string->utf16-be-string)
-	  (wide-string->utf16-le-string string->utf16-le-string)
-	  (wide-string->utf16-string string->utf16-string)
-	  (wide-string->utf32-be-string string->utf32-be-string)
-	  (wide-string->utf32-le-string string->utf32-le-string)
-	  (wide-string->utf32-string string->utf32-string)
-	  (wide-string->utf8-string string->utf8-string)
-	  <wide-string>
-	  call-with-utf16-be-input-string
-	  call-with-utf16-be-output-string
-	  call-with-utf16-input-string
-	  call-with-utf16-le-input-string
-	  call-with-utf16-le-output-string
-	  call-with-utf16-output-string
-	  call-with-utf32-be-input-string
-	  call-with-utf32-be-output-string
-	  call-with-utf32-input-string
-	  call-with-utf32-le-input-string
-	  call-with-utf32-le-output-string
-	  call-with-utf32-output-string
-	  call-with-utf8-input-string
-	  call-with-utf8-output-string
-	  combine-utf16-surrogates
-	  for-all-chars-in-string?
-	  for-any-char-in-string?
-	  guarantee-wide-string-index
-	  guarantee-wide-substring
-	  make-wide-string
-	  open-utf16-be-input-string
-	  open-utf16-be-output-string
-	  open-utf16-input-string
-	  open-utf16-le-input-string
-	  open-utf16-le-output-string
-	  open-utf16-output-string
-	  open-utf32-be-input-string
-	  open-utf32-be-output-string
-	  open-utf32-input-string
-	  open-utf32-le-input-string
-	  open-utf32-le-output-string
-	  open-utf32-output-string
-	  open-utf8-input-string
-	  open-utf8-output-string
-	  split-into-utf16-surrogates
-	  string->utf16-be-string
-	  string->utf16-le-string
-	  string->utf16-string
-	  string->utf32-be-string
-	  string->utf32-le-string
-	  string->utf32-string
-	  string->utf8-string
-	  string->utf8-string
-	  string->wide-string
-	  utf16-be-string->wide-string
-	  utf16-be-string-length
-	  utf16-be-string-valid?
-	  utf16-be-string?
-	  utf16-high-surrogate?
-	  utf16-le-string->wide-string
-	  utf16-le-string-length
-	  utf16-le-string-valid?
-	  utf16-le-string?
-	  utf16-low-surrogate?
-	  utf16-string->wide-string
-	  utf16-string-length
-	  utf16-string-valid?
-	  utf16-string?
-	  utf32-be-string->wide-string
-	  utf32-be-string-length
-	  utf32-be-string-valid?
-	  utf32-be-string?
-	  utf32-le-string->wide-string
-	  utf32-le-string-length
-	  utf32-le-string-valid?
-	  utf32-le-string?
-	  utf32-string->wide-string
-	  utf32-string-length
-	  utf32-string-valid?
-	  utf32-string?
-	  utf8-string->string
-	  utf8-string->wide-string
-	  utf8-string-length
-	  utf8-string-valid?
-	  utf8-string?
-	  wide-string
-	  wide-string->string
-	  wide-string-index?
-	  wide-string-length
-	  wide-string-ref
-	  wide-string-set!
-	  wide-string?
-	  wide-substring))
+	  textual-input-port->parser-buffer))
 
 (define-package (runtime uri)
   (files "url")

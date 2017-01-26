@@ -751,37 +751,37 @@ similar to strings but can contain any Unicode character sequence.  The
 implementation used for wide strings is guaranteed to provide
 constant-time access to each character in the string.
 
-@deffn procedure wide-string? object
+@deffn {obsolete procedure} wide-string? object
 Returns @code{#t} if @var{object} is a wide string.
 @end deffn
 
-@deffn procedure make-wide-string k [unicode-char]
+@deffn {obsolete procedure} make-wide-string k [unicode-char]
 Returns a newly allocated wide string of length @var{k}.  If @var{char}
 is specified, all elements of the returned string are initialized to
 @var{char}; otherwise the contents of the string are unspecified.
 @end deffn
 
-@deffn procedure wide-string unicode-char @dots{}
+@deffn {obsolete procedure} wide-string unicode-char @dots{}
 Returns a newly allocated wide string consisting of the specified
 characters.
 @end deffn
 
-@deffn procedure wide-string-length wide-string
+@deffn {obsolete procedure} wide-string-length wide-string
 Returns the length of @var{wide-string} as an exact non-negative
 integer.
 @end deffn
 
-@deffn procedure wide-string-ref wide-string k
+@deffn {obsolete procedure} wide-string-ref wide-string k
 Returns character @var{k} of @var{wide-string}.  @var{K} must be a valid
 index of @var{string}.
 @end deffn
 
-@deffn procedure wide-string-set! wide-string k unicode-char
+@deffn {obsolete procedure} wide-string-set! wide-string k unicode-char
 Stores @var{char} in element @var{k} of @var{wide-string} and returns an
 unspecified value.  @var{K} must be a valid index of @var{wide-string}.
 @end deffn
 
-@deffn procedure string->wide-string string [start [end]]
+@deffn {obsolete procedure} string->wide-string string [start [end]]
 Returns a newly allocated wide string with the same contents as
 @var{string}.  If @var{start} and @var{end} are supplied, they specify a
 substring of @var{string} that is to be converted.  @var{Start} defaults
@@ -789,7 +789,7 @@ to @samp{0}, and @var{end} defaults to @samp{(string-length
 @var{string})}.
 @end deffn
 
-@deffn procedure wide-string->string wide-string [start [end]]
+@deffn {obsolete procedure} wide-string->string wide-string [start [end]]
 Returns a newly allocated string with the same contents as
 @var{wide-string}.  The argument @var{wide-string} must satisfy
 @code{wide-string?}.  If @var{start} and @var{end} are supplied, they
@@ -801,7 +801,7 @@ It is an error if any character in @var{wide-string} fails to satisfy
 @code{char-ascii?}.
 @end deffn
 
-@deffn procedure open-wide-input-string wide-string [start [end]]
+@deffn {obsolete procedure} open-wide-input-string wide-string [start [end]]
 Returns a new input port that sources the characters of
 @var{wide-string}.  The optional arguments @var{start} and @var{end} may
 be used to specify that the port delivers characters from a substring of
@@ -809,14 +809,14 @@ be used to specify that the port delivers characters from a substring of
 @var{end} defaults to @samp{(wide-string-length @var{wide-string})}.
 @end deffn
 
-@deffn procedure open-wide-output-string
+@deffn {obsolete procedure} open-wide-output-string
 Returns an output port that accepts Unicode characters and strings and
 accumulates them in a buffer.  Call @code{get-output-string} on the
 returned port to get a wide string containing the accumulated
 characters.
 @end deffn
 
-@deffn procedure call-with-wide-output-string procedure
+@deffn {obsolete procedure} call-with-wide-output-string procedure
 Creates a wide-string output port and calls @var{procedure} on that
 port.  The value returned by @var{procedure} is ignored, and the
 accumulated output is returned as a wide string.  This is equivalent to:
@@ -872,13 +872,13 @@ procedures that implement @dfn{host-endian} order, which is either
 big-endian or little-endian depending on the underlying computer
 architecture.
 
-@deffn procedure utf8-string->wide-string string [start [end]]
-@deffnx procedure utf16-be-string->wide-string string [start [end]]
-@deffnx procedure utf16-le-string->wide-string string [start [end]]
-@deffnx procedure utf16-string->wide-string string [start [end]]
-@deffnx procedure utf32-be-string->wide-string string [start [end]]
-@deffnx procedure utf32-le-string->wide-string string [start [end]]
-@deffnx procedure utf32-string->wide-string string [start [end]]
+@deffn {obsolete procedure} utf8-string->wide-string string [start [end]]
+@deffnx {obsolete procedure} utf16-be-string->wide-string string [start [end]]
+@deffnx {obsolete procedure} utf16-le-string->wide-string string [start [end]]
+@deffnx {obsolete procedure} utf16-string->wide-string string [start [end]]
+@deffnx {obsolete procedure} utf32-be-string->wide-string string [start [end]]
+@deffnx {obsolete procedure} utf32-le-string->wide-string string [start [end]]
+@deffnx {obsolete procedure} utf32-string->wide-string string [start [end]]
 Each of these procedures converts a byte vector to a wide string,
 treating @var{string} as a stream of bytes encoded in the corresponding
 @samp{utfNN} representation.  The arguments @var{start} and @var{end}
@@ -886,13 +886,13 @@ allow specification of a substring; they default to zero and
 @var{string}'s length, respectively.
 @end deffn
 
-@deffn procedure utf8-string-length string [start [end]]
-@deffnx procedure utf16-be-string-length string [start [end]]
-@deffnx procedure utf16-le-string-length string [start [end]]
-@deffnx procedure utf16-string-length string [start [end]]
-@deffnx procedure utf32-be-string-length string [start [end]]
-@deffnx procedure utf32-le-string-length string [start [end]]
-@deffnx procedure utf32-string-length string [start [end]]
+@deffn {obsolete procedure} utf8-string-length string [start [end]]
+@deffnx {obsolete procedure} utf16-be-string-length string [start [end]]
+@deffnx {obsolete procedure} utf16-le-string-length string [start [end]]
+@deffnx {obsolete procedure} utf16-string-length string [start [end]]
+@deffnx {obsolete procedure} utf32-be-string-length string [start [end]]
+@deffnx {obsolete procedure} utf32-le-string-length string [start [end]]
+@deffnx {obsolete procedure} utf32-string-length string [start [end]]
 Each of these procedures counts the number of Unicode characters in a
 byte vector, treating @var{string} as a stream of bytes encoded in the
 corresponding @samp{utfNN} representation.  The arguments @var{start}
@@ -900,13 +900,13 @@ and @var{end} allow specification of a substring; they default to zero
 and @var{string}'s length, respectively.
 @end deffn
 
-@deffn procedure wide-string->utf8-string string [start [end]]
-@deffnx procedure wide-string->utf16-be-string string [start [end]]
-@deffnx procedure wide-string->utf16-le-string string [start [end]]
-@deffnx procedure wide-string->utf16-string string [start [end]]
-@deffnx procedure wide-string->utf32-be-string string [start [end]]
-@deffnx procedure wide-string->utf32-le-string string [start [end]]
-@deffnx procedure wide-string->utf32-string string [start [end]]
+@deffn {obsolete procedure} wide-string->utf8-string string [start [end]]
+@deffnx {obsolete procedure} wide-string->utf16-be-string string [start [end]]
+@deffnx {obsolete procedure} wide-string->utf16-le-string string [start [end]]
+@deffnx {obsolete procedure} wide-string->utf16-string string [start [end]]
+@deffnx {obsolete procedure} wide-string->utf32-be-string string [start [end]]
+@deffnx {obsolete procedure} wide-string->utf32-le-string string [start [end]]
+@deffnx {obsolete procedure} wide-string->utf32-string string [start [end]]
 Each of these procedures converts a wide string to a stream of bytes
 encoded in the corresponding @samp{utfNN} representation, and returns
 that stream as a byte vector.  The arguments @var{start}

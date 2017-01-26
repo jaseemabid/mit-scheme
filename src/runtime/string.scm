@@ -43,7 +43,6 @@ USA.
 ;;;; Primitives
 
 (define-primitives
-  (legacy-string? string? 1)
   (set-string-length! 2)
   (string-allocate 1)
   (string-hash-mod 2)
@@ -267,23 +266,11 @@ USA.
 (define (string . objects)
   (%string-append (map ->string objects)))
 
-(define (utf8-string . objects)
-  (%string-append (map ->utf8-string objects)))
-
 (define (->string object)
   (cond ((string? object) object)
 	((symbol? object) (symbol->string object))
-	((wide-string? object) (wide-string->string object))
 	((8-bit-char? object) (make-string 1 object))
 	(else (%->string object 'STRING))))
-
-(define (->utf8-string object)
-  (cond ((string? object) (string->utf8-string object))
-	((symbol? object) (symbol-name object))
-	((wide-string? object) (wide-string->utf8-string object))
-	((unicode-char? object)
-	 (wide-string->utf8-string (wide-string object)))
-	(else (%->string object 'UTF8-STRING))))
 
 (define (%->string object caller)
   (cond ((not object) "")
@@ -816,7 +803,7 @@ USA.
 (define (camel-case-string->lisp string)
   (call-with-input-string string
     (lambda (input)
-      (call-with-narrow-output-string
+      (call-with-output-string
 	(lambda (output)
 	  (let loop ((prev #f))
 	    (let ((c (read-char input)))
@@ -830,7 +817,7 @@ USA.
 (define (lisp-string->camel-case string #!optional upcase-initial?)
   (call-with-input-string string
     (lambda (input)
-      (call-with-narrow-output-string
+      (call-with-output-string
 	(lambda (output)
 	  (let loop
 	      ((upcase?
@@ -1643,66 +1630,6 @@ USA.
 	    (outer k (fix:+ q 1)))))
     pi))
 
-(define (xstring-move! xstring1 xstring2 start2)
-  (xsubstring-move! xstring1 0 (xstring-length xstring1) xstring2 start2))
-
-(define (xsubstring-move! xstring1 start1 end1 xstring2 start2)
-  (cond ((or (not (eq? xstring2 xstring1)) (< start2 start1))
-	 (substring-move-left! xstring1 start1 end1
-			       xstring2 start2))
-	((> start2 start1)
-	 (substring-move-right! xstring1 start1 end1
-				xstring2 start2))))
-
-(define (xsubstring-fill! xstring start end char)
-  (cond ((string? xstring)
-	 (substring-fill! xstring start end char))
-	(else
-	 (error:not-xstring xstring 'XSTRING-FILL!))))
-
-(define-integrable (xsubstring-find-char xstring start end datum finder caller)
-  (cond ((string? xstring)
-	 (guarantee-substring xstring start end caller)
-	 (finder xstring start end datum))
-	(else
-	 (error:not-xstring xstring caller))))
-
-(define (xsubstring-find-next-char xstring start end char)
-  (guarantee-char char 'XSUBSTRING-FIND-NEXT-CHAR)
-  (xsubstring-find-char xstring start end (char->ascii char)
-			(ucode-primitive VECTOR-8B-FIND-NEXT-CHAR)
-			'XSUBSTRING-FIND-NEXT-CHAR))
-
-(define (xsubstring-find-next-char-ci xstring start end char)
-  (guarantee-char char 'XSUBSTRING-FIND-NEXT-CHAR-CI)
-  (xsubstring-find-char xstring start end (char->ascii char)
-			(ucode-primitive VECTOR-8B-FIND-NEXT-CHAR-CI)
-			'XSUBSTRING-FIND-NEXT-CHAR-CI))
-
-(define (xsubstring-find-next-char-in-set xstring start end char-set)
-  (guarantee-char-set char-set 'XSUBSTRING-FIND-NEXT-CHAR-IN-SET)
-  (xsubstring-find-char xstring start end (char-set-table char-set)
-			(ucode-primitive SUBSTRING-FIND-NEXT-CHAR-IN-SET)
-			'XSUBSTRING-FIND-NEXT-CHAR-IN-SET))
-
-(define (xsubstring-find-previous-char xstring start end char)
-  (guarantee-char char 'XSUBSTRING-FIND-PREVIOUS-CHAR)
-  (xsubstring-find-char xstring start end (char->ascii char)
-			(ucode-primitive VECTOR-8B-FIND-PREVIOUS-CHAR)
-			'XSUBSTRING-FIND-PREVIOUS-CHAR))
-
-(define (xsubstring-find-previous-char-ci xstring start end char)
-  (guarantee-char char 'XSUBSTRING-FIND-PREVIOUS-CHAR-CI)
-  (xsubstring-find-char xstring start end (char->ascii char)
-			(ucode-primitive VECTOR-8B-FIND-PREVIOUS-CHAR-CI)
-			'XSUBSTRING-FIND-PREVIOUS-CHAR-CI))
-
-(define (xsubstring-find-previous-char-in-set xstring start end char-set)
-  (guarantee-char-set char-set 'XSUBSTRING-FIND-PREVIOUS-CHAR-IN-SET)
-  (xsubstring-find-char xstring start end (char-set-table char-set)
-			(ucode-primitive SUBSTRING-FIND-PREVIOUS-CHAR-IN-SET)
-			'XSUBSTRING-FIND-PREVIOUS-CHAR-IN-SET))
-
 ;;;; Guarantors
 ;;
 ;; The guarantors are integrated.  Most are structured as combination of
@@ -1711,9 +1638,8 @@ USA.
 ;; meaningful message.  Structuring the code this way significantly
 ;; reduces code bloat from large integrated procedures.
 
-(declare (integrate-operator guarantee-string guarantee-xstring))
+(declare (integrate-operator guarantee-string))
 (define-guarantee string "string")
-(define-guarantee xstring "xstring")
 
 (define-integrable (guarantee-2-strings object1 object2 procedure)
   (if (not (and (string? object1) (string? object2)))
@@ -1729,10 +1655,6 @@ USA.
   (if (not (index-fixnum? object))
       (error:wrong-type-argument object "string index" caller)))
 
-(define-integrable (guarantee-xstring-index object caller)
-  (if (not (exact-nonnegative-integer? object))
-      (error:wrong-type-argument object "xstring index" caller)))
-
 (define-integrable (guarantee-substring string start end caller)
   (if (not (and (string? string)
 		(index-fixnum? start)
@@ -1745,19 +1667,6 @@ USA.
   (guarantee-string string caller)
   (guarantee-substring-end-index end (string-length string) caller)
   (guarantee-substring-start-index start end caller))
-
-(define-integrable (guarantee-xsubstring xstring start end caller)
-  (if (not (and (xstring? xstring)
-		(exact-nonnegative-integer? start)
-		(exact-nonnegative-integer? end)
-		(<= start end)
-		(<= end (xstring-length xstring))))
-      (guarantee-xsubstring/fail xstring start end caller)))
-
-(define (guarantee-xsubstring/fail xstring start end caller)
-  (guarantee-xstring xstring caller)
-  (guarantee-xsubstring-end-index end (xstring-length xstring) caller)
-  (guarantee-xsubstring-start-index start end caller))
 
 (define-integrable (guarantee-substring-end-index end length caller)
   (guarantee-string-index end caller)
@@ -1768,18 +1677,6 @@ USA.
 (define-integrable (guarantee-substring-start-index start end caller)
   (guarantee-string-index start caller)
   (if (not (fix:<= start end))
-      (error:bad-range-argument start caller))
-  start)
-
-(define-integrable (guarantee-xsubstring-end-index end length caller)
-  (guarantee-xstring-index end caller)
-  (if (not (<= end length))
-      (error:bad-range-argument end caller))
-  end)
-
-(define-integrable (guarantee-xsubstring-start-index start end caller)
-  (guarantee-xstring-index start caller)
-  (if (not (<= start end))
       (error:bad-range-argument start caller))
   start)
 

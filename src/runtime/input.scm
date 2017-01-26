@@ -45,7 +45,7 @@ USA.
   ((textual-port-operation/peek-char port) port))
 
 (define (input-port/read-string! port string)
-  (input-port/read-substring! port string 0 (xstring-length string)))
+  (input-port/read-substring! port string 0 (ustring-length string)))
 
 (define (input-port/read-substring! port string start end)
   (if (< start end)
@@ -181,16 +181,26 @@ USA.
 (define (read-delimited-string delimiters #!optional port)
   (input-port/read-string (optional-input-port port 'READ-STRING) delimiters))
 
-(define (r7rs-read-string k #!optional port)
-  (guarantee index-fixnum? k 'read-string)
-  (let ((port (optional-input-port port 'read-string)))
-    (if (fix:> k 0)
-	(let ((string (make-string k)))
-	  (let ((n (input-port/read-string! port string)))
-	    (cond ((not n) n)
-		  ((fix:> n 0) (if (fix:< n k) (substring string 0 n) string))
-		  (else (eof-object)))))
-	(make-string 0))))
+(define (read-string-maker maker caller)
+  (lambda (k #!optional port)
+    (guarantee index-fixnum? k caller)
+    (let ((port (optional-input-port port caller)))
+      (let ((string (maker k)))
+	(if (fix:> k 0)
+	    (let ((n (input-port/read-string! port string)))
+	      (cond ((not n) n)
+		    ((fix:> n 0)
+		     (if (fix:< n k)
+			 (ustring-copy string 0 n)
+			 string))
+		    (else (eof-object))))
+	    string)))))
+
+(define r7rs-read-string
+  (read-string-maker make-string 'read-string))
+
+(define read-ustring
+  (read-string-maker make-ustring 'read-ustring))
 
 (define (read #!optional port environment)
   (parse-object (optional-input-port port 'READ) environment))
@@ -215,10 +225,10 @@ USA.
   (let ((port (optional-input-port port 'read-string!))
 	(end
 	 (if (default-object? end)
-	     (xstring-length string)
+	     (ustring-length string)
 	     (begin
 	       (guarantee index-fixnum? end 'read-string!)
-	       (if (not (fix:<= end (xstring-length string)))
+	       (if (not (fix:<= end (ustring-length string)))
 		   (error:bad-range-argument end 'read-string!))
 	       end))))
     (let ((start

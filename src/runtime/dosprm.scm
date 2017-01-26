@@ -31,7 +31,7 @@ USA.
 
 (define (file-directory? filename)
   ((ucode-primitive file-directory? 1)
-   (->namestring (merge-pathnames filename))))
+   (string->utf8 (->namestring (merge-pathnames filename)))))
 
 (define (file-symbolic-link? filename)
   filename				; ignored
@@ -39,16 +39,16 @@ USA.
 
 (define (file-modes filename)
   ((ucode-primitive file-modes 1)
-   (->namestring (merge-pathnames filename))))
+   (string->utf8 (->namestring (merge-pathnames filename)))))
 
 (define (set-file-modes! filename modes)
   ((ucode-primitive set-file-modes! 2)
-   (->namestring (merge-pathnames filename))
+   (string->utf8 (->namestring (merge-pathnames filename)))
    modes))
 
 (define (file-access filename amode)
   ((ucode-primitive file-access 2)
-   (->namestring (merge-pathnames filename))
+   (string->utf8 (->namestring (merge-pathnames filename)))
    amode))
 ;; upwards compatability
 (define dos/file-access file-access)
@@ -58,7 +58,7 @@ USA.
 
 (define (file-writeable? filename)
   (let ((pathname (merge-pathnames filename)))
-    (let ((filename (->namestring pathname)))
+    (let ((filename (string->utf8 (->namestring pathname))))
       (or ((ucode-primitive file-access 2) filename 2)
 	  (and (not ((ucode-primitive file-exists? 1) filename))
 	       ((ucode-primitive file-access 2)
@@ -105,7 +105,7 @@ USA.
 
 (define (file-attributes filename)
   ((ucode-primitive file-attributes 1)
-   (->namestring (merge-pathnames filename))))
+   (string->utf8 (->namestring (merge-pathnames filename)))))
 
 (define file-attributes-direct
   file-attributes)
@@ -133,7 +133,7 @@ USA.
 
 (define (file-modification-time filename)
   ((ucode-primitive file-mod-time 1)
-   (->namestring (merge-pathnames filename))))
+   (string->utf8 (->namestring (merge-pathnames filename)))))
 
 (define file-modification-time-direct
   file-modification-time)
@@ -159,7 +159,7 @@ USA.
 		  access-time
 		  (file-modification-time-direct filename))))
     ((ucode-primitive set-file-times! 3)
-     filename
+     (string->utf8 filename)
      (or access-time time)
      (or modification-time time))))
 
@@ -180,7 +180,8 @@ USA.
 
   (define (default-variable! var val)
     (if (and (not (assoc var environment-variables))
-	     (not ((ucode-primitive get-environment-variable 1) var)))
+	     (not ((ucode-primitive get-environment-variable 1)
+		   (string->utf8 var))))
 	(set! environment-variables
 	      (cons (cons var (if (procedure? val) (val) val))
 		    environment-variables)))
@@ -188,13 +189,14 @@ USA.
 
   (set! get-environment-variable
 	(lambda (variable)
-	  (if (not (string? variable))
+	  (if (not (ustring? variable))
 	      (env-error 'GET-ENVIRONMENT-VARIABLE variable))
-	  (let ((variable (string-upcase variable)))
+	  (let ((variable (ustring-upcase variable)))
 	    (cond ((assoc variable environment-variables)
 		   => cdr)
 		  (else
-		   ((ucode-primitive get-environment-variable 1) variable))))))
+		   ((ucode-primitive get-environment-variable 1)
+		    (string->utf8 variable)))))))
 
   (set! set-environment-variable!
 	(lambda (variable value)
@@ -271,15 +273,17 @@ USA.
 
 (define (file-touch filename)
   ((ucode-primitive file-touch 1)
-   (->namestring (merge-pathnames filename))))
+   (string->utf8 (->namestring (merge-pathnames filename)))))
 
 (define (make-directory name)
   ((ucode-primitive directory-make 1)
-   (->namestring (directory-pathname-as-file (merge-pathnames name)))))
+   (string->utf8
+    (->namestring (directory-pathname-as-file (merge-pathnames name))))))
 
 (define (delete-directory name)
   ((ucode-primitive directory-delete 1)
-   (->namestring (directory-pathname-as-file (merge-pathnames name)))))
+   (string->utf8
+    (->namestring (directory-pathname-as-file (merge-pathnames name))))))
 
 (define (file-line-ending pathname)
   pathname
@@ -314,7 +318,8 @@ USA.
 	 (set! input-channel (file-open-input-channel input-filename))
 	 (set! output-channel
 	       (begin
-		 ((ucode-primitive file-remove-link 1) output-filename)
+		 ((ucode-primitive file-remove-link 1)
+		  (string->utf8 output-filename))
 		 (file-open-output-channel output-filename)))
 	 unspecific)
        (lambda ()

@@ -130,7 +130,7 @@ USA.
 
 (define (string-matcher matcher)
   (lambda (string #!optional start end)
-    (matcher (utf8-string->parser-buffer string start end))))
+    (matcher (string->parser-buffer string start end))))
 
 (define string-is-xml-qname? (string-matcher match:xml-qname))
 (define string-is-xml-name? (string-matcher match:xml-name))
@@ -142,7 +142,7 @@ USA.
 	(begin
 	  (if (not (string-predicate object))
 	      (error:bad-range-argument object constructor))
-	  (utf8-string->symbol object))
+	  (string->symbol object))
 	(begin
 	  (guarantee-symbol object constructor)
 	  (if (not (string-predicate (symbol-name object)))
@@ -233,7 +233,7 @@ USA.
   (let ((s (symbol-name qname)))
     (let ((c (string-find-next-char s #\:)))
       (if c
-	  (utf8-string->symbol (string-head s c))
+	  (string->symbol (string-head s c))
 	  (null-xml-name-prefix)))))
 
 (define (xml-qname-local qname)
@@ -244,5 +244,5 @@ USA.
   (let ((s (symbol-name qname)))
     (let ((c (string-find-next-char s #\:)))
       (if c
-	  (utf8-string->symbol (string-tail s (fix:+ c 1)))
+	  (string->symbol (string-tail s (fix:+ c 1)))
 	  qname))))

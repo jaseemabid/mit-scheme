@@ -455,7 +455,7 @@ USA.
 	((symbol? obj) "symbol")
 	((weak-pair? obj) "weak-pair")
 	((record-type? obj) "record-type")
-	((wide-string? obj) "wide-string")
+	((ustring? obj) "ustring")
 	(else (user-object-type obj))))
 
 ;;;; Miscellaneous

@@ -321,7 +321,6 @@ USA.
    (register-predicate! interned-symbol? 'interned-symbol '<= symbol?)
    (register-predicate! keyword? 'keyword '<= symbol?)
    (register-predicate! lambda-tag? 'lambda-tag)
-   (register-predicate! legacy-string? 'legacy-string)
    (register-predicate! named-structure? 'named-structure)
    (register-predicate! population? 'population)
    (register-predicate! promise? 'promise)
@@ -334,4 +333,6 @@ USA.
 			'<= index-fixnum?)
    (register-predicate! uninterned-symbol? 'uninterned-symbol '<= symbol?)
    (register-predicate! weak-list? 'weak-list)
-   (register-predicate! weak-pair? 'weak-pair)))
+   (register-predicate! weak-pair? 'weak-pair)
+
+   (register-ustring-predicates!)))

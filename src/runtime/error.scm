@@ -60,36 +60,33 @@ USA.
       (guarantee-condition-type generalization 'MAKE-CONDITION-TYPE))
   (guarantee-list-of-unique-symbols field-names 'MAKE-CONDITION-TYPE)
   (let ((type
-	 (call-with-values
-	     (lambda ()
-	       (compute-field-indexes generalization field-names))
-	   (lambda (n-fields field-indexes)
-	     (%make-condition-type
-	      (cond ((string? name) (string-copy name))
-		    ((symbol? name) (symbol->utf8-string name))
-		    ((not name) "(anonymous)")
-		    (else
-		     (error:wrong-type-argument name "condition-type name"
-						'MAKE-CONDITION-TYPE)))
-	      field-indexes
-	      n-fields
-	      (cond ((string? reporter)
-		     (lambda (condition port)
-		       condition
-		       (write-string reporter port)))
-		    ((procedure-of-arity? reporter 2)
-		     reporter)
-		    ((not reporter)
-		     (if generalization
-			 (%condition-type/reporter generalization)
-			 (lambda (condition port)
-			   (write-string "undocumented condition of type "
-					 port)
-			   (write (%condition/type condition) port))))
-		    (else
-		     (error:wrong-type-argument reporter
-						"condition-type reporter"
-						'MAKE-CONDITION-TYPE))))))))
+	 (receive (n-fields field-indexes)
+	     (compute-field-indexes generalization field-names)
+	   (%make-condition-type
+	    (cond ((ustring? name) (ustring-copy name))
+		  ((symbol? name) (symbol->string name))
+		  ((not name) "(anonymous)")
+		  (else
+		   (error:wrong-type-argument name "condition-type name"
+					      'MAKE-CONDITION-TYPE)))
+	    field-indexes
+	    n-fields
+	    (cond ((ustring? reporter)
+		   (lambda (condition port)
+		     condition
+		     (write-string reporter port)))
+		  ((procedure-of-arity? reporter 2)
+		   reporter)
+		  ((not reporter)
+		   (if generalization
+		       (%condition-type/reporter generalization)
+		       (lambda (condition port)
+			 (write-string "undocumented condition of type " port)
+			 (write (%condition/type condition) port))))
+		  (else
+		   (error:wrong-type-argument reporter
+					      "condition-type reporter"
+					      'MAKE-CONDITION-TYPE)))))))
     (set-%condition-type/generalizations!
      type
      (cons type
@@ -255,8 +252,8 @@ USA.
     (lambda (condition)
       (if (not (predicate condition))
 	  (error:wrong-type-argument condition
-				     (string-append "condition of type "
-						    (write-to-string type))
+				     (ustring-append "condition of type "
+						     (write-to-string type))
 				     'CONDITION-ACCESSOR))
       (vector-ref (%condition/field-values condition) index))))
 
@@ -328,7 +325,7 @@ USA.
 
 (define (with-restart name reporter effector interactor thunk)
   (if name (guarantee-symbol name 'WITH-RESTART))
-  (if (not (or (string? reporter) (procedure-of-arity? reporter 1)))
+  (if (not (or (ustring? reporter) (procedure-of-arity? reporter 1)))
       (error:wrong-type-argument reporter "reporter" 'WITH-RESTART))
   (if (not (procedure? effector))
       (error:wrong-type-argument effector "effector" 'WITH-RESTART))
@@ -354,7 +351,7 @@ USA.
   (guarantee-restart restart 'WRITE-RESTART-REPORT)
   (guarantee textual-output-port? port 'WRITE-RESTART-REPORT)
   (let ((reporter (%restart/reporter restart)))
-    (if (string? reporter)
+    (if (ustring? reporter)
 	(write-string reporter port)
 	(reporter port))))
 
@@ -679,19 +676,19 @@ USA.
 				    'BOUND-RESTARTS
 				    field-values))))
 		 (with-restart 'USE-VALUE
-		     (if (string? use-value-message)
+		     (if (ustring? use-value-message)
 			 use-value-message
 			 (use-value-message condition))
 		     continuation
 		     (let ((prompt
-			    (if (string? use-value-prompt)
+			    (if (ustring? use-value-prompt)
 				use-value-prompt
 				(use-value-prompt condition))))
 		       (lambda ()
 			 (values (prompt-for-evaluated-expression prompt))))
 		   (lambda ()
 		     (with-restart 'RETRY
-			 (if (string? retry-message)
+			 (if (ustring? retry-message)
 			     retry-message
 			     (retry-message condition))
 			 (lambda ()
@@ -835,14 +832,14 @@ USA.
 		(char-set #\a #\e #\i #\o #\u #\A #\E #\I #\O #\U)))
 	   (lambda (condition port)
 	     (let ((type (access-condition condition 'TYPE)))
-	       (if (string? type)
+	       (if (ustring? type)
 		   (begin
-		     (if (not (or (string-null? type)
-				  (string-prefix-ci? "a " type)
-				  (string-prefix-ci? "an " type)))
+		     (if (not (or (fix:= 0 (ustring-length type))
+				  (ustring-prefix-ci? "a " type)
+				  (ustring-prefix-ci? "an " type)))
 			 (write-string
 			  (if (char-set-member? char-set:vowels
-						(string-ref type 0))
+						(ustring-ref type 0))
 			      "an "
 			      "a ")
 			  port))
@@ -1067,7 +1064,7 @@ USA.
 	      (write-string " because: " port)
 	      (let ((reason (access-condition condition 'REASON)))
 		(if reason
-		    (write-string (string-capitalize reason) port)
+		    (write-string (ustring-capitalize reason) port)
 		    (begin
 		      (write-string "No such " port)
 		      (write-string noun port))))
@@ -1083,21 +1080,21 @@ USA.
 	   standard-error-handler
 	   0
 	   (lambda (condition)
-	     (string-append "New "
-			    (get-noun condition)
-			    " name (an expression to be evaluated)"))
+	     (ustring-append "New "
+			     (get-noun condition)
+			     " name (an expression to be evaluated)"))
 	   (lambda (condition)
-	     (string-append "Try to "
-			    (get-verb condition)
-			    " a different "
-			    (get-noun condition)
-			    "."))
+	     (ustring-append "Try to "
+			     (get-verb condition)
+			     " a different "
+			     (get-noun condition)
+			     "."))
 	   (lambda (condition)
-	     (string-append "Try to "
-			    (get-verb condition)
-			    " the same "
-			    (get-noun condition)
-			    " again.")))))
+	     (ustring-append "Try to "
+			     (get-verb condition)
+			     " the same "
+			     (get-noun condition)
+			     " again.")))))
 
   (set! condition-type:variable-error
 	(make-condition-type 'VARIABLE-ERROR condition-type:cell-error
@@ -1278,7 +1275,7 @@ USA.
 		      (begin
 			(write-char #\space port)
 			(write irritant port))))
-		(cons (if (string? message)
+		(cons (if (ustring? message)
 			  (error-irritant/noise message)
 			  message)
 		      irritants)))))
@@ -1305,12 +1302,12 @@ USA.
 		       (- n 10)))
 	  (else
 	   (let ((qr (integer-divide n 10)))
-	     (string-append
+	     (ustring-append
 	      (vector-ref tens-names (- (integer-divide-quotient qr) 2))
 	      (let ((ones (integer-divide-remainder qr)))
 		(if (zero? ones)
 		    "tieth"
-		    (string-append "ty-" (vector-ref ones-names ones))))))))))
+		    (ustring-append "ty-" (vector-ref ones-names ones))))))))))
 
 (define (write-operator operator port)
   (write (if (primitive-procedure? operator)

@@ -149,9 +149,10 @@ USA.
 (define with-values call-with-values)
 
 (define (write-to-string object #!optional max)
-  (if (or (default-object? max) (not max))
-      (with-output-to-string (lambda () (write object)))
-      (with-output-to-truncated-string max (lambda () (write object)))))
+  (let ((writer (lambda (port) (write object port))))
+    (if (or (default-object? max) (not max))
+	(call-with-output-string writer)
+	(call-with-truncated-output-string max writer))))
 
 (define (pa procedure)
   (guarantee-procedure procedure 'PA)
@@ -414,7 +415,7 @@ USA.
 	   (lambda ()
 	     (let loop ()
 	       (if (not ((ucode-primitive primitive-fasdump)
-			 object filename dump-option))
+			 object (string->utf8 filename) dump-option))
 		   (begin
 		     (with-simple-restart 'RETRY "Try again."
 		       (lambda ()

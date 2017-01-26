@@ -48,7 +48,7 @@ USA.
 (define (bind-tcp-server-socket server-socket service host)
   ((ucode-primitive bind-tcp-server-socket 3)
    (channel-descriptor server-socket)
-   host
+   (string->utf8 host)
    (tcp-service->port service)))
 
 (define (listen-tcp-server-socket server-socket)
@@ -58,12 +58,14 @@ USA.
 (define (tcp-service->port service)
   (if (exact-nonnegative-integer? service)
       ((ucode-primitive get-service-by-number 1) service)
-      ((ucode-primitive get-service-by-name 2) service "tcp")))
+      ((ucode-primitive get-service-by-name 2) (string->utf8 service) "tcp")))
 
 (define (open-unix-server-socket pathname)
   (open-channel
    (lambda (p)
-     ((ucode-primitive create-unix-server-socket 2) (->namestring pathname) p)
+     ((ucode-primitive create-unix-server-socket 2)
+      (string->utf8 (->namestring pathname))
+      p)
      #t)))
 
 (define (close-tcp-server-socket server-socket)
@@ -137,14 +139,19 @@ USA.
      (lambda (p)
        (with-thread-timer-stopped
 	 (lambda ()
-	   ((ucode-primitive new-open-tcp-stream-socket 3) host port p)))))))
+	   ((ucode-primitive new-open-tcp-stream-socket 3)
+	    (string->utf8 host)
+	    port
+	    p)))))))
 
 (define (open-unix-stream-socket-channel filename)
   (open-channel
    (lambda (p)
      (with-thread-timer-stopped
        (lambda ()
-	 ((ucode-primitive new-open-unix-stream-socket 2) filename p))))))
+	 ((ucode-primitive new-open-unix-stream-socket 2)
+	  (string->utf8 filename)
+	  p))))))
 
 (define (make-socket-port channel caller)
   (make-generic-i/o-port (make-channel-input-source channel)
@@ -177,17 +184,17 @@ USA.
 (define (get-host-by-name host-name)
   (with-thread-timer-stopped
     (lambda ()
-      ((ucode-primitive get-host-by-name 1) host-name))))
+      ((ucode-primitive get-host-by-name 1) (string->utf8 host-name)))))
 
 (define (get-host-by-address host-address)
   (with-thread-timer-stopped
     (lambda ()
-      ((ucode-primitive get-host-by-address 1) host-address))))
+      ((ucode-primitive get-host-by-address 1) (string->utf8 host-address)))))
 
 (define (canonical-host-name host-name)
   (with-thread-timer-stopped
     (lambda ()
-      ((ucode-primitive canonical-host-name 1) host-name))))
+      ((ucode-primitive canonical-host-name 1) (string->utf8 host-name)))))
 
 (define get-host-name
   (ucode-primitive get-host-name 0))

@@ -44,8 +44,8 @@ USA.
      (set-coding xml port)
      (write-xml-1 xml port options))))
 
-(define (xml->wide-string xml . options)
-  (call-with-wide-output-string
+(define (xml->ustring xml . options)
+  (call-with-output-ustring
    (lambda (port)
      (write-xml-1 xml port options))))
 
@@ -430,7 +430,7 @@ USA.
   (emit-string (xml-name-string name) ctx))
 
 (define (xml-name-columns name)
-  (utf8-string-length (xml-name-string name)))
+  (ustring-length (xml-name-string name)))
 
 (define (write-xml-nmtoken nmtoken ctx)
   (emit-string (symbol-name nmtoken) ctx))
@@ -501,7 +501,7 @@ USA.
 	     (emit-char char ctx))))))
 
 (define (for-each-unicode-char string procedure)
-  (let ((port (open-utf8-input-string string)))
+  (let ((port (open-input-string string)))
     (let loop ()
       (let ((char (read-char port)))
 	(if (not (eof-object? char))

@@ -59,7 +59,10 @@ USA.
       string
       (begin
 	(guarantee legacy-string? string 'legacy-string->bytevector)
-	(object-new-type bytevector-type string))))
+	(%legacy-string->bytevector string))))
+
+(define-integrable (%legacy-string->bytevector string)
+  (object-new-type bytevector-type string))
 
 ;;; TODO(cph): eliminate after 9.3 release:
 (define-integrable bytevector-type #x33)
@@ -75,7 +78,7 @@ USA.
 	((not (pair? bytevectors)))
       (bytevector-copy! bytevector index (car bytevectors)))
     bytevector))
-
+
 (define (bytevector-fill! bytevector fill #!optional start end)
   ((ucode-primitive bytevector-fill! 4)
    bytevector
@@ -105,6 +108,12 @@ USA.
 	       (and (fix:= (bytevector-u8-ref b1 index)
 			   (bytevector-u8-ref b2 index))
 		    (loop (fix:+ index 1))))))))
+
+;; String hash primitives work on bytevectors too.
+(define (bytevector-hash bytevector #!optional modulus)
+  (if (default-object? modulus)
+      ((ucode-primitive string-hash) bytevector)
+      ((ucode-primitive string-hash-mod) bytevector modulus)))
 
 ;;;; U16 accessors
 
@@ -151,6 +160,7 @@ USA.
 (define-syntax select-u32-code
   (er-macro-transformer
    (lambda (form rename compare)
+     rename compare
      (syntax-check '(KEYWORD EXPRESSION EXPRESSION) form)
      (if (fix:fixnum? #xFFFFFFFF)
 	 (cadr form)
@@ -245,38 +255,27 @@ USA.
 			       index-fixnum?
 			       exact-nonnegative-integer?)))
 
-(define (string-encoder char-byte-length encode-char! caller)
+(define (string-encoder char-byte-length allocator encode-char! caller)
   (lambda (string #!optional start end)
-    (guarantee string? string caller)
-    (let* ((end
-	    (if (default-object? end)
-		(string-length string)
-		(begin
-		  (guarantee index-fixnum? end caller)
-		  (if (not (fix:<= end (string-length string)))
-		      (error:bad-range-argument end caller))
-		  end)))
-	   (start
-	    (if (default-object? start)
-		0
-		(begin
-		  (guarantee index-fixnum? start caller)
-		  (if (not (fix:<= start end))
-		      (error:bad-range-argument start caller))
-		  start))))
+    (let* ((end (fix:end-index end (ustring-length string) caller))
+	   (start (fix:start-index start end caller)))
       (let ((bytes
-	     (allocate-bytevector
+	     (allocator
 	      (let loop ((index start) (n-bytes 0))
 		(if (fix:< index end)
 		    (loop (fix:+ index 1)
 			  (fix:+ n-bytes
-				 (char-byte-length (string-ref string index))))
+				 (char-byte-length (ustring-ref string index))))
 		    n-bytes)))))
 	(let loop ((from start) (to 0))
 	  (if (fix:< from end)
 	      (loop (fix:+ from 1)
-		    (encode-char! bytes to (string-ref string from)))))
+		    (encode-char! bytes to (ustring-ref string from)))))
 	bytes))))
+
+;; Make sure UTF-8 bytevectors have null termination.
+(define (utf8-allocator k)
+  (legacy-string->bytevector (make-legacy-string k)))
 
 (define string->utf8)
 (define string->utf16be)
@@ -286,68 +285,54 @@ USA.
 (add-boot-init!
  (lambda ()
    (set! string->utf8
-	 (string-encoder char-utf8-byte-length encode-utf8-char!
-			 'string->utf8))
+	 (string-encoder char-utf8-byte-length utf8-allocator
+			 encode-utf8-char! 'string->utf8))
    (set! string->utf16be
-	 (string-encoder char-utf16-byte-length encode-utf16be-char!
-			 'string->utf16be))
+	 (string-encoder char-utf16-byte-length allocate-bytevector
+			 encode-utf16be-char! 'string->utf16be))
    (set! string->utf16le
-	 (string-encoder char-utf16-byte-length encode-utf16le-char!
-			 'string->utf16le))
+	 (string-encoder char-utf16-byte-length allocate-bytevector
+			 encode-utf16le-char! 'string->utf16le))
    (set! string->utf32be
-	 (string-encoder char-utf32-byte-length encode-utf32be-char!
-			 'string->utf32be))
+	 (string-encoder char-utf32-byte-length allocate-bytevector
+			 encode-utf32be-char! 'string->utf32be))
    (set! string->utf32le
-	 (string-encoder char-utf32-byte-length encode-utf32le-char!
-			 'string->utf32le))
+	 (string-encoder char-utf32-byte-length allocate-bytevector
+			 encode-utf32le-char! 'string->utf32le))
    unspecific))
 
-(define (bytes-decoder getter initial->length char-length decode-char step noun
-		       caller)
+(define-integrable (bytes-decoder getter initial->length char-length decode-char
+				  step noun caller)
   (lambda (bytevector #!optional start end)
-    (guarantee bytevector? bytevector caller)
-    (let* ((end
-	    (if (default-object? end)
-		(bytevector-length bytevector)
-		(begin
-		  (guarantee index-fixnum? end caller)
-		  (if (not (fix:<= end (bytevector-length bytevector)))
-		      (error:bad-range-argument end caller))
-		  end)))
-	  (start
-	   (if (default-object? start)
-	       0
-	       (begin
-		 (guarantee index-fixnum? start caller)
-		 (if (not (fix:<= start end))
-		     (error:bad-range-argument start caller))
-		 start)))
-	  (truncated
-	   (lambda (index)
-	     (error (string "Truncated " noun " sequence:")
-		    (bytevector-copy bytevector
-				     index
-				     (fix:min (fix:+ index 4) end))))))
-      (let ((string
-	     (make-string
-	      (let loop ((index start) (n-chars 0))
-		(if (fix:<= (fix:+ index step) end)
-		    (let ((n (initial->length (getter bytevector start))))
-		      (let ((index* (fix:+ index n)))
-			(if (not (fix:<= index* end))
-			    (truncated index))
-			(loop index* (fix:+ n-chars 1))))
-		    (begin
-		      (if (fix:< index end)
-			  (truncated index))
-		      n-chars))))))
-	(let loop ((from start) (to 0))
-	  (if (fix:< from end)
-	      (let ((char (decode-char bytevector start)))
-		(string-set! string to char)
-		(loop (fix:+ from (char-length char))
-		      (fix:+ to 1)))))
-	string))))
+    (let* ((end (fix:end-index end (bytevector-length bytevector) caller))
+	   (start (fix:start-index start end caller))
+	   (string
+	    (make-ustring
+	     (let ((truncated
+		    (lambda (index)
+		      (error (string "Truncated " noun " sequence:")
+			     (bytevector-copy bytevector
+					      index
+					      (fix:min (fix:+ index 4) end))))))
+	       (let loop ((index start) (n-chars 0))
+		 (if (fix:<= (fix:+ index step) end)
+		     (let ((n (initial->length (getter bytevector start))))
+		       (let ((index* (fix:+ index n)))
+			 (if (not (fix:<= index* end))
+			     (truncated index))
+			 (loop index* (fix:+ n-chars 1))))
+		     (begin
+		       (if (fix:< index end)
+			   (truncated index))
+		       n-chars)))))))
+      (let loop ((from start) (to 0))
+	(if (fix:< from end)
+	    (let ((char (decode-char bytevector from)))
+	      (ustring-set! string to char)
+	      (loop (fix:+ from (char-length char))
+		    (fix:+ to 1)))))
+      (or (ustring->ascii string)	;return legacy string if possible
+	  string))))
 
 (define utf8->string)
 (define utf16be->string)

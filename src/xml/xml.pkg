@@ -304,7 +304,6 @@ USA.
 	  read-xml
 	  read-xml-file
 	  string->xml
-	  utf8-string->xml
 	  xml-processing-instructions-handlers)
   (export (runtime xml)
 	  coding-requires-bom?
@@ -318,7 +317,7 @@ USA.
 	  write-xml
 	  write-xml-file
 	  xml->octets
-	  xml->wide-string))
+	  xml->ustring))
 
 (define-package (runtime xml html)
   (files "xhtml" "xhtml-entities")

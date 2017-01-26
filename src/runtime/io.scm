@@ -285,7 +285,8 @@ USA.
 ;;;; File Primitives
 
 (define (file-open primitive operator filename)
-  (let ((channel (open-channel (lambda (p) (primitive filename p)))))
+  (let ((channel
+	 (open-channel (lambda (p) (primitive (string->utf8 filename) p)))))
     (if (or (channel-type=directory? channel)
 	    (channel-type=unknown? channel))
 	(let ((reason
@@ -453,7 +454,8 @@ USA.
    (lambda ()
      (add-to-gc-finalizer! open-directories
 			   (make-directory-channel
-			    ((ucode-primitive new-directory-open 1) name))))))
+			    ((ucode-primitive new-directory-open 1)
+			     (string->utf8 name)))))))
 
 (define (directory-channel-close channel)
   (remove-from-gc-finalizer! open-directories channel))
@@ -465,7 +467,7 @@ USA.
 (define (directory-channel-read-matching channel prefix)
   ((ucode-primitive new-directory-read-matching 2)
    (directory-channel/descriptor channel)
-   prefix))
+   (string->utf8 prefix)))
 
 ;;;; Select registry
 
@@ -687,7 +689,7 @@ USA.
      (lambda () unspecific)
      (lambda ()
        ((ucode-primitive dld-load-file 2)
-	(and pathname (->namestring pathname))
+	(and pathname (string->utf8 (->namestring pathname)))
 	p)
        (let ((handle (make-dld-handle pathname (weak-cdr p))))
 	 (with-thread-mutex-lock dld-handles-mutex
@@ -727,8 +729,10 @@ USA.
 
 (define (dld-lookup-symbol handle name)
   (guarantee-dld-handle handle 'DLD-LOOKUP-SYMBOL)
-  (guarantee-string name 'DLD-LOOKUP-SYMBOL)
-  ((ucode-primitive dld-lookup-symbol 2) (dld-handle-address handle) name))
+  (guarantee ustring? name 'DLD-LOOKUP-SYMBOL)
+  ((ucode-primitive dld-lookup-symbol 2)
+   (dld-handle-address handle)
+   (string->utf8 name)))
 
 (define (dld-loaded-file? pathname)
   (find-dld-handle

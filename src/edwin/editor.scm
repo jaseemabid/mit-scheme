@@ -163,7 +163,7 @@ USA.
     (if (null? display-type-names)
 	(find-any)
 	(let ((next (name->display-type (car display-type-names))))
-	  (if (and next 
+	  (if (and next
 		   (display-type/available? next))
 	      next
 	      (find-preferred (cdr display-type-names))))))

@@ -55,7 +55,7 @@ USA.
 (define (find-global-definitions name model-pathname os-type)
   (let* ((filename (->pathname
 		    (cond ((symbol? name) (symbol-name name))
-			  ((string? name) name)
+			  ((ustring? name) name)
 			  (else (error "Not a globals name:" name)))))
 	 (pkd (package-set-pathname filename os-type)))
     (or
@@ -280,7 +280,7 @@ USA.
       ((GLOBAL-DEFINITIONS)
        (let ((filenames (cdr expression)))
 	 (if (not (for-all? filenames
-			    (lambda (f) (or (string? f) (symbol? f)))))
+			    (lambda (f) (or (ustring? f) (symbol? f)))))
 	     (lose))
 	 (cons 'GLOBAL-DEFINITIONS filenames)))
       ((OS-TYPE-CASE)
@@ -306,7 +306,7 @@ USA.
       ((INCLUDE)
        (cons 'NESTED-DESCRIPTIONS
 	     (let ((filenames (cdr expression)))
-	       (if (not (for-all? filenames string?))
+	       (if (not (for-all? filenames ustring?))
 		   (lose))
 	       (append-map (lambda (filename)
 			     (read-and-parse-model
@@ -402,7 +402,7 @@ USA.
   name)
 
 (define (parse-filenames filenames)
-  (if (not (check-list filenames string?))
+  (if (not (check-list filenames ustring?))
       (error "illegal filenames" filenames))
   (list #F (cons 'ELSE (map parse-filename filenames))))
 
@@ -414,7 +414,7 @@ USA.
 		    (and (pair? clause)
 			 (or (eq? 'ELSE (car clause))
 			     (check-list (car clause) symbol?))
-			 (check-list (cdr clause) string?))))))
+			 (check-list (cdr clause) ustring?))))))
       (error "Illegal file-case" file-case))
   (cons (car file-case)
 	(map (lambda (clause)
